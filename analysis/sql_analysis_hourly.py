@@ -7,7 +7,7 @@ Created on Thu Nov  2 13:28:17 2017
 
 """
 
-import grimsel_h.auxiliary.aux_sql_func as aql
+import grimsel.auxiliary.aux_sql_func as aql
 
 class SqlAnalysisHourly:
     ''' Performs various SQL-based analyses on the output tables. '''

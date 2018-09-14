@@ -1,7 +1,7 @@
 import pandas as pd
 from sqlalchemy import create_engine
 import numpy as np
-from grimsel_h.auxiliary.aux_sql_func import write_sql
+from grimsel.auxiliary.aux_sql_func import write_sql
 
 MONTH_DICT = {0:'JAN', 1:'FEB', 2:'MAR', 3:'APR', 4:'MAY', 5:'JUN',
                6:'JUL', 7:'AUG', 8:'SEP', 9:'OCT', 10:'NOV', 11:'DEC'}

@@ -3,7 +3,7 @@
 """
 Created on Mon May 14 07:41:11 2018
 
-@author: user
+@author: mcsoini
 """
 
 import pandas as pd
@@ -463,9 +463,9 @@ if __name__ == '__main__':
     self = AutoCompleteFuelTrns(ml.m)
     self = AutoCompleteFuelDmnd(ml.m)
     self = AutoCompletePlantTrns(ml.m)
-#    self = AutoCompletePlantDmnd(ml.m)
-#    self = AutoCompletePlantCons(ml.m)
-#    self = AutoCompletePpCaFlex(ml.m)
+    self = AutoCompletePlantDmnd(ml.m)
+    self = AutoCompletePlantCons(ml.m)
+    self = AutoCompletePpCaFlex(ml.m)
 
 # %%
 

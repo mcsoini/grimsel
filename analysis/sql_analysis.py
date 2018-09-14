@@ -7,11 +7,11 @@ Created on Thu Nov  2 13:28:17 2017
 
 import warnings
 
-import grimsel_h.auxiliary.aux_sql_func as aql
-import grimsel_h.auxiliary.timemap as tm
-from grimsel_h.auxiliary.aux_general import get_config
+import grimsel.auxiliary.aux_sql_func as aql
+import grimsel.auxiliary.timemap as tm
+from grimsel.auxiliary.aux_general import get_config
 
-from grimsel_h.analysis.sql_analysis_hourly import SqlAnalysisHourly
+from grimsel.analysis.sql_analysis_hourly import SqlAnalysisHourly
 
 
 

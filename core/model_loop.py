@@ -8,13 +8,13 @@ import itertools
 import time
 from importlib import reload
 
-import grimsel_h.core.model_base as model_base
-import grimsel_h.core.io as io
-import grimsel_h.core.model_loop_modifier as model_loop_modifier
-import grimsel_h.core.parameter_changes as parameter_changes
+import grimsel.core.model_base as model_base
+import grimsel.core.io as io
+import grimsel.core.model_loop_modifier as model_loop_modifier
+import grimsel.core.parameter_changes as parameter_changes
 
-import grimsel_h.auxiliary.aux_sql_func as aql
-import grimsel_h.auxiliary.maps as maps
+import grimsel.auxiliary.aux_sql_func as aql
+import grimsel.auxiliary.maps as maps
 from grimsel.auxiliary.aux_general import get_config
 
 reload(model_base)

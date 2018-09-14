@@ -12,7 +12,7 @@ import sqlalchemy
 import string
 import random
 
-from grimsel_h.auxiliary.aux_general import get_config
+from grimsel.auxiliary.aux_general import get_config
 
 
 # %%

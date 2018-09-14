@@ -69,18 +69,18 @@ from pyomo.opt import SolverFactory
 from datetime import datetime
 
 # auxiliary modules
-import grimsel_h.auxiliary.aux_sql_func as aql
-import grimsel_h.auxiliary.maps as maps
-import grimsel_h.auxiliary.timemap as timemap
-from grimsel_h.auxiliary.aux_general import get_config
-from grimsel_h.auxiliary.aux_m_func import pdef, set_to_list
+import grimsel.auxiliary.aux_sql_func as aql
+import grimsel.auxiliary.maps as maps
+import grimsel.auxiliary.timemap as timemap
+from grimsel.auxiliary.aux_general import get_config
+from grimsel.auxiliary.aux_m_func import pdef, set_to_list
 
 # model components
-import grimsel_h.core.constraints as constraints
-import grimsel_h.core.variables as variables
-import grimsel_h.core.parameters as parameters
-import grimsel_h.core.sets as sets
-import grimsel_h.core.io as io # for class methods
+import grimsel.core.constraints as constraints
+import grimsel.core.variables as variables
+import grimsel.core.parameters as parameters
+import grimsel.core.sets as sets
+import grimsel.core.io as io # for class methods
 
 TEMP_DIR = tempfile.gettempdir()
 

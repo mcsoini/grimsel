@@ -2,7 +2,7 @@
 import pyomo.environ as po
 import numpy as np
 
-from grimsel_h.auxiliary.aux_m_func import set_to_list
+from grimsel.auxiliary.aux_m_func import set_to_list
 
 class Constraints:
     '''
