@@ -1,0 +1,14 @@
+
+Log for '/tmp/ephemeral.pyomo.lp' Clone_2 (V12.7.1.0) Tue May 29 11:09:11 2018
+
+Using devex.
+
+Iteration log . . .
+Iteration:     1    Scaled infeas =     496320825.683033
+Iteration:   358    Scaled infeas =     392716636.431995
+Iteration:   445    Scaled infeas =     371441234.515406
+Iteration:  1294    Scaled infeas =      31795357.470292
+Iteration:  2066    Scaled infeas =      15533955.862770
+Iteration:  2947    Scaled infeas =       9929607.294814
+Iteration:  3688    Scaled infeas =       5743487.454432
+Iteration:  4473    Scaled infeas =       4887052.634504

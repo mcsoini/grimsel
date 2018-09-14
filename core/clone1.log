@@ -1,0 +1,29 @@
+
+Log for 'C:\Users\ashreeta\AppData\Local\Temp\manual_problem_file.pyomo.lp' Clone_1 (V12.7.1.0) Mon May 14 19:24:44 2018
+
+Bound infeasibility column 'x72'.
+Presolve time = 0.05 sec. (21.60 ticks)
+Using devex.
+
+Iteration log . . .
+Iteration:     1    Scaled infeas =    1164146305.088086
+Iteration:   283    Scaled infeas =     953243929.899153
+Iteration:   416    Scaled infeas =     869796605.191194
+Iteration:  1504    Scaled infeas =      48219910.869422
+Iteration:  2438    Scaled infeas =      25038042.904333
+Iteration:  3603    Scaled infeas =      16846071.789985
+Iteration:  4538    Scaled infeas =      13037070.940200
+Iteration:  5382    Scaled infeas =      10190760.952735
+Iteration:  6367    Scaled infeas =       8557380.081734
+Iteration:  7291    Scaled infeas =       7250307.087936
+Iteration:  8169    Scaled infeas =       6355978.929381
+Iteration:  8980    Scaled infeas =       4123702.273083
+Iteration:  9853    Scaled infeas =       3259435.168272
+Iteration: 10598    Scaled infeas =       2804625.856716
+Iteration: 11452    Scaled infeas =       2317106.524343
+Iteration: 12302    Scaled infeas =       2025469.390270
+Iteration: 13114    Scaled infeas =       1680620.100706
+Iteration: 13895    Scaled infeas =       1408565.964208
+
+Dual simplex solved model.
+

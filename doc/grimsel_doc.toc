@@ -1,0 +1,36 @@
+\contentsline {section}{\numberline {1}Introduction}{2}{section.1}
+\contentsline {section}{\numberline {2}Implementation summary}{2}{section.2}
+\contentsline {subsection}{\numberline {2.1}BaseModel}{2}{subsection.2.1}
+\contentsline {subsubsection}{\numberline {2.1.1}\_\_init\_\_}{2}{subsubsection.2.1.1}
+\contentsline {subsubsection}{\numberline {2.1.2}build\_model}{3}{subsubsection.2.1.2}
+\contentsline {subsubsection}{\numberline {2.1.3}switch\_soln\_file}{3}{subsubsection.2.1.3}
+\contentsline {subsubsection}{\numberline {2.1.4}run}{3}{subsubsection.2.1.4}
+\contentsline {subsubsection}{\numberline {2.1.5}presolve\_fixed\_capacities}{3}{subsubsection.2.1.5}
+\contentsline {subsubsection}{\numberline {2.1.6}fill\_peaker\_plants}{3}{subsubsection.2.1.6}
+\contentsline {subsection}{\numberline {2.2}ModelLoop}{3}{subsection.2.2}
+\contentsline {subsubsection}{\numberline {2.2.1}nsteps}{4}{subsubsection.2.2.1}
+\contentsline {subsubsection}{\numberline {2.2.2}df\_def\_loop}{4}{subsubsection.2.2.2}
+\contentsline {subsubsection}{\numberline {2.2.3}select\_run}{4}{subsubsection.2.2.3}
+\contentsline {subsubsection}{\numberline {2.2.4}Other methods}{4}{subsubsection.2.2.4}
+\contentsline {subsection}{\numberline {2.3}IO}{4}{subsection.2.3}
+\contentsline {subsubsection}{\numberline {2.3.1}Lists var\_*, par, dual}{5}{subsubsection.2.3.1}
+\contentsline {subsubsection}{\numberline {2.3.2}Dictionary dict\_cross\_table}{5}{subsubsection.2.3.2}
+\contentsline {subsubsection}{\numberline {2.3.3}write\_runtime\_tables}{5}{subsubsection.2.3.3}
+\contentsline {subsection}{\numberline {2.4}Summary of relationships between the classes IO/ModelBase/ModelLoop}{5}{subsection.2.4}
+\contentsline {subsubsection}{\numberline {2.4.1}Sets}{5}{subsubsection.2.4.1}
+\contentsline {subsection}{\numberline {2.5}Notes on energy carriers and fuels}{5}{subsection.2.5}
+\contentsline {subsubsection}{\numberline {2.5.1}Multiple fuels for a plant}{6}{subsubsection.2.5.1}
+\contentsline {subsubsection}{\numberline {2.5.2}Storage and energy carriers}{6}{subsubsection.2.5.2}
+\contentsline {subsubsection}{\numberline {2.5.3}Energy carriers are node-based}{6}{subsubsection.2.5.3}
+\contentsline {subsection}{\numberline {2.6}Input data structure}{6}{subsection.2.6}
+\contentsline {subsubsection}{\numberline {2.6.1}Description of tables}{6}{subsubsection.2.6.1}
+\contentsline {subsection}{\numberline {2.7}Output data structure}{13}{subsection.2.7}
+\contentsline {section}{\numberline {3}Model documentation}{13}{section.3}
+\contentsline {subsection}{\numberline {3.1}Supply rule}{13}{subsection.3.1}
+\contentsline {subsection}{\numberline {3.2}Modeling of co-generation}{13}{subsection.3.2}
+\contentsline {subsection}{\numberline {3.3}Modelling of ramp rate costs}{13}{subsection.3.3}
+\contentsline {subsection}{\numberline {3.4}Modelling of hydro power and storage assets}{14}{subsection.3.4}
+\contentsline {subsubsection}{\numberline {3.4.1}Parameters}{14}{subsubsection.3.4.1}
+\contentsline {subsubsection}{\numberline {3.4.2}Constraints}{14}{subsubsection.3.4.2}
+\contentsline {subsection}{\numberline {3.5}Modeling of run-of-river plants}{15}{subsection.3.5}
+\contentsline {subsection}{\numberline {3.6}Short description of objective function}{15}{subsection.3.6}

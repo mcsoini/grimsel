@@ -1,0 +1,23 @@
+{
+  "sql_connect":{
+    "psycopg2":"dbname={db} user=postgres password=postgres host=localhost",
+    "sqlalchemy":"postgresql://postgres:postgres@localhost:5432/{db}",
+    "db": "storage3",
+    "password": "postgres",
+    "user": "postgres",
+    "host": "localhost",
+    "port": 5432
+  },
+  "_comment_dpi":"Dpi for different screen resolutions.",
+  "dpi":{
+    "linux2":150,
+    "linux":150,
+    "win32":75
+  },
+  "_comment_page_scale":"Not used for now.",
+  "page_scale":{
+    "linux2":2,
+    "linux":2,
+    "win32":2
+  }
+}

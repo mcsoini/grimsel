@@ -1,0 +1,3 @@
+,tdiff_solve,tdiff_write,run_id,run_name,swhy_id,swda_id,swhy,swda,swhy_vl,swda_vl,info,objective
+0,5.79994606971741,6.26252245903015,0,000; 0; yr2015; all,0,0,0.0,0.0,yr2015,all,Solver: optimal,26661337786.8726
+1,6.75280356407166,6.33843088150024,1,001; 1; yr2016; all,1,0,1.0,0.0,yr2016,all,Solver: optimal,26899522111.18
