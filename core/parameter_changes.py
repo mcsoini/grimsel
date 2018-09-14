@@ -8,8 +8,8 @@ Created on Wed Dec 20 10:10:27 2017
 
 import pandas as pd
 
-import grimsel_h.auxiliary.aux_sql_func as aql
-from grimsel_h.auxiliary.aux_m_func import pdef
+import grimsel.auxiliary.aux_sql_func as aql
+from grimsel.auxiliary.aux_m_func import pdef
 
 
 class ParameterChanges():

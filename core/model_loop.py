@@ -15,7 +15,7 @@ import grimsel_h.core.parameter_changes as parameter_changes
 
 import grimsel_h.auxiliary.aux_sql_func as aql
 import grimsel_h.auxiliary.maps as maps
-from grimsel_h.auxiliary.aux_general import get_config
+from grimsel.auxiliary.aux_general import get_config
 
 reload(model_base)
 reload(io)

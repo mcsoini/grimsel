@@ -6,7 +6,7 @@ Created on Fri Jul  6 11:23:06 2018
 """
 import numpy as np
 
-from grimsel_h.auxiliary.aux_m_func import pdef
+from grimsel.auxiliary.aux_m_func import pdef
 
 class ModelLoopModifier():
     '''

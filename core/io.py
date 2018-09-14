@@ -16,9 +16,9 @@ import itertools
 from importlib import reload
 import time
 
-import grimsel_h.auxiliary.aux_sql_func as aql
-from grimsel_h.auxiliary.aux_general import get_config, print_full
-import grimsel_h.core.autocomplete as ac
+import grimsel.auxiliary.aux_sql_func as aql
+from grimsel.auxiliary.aux_general import get_config, print_full
+import grimsel.core.autocomplete as ac
 
 
 

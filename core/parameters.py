@@ -7,8 +7,8 @@ import itertools
 import pandas as pd
 
 
-from grimsel_h.auxiliary.aux_m_func import pdef
-import grimsel_h.core.io as io
+from grimsel.auxiliary.aux_m_func import pdef
+import grimsel.core.io as io
 
 class Parameters:
     '''

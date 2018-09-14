@@ -4,7 +4,7 @@ Module docstring
 
 
 '''
-BETTER WAY TO WARMSTART??
+BETTER WAY TO WARMSTART?
 https://github.com/Pyomo/pyomo/blob/master/doc/GettingStarted/current/examples/ipopt_warmstart.py#L65
 
 '''

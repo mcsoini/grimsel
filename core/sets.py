@@ -2,7 +2,7 @@ import pyomo.environ as po
 import pandas as pd
 import numpy as np
 
-from grimsel_h.auxiliary.aux_m_func import get_ilst
+from grimsel.auxiliary.aux_m_func import get_ilst
 
 class Sets:
     '''
