@@ -450,6 +450,9 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
             exec_str = ('/opt/ibm/ILOG/CPLEX_Studio1271/cplex/bin/'
                         +'x86-64_linux/cplex')
             self.solver = SolverFactory("cplex", executable=exec_str)
+        elif sys.platform == 'darwin':
+            exec_str = ('/Applications/CPLEX_Studio128/cplex/bin/x86-64_osx/cplex')
+            self.solver = SolverFactory("cplex", executable=exec_str)
 
         if self.nthreads:
             self.solver.set_options('threads=' + str(self.nthreads))
