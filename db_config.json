@@ -12,12 +12,14 @@
   "dpi":{
     "linux2":150,
     "linux":150,
-    "win32":75
+    "win32":75,
+    "darwin":100
   },
   "_comment_page_scale":"Not used for now.",
   "page_scale":{
     "linux2":2,
     "linux":2,
-    "win32":2
+    "win32":2,
+    "darwin":2
   }
 }
