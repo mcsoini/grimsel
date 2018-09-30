@@ -529,7 +529,7 @@ class SqlAnalysisHourly:
                     DROP VIEW IF EXISTS
                         analysis_time_series_transmission_0 CASCADE;
                     DROP TABLE IF EXISTS
-                        analysis_time_series_transmission CASCADE;
+                        {sc_out}.analysis_time_series_transmission CASCADE;
 
                     CREATE VIEW analysis_time_series_transmission_0 AS
                     WITH trrv AS (
@@ -560,33 +560,29 @@ class SqlAnalysisHourly:
                             ON dfnd_2.nd_id = tr.nd_2_id
                         WHERE run_id IN {in_run_id}
                     ), tm AS (
-                        SELECT sy, ca_id, year, day, dow, dow_name, dow_type, doy,
-                               hom, hour, wom, mt, ndays,
-                               how, hy, mt_id, weight, wk, wk_id, wk_weight, run_id
-                        FROM analysis_time_series
-                        WHERE pt = 'NUC_ELC' AND nd = 'DE0'
+                        SELECT *
+                        FROM profiles_raw.timestamp_template
+                        WHERE year = 2015
                     ), trall AS (
                         SELECT * FROM trrv
                         UNION ALL
                         SELECT * FROM trsd
                     )
-                    SELECT CAST(0 AS SMALLINT) AS ca_id, trall.bool_out,
-                           trall.value, trall.run_id, tm.year, trall.sy, tm.day,
-                           tm.dow, tm.dow_name, tm.dow_type, tm.doy, tm.hom, tm.hour, tm.how, tm.hy,
-                           tm.mt, tm.mt_id, tm.ndays, tm.weight, tm.wk, tm.wk_id, tm.wk_weight,
-                           tm.wom, trall.pt, trall.pp_broad_cat, trall.nd,
+                    SELECT 0::SMALLINT AS bool_out,
+                           trall.value, trall.run_id, tm.*,
+                           trall.pt, trall.pp_broad_cat, trall.nd,
                            trall.fl, trall.value_posneg
                     FROM trall
-                    LEFT JOIN tm ON tm.sy = trall.sy AND trall.run_id = tm.run_id;
+                    LEFT JOIN tm ON tm.slot = trall.sy;
 
                     SELECT *
-                    INTO analysis_time_series_transmission{sff}
-                    FROM analysis_time_series
-                    WHERE NOT pt LIKE '%TRNS%'
+                    INTO {sc_out}.analysis_time_series_transmission{sff}
+                    FROM {sc_out}.analysis_time_series
+                    WHERE NOT pp LIKE '%TRNS%'
                     UNION ALL
                     SELECT * FROM analysis_time_series_transmission_0;
                     ''').format(sc_out=self.sc_out, in_run_id=self.in_run_id,
-								sff=self._suffix)
+    								 sff=self._suffix)
         aql.exec_sql(exec_str, db=self.db)
 
 
