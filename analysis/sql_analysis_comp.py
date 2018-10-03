@@ -334,23 +334,26 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
                     NATURAL LEFT JOIN {sc_out}.def_loop AS dflp
                     NATURAL LEFT JOIN {sc_out}.def_plant AS dfpp;
                     '''.format(**self.format_kw)
-        aql.exec_sql(exec_str, db='storage2')
+
+        aql.exec_sql(exec_str, db=self.db)
 
         # add stats
-        df_erg_inp = aql.read_sql('storage2', self.sc_out, 'fuel_node_encar').set_index(['fl_id', 'nd_id', 'ca_id'])
+        df_erg_inp = aql.read_sql(self.db, self.sc_out, 'fuel_node_encar').set_index(['fl_id', 'nd_id', 'ca_id'])
         df_erg_inp = df_erg_inp[[c for c in df_erg_inp.columns if 'erg_inp' in c]]
         df_erg_inp = df_erg_inp.stack().reset_index().rename(columns={'level_3': 'swhy_vl', 0: 'value'})
         df_erg_inp['swhy_vl'] = df_erg_inp['swhy_vl'].replace({'erg_inp': 'erg_inp_yr2015'}).map(lambda x: x[-6:])
         df_erg_inp['sta_mod'] = 'stats'
         df_erg_inp['bool_out'] = False
-        df_swhy = aql.read_sql('storage2', self.sc_out, 'def_loop').set_index('swhy_vl')['run_id']
+
+        df_swhy = aql.read_sql(self.db, self.sc_out, 'def_loop').set_index('swhy_vl')['run_id']
         df_erg_inp = df_erg_inp.join(df_swhy, on=df_swhy.index.names)
         df_erg_inp = df_erg_inp.loc[-df_erg_inp.run_id.apply(np.isnan)].drop('swhy_vl', axis=1)
 
         # add imex stats
         if 'export' in self.mps.dict_fl_id.keys():
 
-            df_imex = aql.read_sql('storage2', self.sc_out, 'imex_comp')
+            df_imex = aql.read_sql(self.db, self.sc_out, 'imex_comp')
+
             df_imex = df_imex.set_index(['nd_id', 'nd_2_id']).stack().reset_index()
             df_imex = df_imex.rename(columns={'level_2': 'swhy_vl', 0: 'value'})
 
