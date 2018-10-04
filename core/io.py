@@ -4,7 +4,7 @@ Note: It would be better if all interaction with SQL where concentrated in
 a dedicated method/class
 '''
 
-import sys
+import sys, os
 
 import pandas as pd
 from pandas.io.sql import SQLTable
@@ -19,7 +19,7 @@ import time
 import grimsel.auxiliary.aux_sql_func as aql
 from grimsel.auxiliary.aux_general import get_config, print_full
 import grimsel.core.autocomplete as ac
-
+import grimsel
 
 
 reload(ac)
@@ -141,6 +141,7 @@ class IO():
                     'autocompletion': True,
                     'no_output': False,
                     'dev_mode': False,
+                    'data_path': None,
                     'sc_inp': None,
                     'sc_out': None,
                     'db': None,
@@ -225,6 +226,34 @@ class IO():
             # delete run_ids equal or greater the resume_loop run_id
             self.delete_run_id(self.resume_loop)
 
+
+    def get_input_table(self, table, filt):
+
+        if self.sc_inp:
+            tb_exists = table in aql.get_sql_tables(self.db, self.sc_inp)
+            if tb_exists:
+                df = aql.read_sql(self.db, self.sc_inp, table, filt)
+        else:
+            if self.data_path:
+                path = self.data_path
+            else:
+                path = os.path.join(grimsel.__path__[0], 'input_data')
+            fn = os.path.join(path, '%s'%table)
+
+            tb_exists = os.path.exists(fn)
+
+            if tb_exists:
+                df = pd.read_csv(fn, index_col=0)
+
+#                filt_mask = pd.Series([1]*len(df), index=df.index)
+                for col, vals in filt:
+#                    filt_mask &= df[col].isin(vals)
+
+                    df = df.loc[df[col].isin(vals)]
+
+        return (df if tb_exists else None), tb_exists
+
+
     def read_model_data(self):
         '''
         Read all input data to instance attributes.
@@ -234,10 +263,12 @@ class IO():
             ''' Reads filtered input tables and assigns them to instance
                 attributes. (Copies filtered tables to output schema.
                 OBSOLETE DUE TO AUTO-COMPLETE) '''
-            c2s = {} # was intended for copy_to_schema parameter ... obsolete?
+
             for kk, vv in dct.items():
 
-                tb_exists = kk in aql.get_sql_tables(self.sc_inp, db=self.db)
+                df, tb_exists = self.get_input_table(kk, vv)
+
+                setattr(self.model, 'df_' + kk, df)
 
                 if not tb_exists:
                     print('Input table {tb} does not exist. '
@@ -250,33 +281,32 @@ class IO():
                     print('Reading input table {tb} {flt}'.format(tb=kk,
                                                                   flt=filt))
 
-                setattr(self.model, 'df_' + kk,
-                        aql.read_sql(self.db, self.sc_inp, kk, vv, **c2s)
-                        if tb_exists else None)
 
         # unfiltered input
-        dict_tb_2 = {'def_pp_type': [], 'def_fuel': [],
+        dict_tb_2 = {'def_fuel': [],
                      'def_month': [], 'def_week': [],
-                     'parameter_month': []}
+                     'parameter_month': [], 'def_plant': []}
         df_from_dict(dict_tb_2)
 
         # read input data filtered by node and energy carrier
-        _flt_nd = [('nd_id', self.model.slct_node_id)]
-        _flt_nd_2 = [('nd_2_id', self.model.slct_node_id)]
-        _flt_ca = [('ca_id', self.model.slct_encar_id)]
-        _flt_pt = [('pt_id', self.model.slct_pp_type_id)]
+        _flt_nd = [('nd', self.model.slct_node)]
+        _flt_ca = [('ca', self.model.slct_encar)]
+        _flt_pt = ([('pt_id', self.model.slct_pp_type)]
+                   if self.model.slct_pp_type else [])
         dict_tb_3 = {'def_node': _flt_nd,
-                     'node_encar': _flt_nd + _flt_ca,
-                     'profdmnd': _flt_nd + _flt_ca,
-                     'profchp': _flt_nd,
-                     'profprice': _flt_nd,
-                     'def_encar': _flt_ca,
-                     'node_connect': _flt_nd + _flt_ca + _flt_nd_2}
+                     'def_pp_type': _flt_pt,
+                     'def_encar': _flt_ca}
         df_from_dict(dict_tb_3)
+
+
+        self.model.slct_node_id = self.model.df_def_node.nd_id.tolist()
+        self.model.slct_encar_id = self.model.df_def_encar.ca_id.tolist()
+        self.model.slct_pp_type_id = self.model.df_def_pp_type.pt_id.tolist()
 
         # update filters in case the keyword argument slct_node_id holds more
         # nodes than present in the table
-        _flt_nd = [('nd_id', self.model.df_def_node.nd_id.tolist())]
+        _flt_nd = [('nd_id', self.model.slct_node_id)]
+        _flt_ca = [('ca_id', self.model.slct_encar_id)]
         _flt_nd_2 = [('nd_2_id', self.model.df_def_node.nd_id.tolist())]
 
         # read input data filtered by node, energy carrier, and fuel
@@ -293,7 +323,12 @@ class IO():
 
         _flt_flca = [('fl_id', self.model.df_def_fuel.fl_id.tolist())]
 
-        dict_tb_0 = {'def_plant': _flt_nd + _flt_pt + _flt_flca}
+        dict_tb_0 = {'def_plant': _flt_nd + _flt_pt + _flt_flca,
+                     'profdmnd': _flt_nd + _flt_ca,
+                     'profchp': _flt_nd,
+                     'profprice': _flt_nd,
+                     'node_encar': _flt_nd + _flt_ca,
+                     'node_connect': _flt_nd + _flt_ca + _flt_nd_2}
         df_from_dict(dict_tb_0)
 
         # secondary filtering by plant
@@ -327,10 +362,10 @@ class IO():
             df = getattr(self.model, 'df_' + itb)
             if df is not None:
                 print('Writing table {} to output schema.'.format(itb))
-                aql.copy_table_structure(sc=self.sc_out, tb=itb,
-                                         sc0=self.sc_inp, db=self.db)
+#                aql.copy_table_structure(sc=self.sc_out, tb=itb,
+#                                         sc0=self.sc_inp, db=self.db)
                 aql.write_sql(df, self.db, self.sc_out, itb,
-                              if_exists='append')
+                              if_exists='replace')
 
     def filter_by_name_id_cols(self, name_df, filt):
         '''
