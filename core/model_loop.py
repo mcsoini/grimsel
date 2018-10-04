@@ -95,8 +95,7 @@ class ModelLoop(parameter_changes.ParameterChanges):
 
         self.init_output_schema()
 
-        self.mkwargs.update({'mps': maps.Maps(self.sc_inp, db=self.db),
-                             'unq_code': self.unq_code})
+        self.mkwargs.update({'unq_code': self.unq_code})
 
         self.run_id = None  # set later
 
@@ -116,6 +115,8 @@ class ModelLoop(parameter_changes.ParameterChanges):
         self.io = io.IO(**self.iokwargs)
 
         self.io.read_model_data()
+
+        self.m.mps = maps.Maps(self.sc_out, db=self.db)
 
         self.m.map_to_time_res()
 
