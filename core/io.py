@@ -243,7 +243,7 @@ class IO():
             tb_exists = os.path.exists(fn)
 
             if tb_exists:
-                df = pd.read_csv(fn, index_col=0)
+                df = pd.read_csv(fn)
 
 #                filt_mask = pd.Series([1]*len(df), index=df.index)
                 for col, vals in filt:
