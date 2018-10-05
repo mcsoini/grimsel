@@ -7,7 +7,9 @@ import grimsel
 try:
     import grimsel.config_local as conf_local
     PATH_CSV = conf_local.PATH_CSV
-except:
+except Exception as e:
+    print(e)
+
     PATH_CSV = os.path.join(grimsel.__path__[0], 'input_data')
     PATH_CSV = os.path.abspath('input_data')
     print('Using default csv path %s'%PATH_CSV)
@@ -23,9 +25,12 @@ try:
     PSQL_HOST = conf_local.PSQL_HOST
     PSQL_PORT = conf_local.PSQL_PORT
 
-except:
+except Exception as e:
+    print(e)
     raise RuntimeError('Please set configuration parameters in '
-                       'grimsel/config_local.py, e.g. \n'
+                       'grimsel/config_local.py, e.g. \n\n'
+
+                       'import os\n'
                        'FN_XLSX = os.path.abspath(\'../DATA/input.xlsx\')\n'
                        'DATABASE = \'database_name\'\n'
                        'SCHEMA = \'model_input_schema_name\'\n'
