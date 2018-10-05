@@ -53,21 +53,48 @@ class ModelLoopModifier():
         self.ml.dct_vl['swfh_vl'] = str_fh
 
 
+    def set_availability_germany_summer(self, slct_pp):
+        
+        dict_avde = {0: 1,
+                     1: 1.2,
+                     2: 1.4
+                     }
+        
+        slct_avde = self.ml.dct_step['swavde']
+        val_avde = dict_avde[slct_avde]
+
+        slct_pp_id = [self.ml.m.mps.dict_pp_id[pp] for pp in slct_pp]
+        df = self.ml.m.parameter_month_dict['cf_max'].copy()
+
+        dict_cf = df.loc[df.pp_id.isin(slct_pp_id)
+                        & df.mt_id.isin([4, 5, 6, 7])]
+        dict_cf = dict_cf.set_index(['mt_id', 'pp_id', 'ca_id'])['value']
+        dict_cf *= val_avde
+        dict_cf = dict_cf.to_dict()
+        
+        for kk, vv in dict_cf.items():
+            self.ml.m.cf_max[kk].value = vv
+
+        self.ml.dct_vl['swavde_vl'] = 'x%f'%val_avde
+
+
+
+
     def set_ramping_cost(self, slct_pp):
 
         dict_rc = {0: 1,
-                   1: 1.1,
-                   2: 1.2,
-                   3: 1.3,
-                   4: 1.4,
-                   5: 1.5,
-                   6: 1.6,
-                   7: 1.7,
+                   1: 0.8,
+                   2: 0.6,
+                   3: 0.4,
+                   4: 0.2,
+                   5: 1.2,
+                   6: 1.4,
+                   7: 1.6,
                    8: 1.8
                    }
 
         slct_rc = self.ml.dct_step['swrc']
-        str_rc = dict_rc[slct_rc]
+        val_rc = dict_rc[slct_rc]
 
         slct_pp_id = [self.ml.m.mps.dict_pp_id[pp] for pp in slct_pp]
         dict_rc = (self.ml.m.df_plant_encar
@@ -76,12 +103,11 @@ class ModelLoopModifier():
                             .set_index(['pp_id', 'ca_id'])['vc_ramp']
                             .to_dict())
 
-
         for kk, vv in dict_rc.items():
-            self.ml.m.vc_ramp[kk].value = vv * slct_rc
+            self.ml.m.vc_ramp[kk].value = vv * val_rc
 
 
-        self.ml.dct_vl['swrc_vl'] = 'x%d'%str_rc
+        self.ml.dct_vl['swrc_vl'] = 'x%d'%val_rc
 
 
     def set_calibration_variations(self, dict_cl=None):
