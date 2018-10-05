@@ -238,16 +238,14 @@ class IO():
                 path = self.data_path
             else:
                 path = os.path.join(grimsel.__path__[0], 'input_data')
-            fn = os.path.join(path, '%s'%table)
+            fn = os.path.join(path, '%s.csv'%table)
 
             tb_exists = os.path.exists(fn)
 
             if tb_exists:
                 df = pd.read_csv(fn)
 
-#                filt_mask = pd.Series([1]*len(df), index=df.index)
                 for col, vals in filt:
-#                    filt_mask &= df[col].isin(vals)
 
                     df = df.loc[df[col].isin(vals)]
 
@@ -297,7 +295,6 @@ class IO():
                      'def_pp_type': _flt_pt,
                      'def_encar': _flt_ca}
         df_from_dict(dict_tb_3)
-
 
         self.model.slct_node_id = self.model.df_def_node.nd_id.tolist()
         self.model.slct_encar_id = self.model.df_def_encar.ca_id.tolist()
