@@ -1,3 +1,5 @@
+config_local.py
+
 OBSOLETE/
 *.pyc
 *.log
