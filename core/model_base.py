@@ -133,15 +133,13 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         self.check_contraint_groups()
 
         # translate node and energy carrier selection to ids
-        self.slct_node_id = [self.mps.dict_nd_id[x] for x in self.slct_node]
-        self.slct_encar_id = [self.mps.dict_ca_id[x] for x in self.slct_encar]
-        self.slct_pp_type_id = [self.mps.dict_pt_id[x] for x in self.slct_pp_type]
+#        self.slct_node_id = [self.mps.dict_nd_id[x] for x in self.slct_node]
+#        self.slct_encar_id = [self.mps.dict_ca_id[x] for x in self.slct_encar]
+#        self.slct_pp_type_id = [self.mps.dict_pt_id[x] for x in self.slct_pp_type]
 
         print('self.slct_encar=' + str(self.slct_encar))
         print('self.slct_pp_type=' + str(self.slct_pp_type))
-        print('self.slct_pp_type_id=' + str(self.slct_pp_type_id))
         print('self.slct_node=' + str(self.slct_node))
-        print('self.slct_node_id=' + str(self.slct_node_id))
         print('self.nhours=' + str(self.nhours))
         print('self.constraint_groups=' + str(self.constraint_groups))
 
@@ -218,7 +216,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
             getattr(self, 'add_%s_rules'%cg)()
 
     def _limit_prof_to_cap(self, param_mod):
-        
+
         if len(self.ndcafl_chp) > 0:
             self.limit_prof_to_cap(param_mod)
 

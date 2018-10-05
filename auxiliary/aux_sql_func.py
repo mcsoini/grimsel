@@ -50,7 +50,7 @@ class sql_connector():
         cur = conn.cursor()
 
         return conn, cur
-    
+
     def __repr__(self):
         strg = '%s\n%s'%(self.pg_str, self.sqlal_str)
         return(strg)
@@ -542,6 +542,10 @@ def init_table(tb_name, cols, schema='public', ref_schema=None,
         # apply default data type and foreign key to the columns if not provided
         _coldict = get_coldict(ref_schema, db)
 
+        if not bool_auto_fk:
+            _coldict = {col: (typeref[0],)
+                        for col, typeref in _coldict.items()}
+
         _cols = []
         for icol in cols:
             if not (type(icol) is tuple or type(icol) is list):
@@ -551,11 +555,6 @@ def init_table(tb_name, cols, schema='public', ref_schema=None,
                 icol_new = (*icol, *_coldict[icol[0]])
             elif len(icol) is 2:
                 icol_new = icol
-                if bool_auto_fk: # maybe there's a foreign key in _coldict, let's check
-                    icol_new += ((_coldict[icol[0]][1],)
-                                  if icol[0] in _coldict.keys()
-                                  and len(_coldict[icol[0]]) > 1
-                                  else tuple())
             else:
                 icol_new = icol # all there
             _cols.append(icol_new)
@@ -1007,7 +1006,7 @@ def compare_tables(db, list_sc, tb):
 
     if flag_tb_exist:
 
-        
+
         nsc, isc = list(enumerate(list_sc))[0]
         for nsc, isc in enumerate(list_sc):
 
@@ -1062,24 +1061,24 @@ def compare_tables(db, list_sc, tb):
 
 
 if __name__ == '__main__':
-    
+
     list_sc = ['out_cal_1', 'out_cal_test_lin']
     db = 'storage2'
     tb = 'profdmnd'
-    
+
     excl = ['profprice', 'profprice_soy', 'def_pp_type',
             'tm_soy_full', 'var_sy_pwr']
-    
+
     excl += [tb for tb in get_sql_tables(list_sc[0], db) if 'analysis' in tb]
     excl += [tb for tb in get_sql_tables(list_sc[0], db) if 'var_sy' in tb]
     excl += [tb for tb in get_sql_tables(list_sc[0], db) if 'prof' in tb]
-    
+
     for tb in [c for c in get_sql_tables(list_sc[0], db) if not c in excl]:
         print('*' * 30, tb, '*' * 30)
         dfcomp = compare_tables(db, list_sc, tb)
         dfcomp = dfcomp.loc[dfcomp['reldiff'] > 1e-5]#, ['nd_id', 'value_0', 'value_1', 'diff', 'reldiff']]
-    
-    
+
+
         if len(dfcomp) > 0:
             print(dfcomp)
 
