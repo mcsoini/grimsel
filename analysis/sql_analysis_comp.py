@@ -463,7 +463,7 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
                    NATURAL LEFT JOIN {sc_out}.def_loop
                    WHERE swhy_vl = 'yr2015';
                    
-                   
+                   /* Double Germany for Austria */
                    CREATE VIEW {sc_out}._view_analysis_prices_stats_at AS
                    SELECT hy,
                        (SELECT nd_id 
@@ -474,8 +474,7 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
                    WHERE nd_id IN (SELECT nd_id
                                    FROM {sc_out}.def_node
                                    WHERE nd = 'DE0');
-                       
-                       
+
                    CREATE VIEW {sc_out}._view_analysis_prices_complete AS
                    SELECT hy, nd_id, ca_id,
                        value / weight AS price,
@@ -491,7 +490,6 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
                        NATURAL LEFT JOIN {sc_out}.def_plant
                        WHERE bool_out=False
                        GROUP BY sy, nd_id, run_id) AS tb_volume
-                   WHERE run_id = 0
 
                    UNION ALL
 
