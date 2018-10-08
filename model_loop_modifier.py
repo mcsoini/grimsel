@@ -75,7 +75,7 @@ class ModelLoopModifier():
         for kk, vv in dict_cf.items():
             self.ml.m.cf_max[kk].value = vv
 
-        self.ml.dct_vl['swavde_vl'] = 'x%f'%val_avde
+        self.ml.dct_vl['swavde_vl'] = 'x%.3f'%val_avde
 
 
 
@@ -83,14 +83,16 @@ class ModelLoopModifier():
     def set_ramping_cost(self, slct_pp):
 
         dict_rc = {0: 1,
-                   1: 0.8,
-                   2: 0.6,
-                   3: 0.4,
-                   4: 0.2,
-                   5: 1.2,
-                   6: 1.4,
-                   7: 1.6,
-                   8: 1.8
+                   1: 1.5,
+                   2: 2.0,
+                   3: 2.5,
+                   4: 3.0,
+                   5: 3.5,
+                   6: 4.0,
+                   7: 4.5,
+                   8: 5.0,
+                   9: 5.5,
+                   10: 6.0
                    }
 
         slct_rc = self.ml.dct_step['swrc']
@@ -107,7 +109,7 @@ class ModelLoopModifier():
             self.ml.m.vc_ramp[kk].value = vv * val_rc
 
 
-        self.ml.dct_vl['swrc_vl'] = 'x%d'%val_rc
+        self.ml.dct_vl['swrc_vl'] = 'x%.3f'%val_rc
 
 
     def set_calibration_variations(self, dict_cl=None):
