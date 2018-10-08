@@ -38,7 +38,7 @@ sqlc = aql.sql_connector(**dict(db=db,
 mkwargs = {
            'slct_encar': ['EL'],
            'slct_node': ['AT0', 'IT0', 'DE0', 'CH0', 'FR0'],
-           'nhours': 24,
+           'nhours': 1,
 #           'slct_pp_type': slct_pt,
 #           'skip_runs': True,
 #           'tm_filt': [('wk_id', [27]), ('dow', [2])],
@@ -53,11 +53,12 @@ iokwargs = {'sc_warmstart': False,
 
 nsteps_default = [
                   ('swhy', 1, np.arange),    # historic years
-                  ('swrc', 9, np.arange),    # ramping cost
+                  ('swrc', 11, np.arange),    # ramping cost
+#                  ('swavde', 3, np.arange),    # ramping cost
                  ]
 
 mlkwargs = {#'sc_inp': 'lp_input_calibration_years_linonly',
-            'sc_out': 'out_cal_rc',
+            'sc_out': 'out_cal_rc_coarse',
             'db': db,
             'nsteps': nsteps_default,
             'sql_connector': sqlc,
@@ -67,6 +68,10 @@ mlkwargs = {#'sc_inp': 'lp_input_calibration_years_linonly',
 sc_out = mlkwargs['sc_out']
 
 ml = model_loop.ModelLoop(**mlkwargs, mkwargs=mkwargs, iokwargs=iokwargs)
+
+
+#ml.df_def_loop = ml.df_def_loop.loc[ml.df_def_loop.swavde_id.isin([0])
+#                                  | ml.df_def_loop.swrc_id.isin([0])]
 
 # init ModelLoopModifier
 mlm = model_loop_modifier.ModelLoopModifier(ml)
@@ -93,6 +98,10 @@ for irow in list(range(irow_0, len(ml.df_def_loop))):
     '''
     mlm.set_historic_year()
 
+#    mlm.set_availability_germany_summer(slct_pp=['DE_NUC_ELC', 'DE_LIG_LIN', 'DE_HCO_LIN'])
+
+    mlm.set_ramping_cost(slct_pp=['%s_NUC_ELC'%nd for nd in ['DE', 'FR', 'CH']] + ['DE_LIG_LIN', 'DE_HCO_LIN', 'FR_HCO_LIN', 'IT_HCO_LIN'])
+
     #########################################
     ############### RUN MODEL ###############
     ml.m.fill_peaker_plants(demand_factor=2)
@@ -108,6 +117,7 @@ for tb in ['profprice_comp', 'imex_comp']:
                  .format(tb=tb, sc_out=mlkwargs['sc_out'], sc_inp=sc_inp), db=db)
 
 # %%
+reload(sql_analysis_comp)
 
 sc_out = ml.io.sc_out
 sqac = sql_analysis_comp.SqlAnalysisComp(sc_out=sc_out, db=db)
