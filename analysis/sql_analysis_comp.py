@@ -89,7 +89,7 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
             WHERE year = 2015
             GROUP BY fl_id, mt_id, nd_id, run_id
         ), tb_entsoe_xborder AS (
-            SELECT fl, mt_id, nd, run_id, SUM(value) AS erg,
+            SELECT fl, mt_id, nd, 0::SMALLINT AS run_id, SUM(value) AS erg,
                 'entsoe_cross_border'::VARCHAR AS input
             FROM {sc_out}.analysis_time_series
             WHERE sta_mod = 'stats_imex_entsoe' 
@@ -129,7 +129,7 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
                 erg, 'entsoe_commercial_exchange'::VARCHAR AS input
             FROM tb
         ), tb_model_rv AS (
-            SELECT 
+            SELECT
                 fl, mt_id, nd, run_id,
                 SUM(value * weight) AS erg,
                 'model_tr'::VARCHAR AS input
@@ -165,6 +165,48 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
         FROM tb_all
         NATURAL LEFT JOIN map_input; 
         
+        
+        /* ADD CAPACITY FACTORS CROSS-BORDER TRANSMISSION */
+        INSERT INTO {sc_out}.analysis_monthly_comparison (
+                        fl, mt_id, nd, run_id, erg, input, input_simple)
+        SELECT
+            dfnd2.fl, tbrv.mt_id, dfnd.nd, tbrv.run_id,
+            erg / (value * month_weight) AS erg,
+            'model_tr_cf'::VARCHAR AS input, 'model'::VARCHAR AS input_simple
+        FROM {sc_out}.par_cap_trm_leg AS tbrv
+        LEFT JOIN (SELECT nd_id, nd AS nd FROM {sc_out}.def_node) AS dfnd
+            ON dfnd.nd_id = tbrv.nd_2_id
+        LEFT JOIN (SELECT nd_id, 'import_' || nd AS fl 
+                   FROM {sc_out}.def_node) AS dfnd2
+            ON dfnd2.nd_id = tbrv.nd_id
+        LEFT JOIN (SELECT mt_id, month_weight FROM {sc_out}.def_month) AS dfmt
+            ON dfmt.mt_id = tbrv.mt_id
+        LEFT JOIN (SELECT fl, mt_id, nd, run_id, erg
+                   FROM {sc_out}.analysis_monthly_comparison
+                   WHERE input = 'model_tr' AND fl LIKE 'import_%') AS tban
+            ON tban.mt_id = tbrv.mt_id AND tban.run_id = tbrv.run_id
+                AND tban.fl = dfnd2.fl AND tban.nd = dfnd.nd;
+
+        INSERT INTO {sc_out}.analysis_monthly_comparison (
+                        fl, mt_id, nd, run_id, erg, input, input_simple)
+        SELECT
+            dfnd2.fl, tbrv.mt_id, dfnd.nd, tbrv.run_id,
+            erg / (value * month_weight) AS erg,
+            'model_tr_cf'::VARCHAR AS input, 'model'::VARCHAR AS input_simple
+        FROM {sc_out}.par_cap_trm_leg AS tbrv
+        LEFT JOIN (SELECT nd_id, nd AS nd FROM {sc_out}.def_node) AS dfnd
+            ON dfnd.nd_id = tbrv.nd_id
+        LEFT JOIN (SELECT nd_id, 'export_' || nd AS fl 
+                   FROM {sc_out}.def_node) AS dfnd2
+            ON dfnd2.nd_id = tbrv.nd_2_id
+        LEFT JOIN (SELECT mt_id, month_weight FROM {sc_out}.def_month) AS dfmt
+            ON dfmt.mt_id = tbrv.mt_id
+        LEFT JOIN (SELECT fl, mt_id, nd, run_id, erg
+                   FROM {sc_out}.analysis_monthly_comparison
+                   WHERE input = 'model_tr' AND fl LIKE 'export_%') AS tban
+            ON tban.mt_id = tbrv.mt_id AND tban.run_id = tbrv.run_id
+                AND tban.fl = dfnd2.fl AND tban.nd = dfnd.nd;
+        
         ALTER TABLE {sc_out}.analysis_monthly_comparison
         ADD COLUMN fl2 VARCHAR;
         
@@ -174,6 +216,9 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
         aql.exec_sql(exec_strg, db=self.db)
 
 
+        aql.joinon(self.db, self.sw_columns, ['run_id'],
+                   [self.sc_out, 'analysis_monthly_comparison'],
+                   [self.sc_out, 'def_loop'])
 
 
 
