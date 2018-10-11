@@ -7,9 +7,11 @@ Created on Fri Jul  6 11:23:06 2018
 import numpy as np
 import pandas as pd
 
+from grimsel.core.io import IO
 from grimsel.auxiliary.aux_m_func import pdef
 from grimsel.auxiliary.aux_m_func import cols2tuplelist
 import grimsel.auxiliary.maps as maps
+
 
 class ModelLoopModifier():
     '''
@@ -28,6 +30,95 @@ class ModelLoopModifier():
 
         self.ml = ml
 
+
+    def scale_vre_de(self):
+        
+        dict_vre = {0: 1,
+                    1: 1.25,
+                    2: 1.5,
+                    3: 1.75,
+                    4: 2,
+                    5: 2.25,
+                    6: 2.5,
+                    7: 2.75,
+                    8: 3}    
+        slct_vre = self.ml.dct_step['swvre']
+    
+        str_vre = dict_vre[slct_vre]
+
+        # reset
+        df = self.ml.m.df_plant_encar.copy()
+        df = df.loc[df.pp_id.isin([self.ml.m.mps.dict_pp_id[pp] for pp in
+                                   ['DE_SOL_PHO', 'DE_WIN_ONS', 'DE_WIN_OFF']])]
+        dict_cap = df.set_index(['pp_id', 'ca_id'])['cap_pwr_leg'].to_dict()
+        
+        
+        for ind, val in dict_cap.items():
+            self.ml.m.cap_pwr_leg[ind].value = val
+
+        self.ml.dct_vl['swvre_vl'] = 'x%.2f'%str_vre
+
+
+    def deactivate_swiss_reservoir_constraint(self):
+        
+        dict_chrs = {0: 'on', 1: 'off'}
+    
+        slct_chrs = self.ml.dct_step['swchrs']
+    
+        str_chrs = dict_chrs[slct_chrs]
+
+        # reset
+        for kk in self.ml.m.CapacStEn:
+            self.ml.m.CapacStEn[kk].activate()
+            
+        if str_chrs == 'off':
+            for kk in self.ml.m.CapacStEn:
+                if kk[0] == self.ml.m.mps.dict_pp_id['CH_HYD_RES']:
+                    self.ml.m.CapacStEn[kk].deactivate()
+            
+        self.ml.dct_vl['swchrs_vl'] = str_chrs
+
+    def new_inflow_profile_for_ch(self):
+        
+        dict_inflchat = {0: 'original', 1: 'new'}
+    
+        slct_inflchat = self.ml.dct_step['swinflchat']
+    
+        str_inflchat = dict_inflchat[slct_inflchat]
+        
+        # reset
+        df_infl_ch = self.ml.m.df_profinflow.loc[self.ml.m.df_profinflow.pp_id == self.ml.m.mps.dict_pp_id['CH_HYD_RES']]
+        dict_infl_ch = df_infl_ch.set_index(['hy', 'pp_id', 'ca_id'])['value'].to_dict()
+        for kk, val in dict_infl_ch.items():
+            self.ml.m.inflowprof[kk].value = val
+            
+        if str_inflchat == 'new':
+            
+            dict_new_mt = {0: 0.02340,
+                           1: 0.01614,
+                           2: 0.02666,
+                           3: 0.04655,
+                           4: 0.15272,
+                           5: 0.20410,
+                           6: 0.17877,
+                           7: 0.14128,
+                           8: 0.10430,
+                           9: 0.05646,
+                           10: 0.02579,
+                           11: 0.02383}
+    
+            df_infl_ch_new = self.ml.m.df_tm_soy[['mt_id', 'sy']].assign(pp_id=self.ml.m.mps.dict_pp_id['CH_HYD_RES'], ca_id=0)
+            df_infl_ch_new['value'] = df_infl_ch_new.mt_id.replace(dict_new_mt)
+            df_infl_ch_new['value'] /= df_infl_ch_new.value.sum()
+            df_infl_ch_new['hy'] = df_infl_ch_new['sy']
+            df_infl_new = pd.concat([df_infl_ch_new,
+                                     df_infl_ch_new.assign(pp_id=self.ml.m.mps.dict_pp_id['DE_HYD_RES'])])
+            dict_infl_ch_new = df_infl_new.set_index(['hy', 'pp_id', 'ca_id'])['value'].to_dict()
+    
+            for kk, val in dict_infl_ch_new.items():
+                self.ml.m.inflowprof[kk].value = val
+
+        self.ml.dct_vl['swinflchat_vl'] = str_inflchat
 
     def flatten_austria_hydro_inflow(self):
 
@@ -182,21 +273,21 @@ class ModelLoopModifier():
         self.ml.dct_vl['swfr_vl'] = str_fr
 
 
-    def set_chp_on_off(self, dict_ch=None):
+    def set_chp_on_off(self, dict_chp=None):
 
-        if dict_ch is None:
-            dict_ch = {0: 'on',
+        if dict_chp is None:
+            dict_chp = {0: 'on',
                        1: 'off'}
 
-        slct_ch = self.ml.dct_step['swch']
-        str_ch = dict_ch[slct_ch]
+        slct_chp = self.ml.dct_step['swchp']
+        str_chp = dict_chp[slct_chp]
 
         self.ml.m.chp_prof.activate()
 
-        if str_ch == 'off':
+        if str_chp == 'off':
             self.ml.m.chp_prof.deactivate()
 
-        self.ml.dct_vl['swch_vl'] = str_ch
+        self.ml.dct_vl['swchp_vl'] = str_chp
 
     def set_slope_lin(self, dict_sl=None):
 
