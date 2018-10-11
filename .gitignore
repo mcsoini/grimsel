@@ -1,6 +1,12 @@
+config_local.py
+
 OBSOLETE/
 *.pyc
 *.log
+
+def_loop*
+
+ephemeral*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
