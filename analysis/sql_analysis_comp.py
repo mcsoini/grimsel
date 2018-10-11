@@ -95,7 +95,7 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
             WHERE sta_mod = 'stats_imex_entsoe' 
             GROUP BY fl, mt_id, nd, run_id
         ), tb_rte_eco2mix AS (
-            SELECT fl, mt_id, nd, run_id, SUM(value) AS erg,
+            SELECT fl, mt_id, nd, 0::SMALLINT AS run_id, SUM(value) AS erg,
                 'rte_eco2mix'::VARCHAR AS input
             FROM {sc_out}.analysis_time_series
             WHERE sta_mod = 'stats_rte_eco2mix' 
