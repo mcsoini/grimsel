@@ -13,6 +13,7 @@ https://github.com/Pyomo/pyomo/blob/master/doc/GettingStarted/current/examples/i
 
 import tempfile
 import warnings
+import numpy as np
 
 import pyomo.environ as po
 from pyomo.core.base.objective import SimpleObjective
@@ -44,7 +45,9 @@ def create_tempfile(self, suffix=None, prefix=None, text=False, dir=None):
 
     dir = tempfile.gettempdir()
 
-    new_fname = os.path.join('ephemeral' + suffix)
+    new_fname = os.path.join('ephemeral'
+                             + ''.join(np.random.choice(list('abcdefghi'), 4))
+                             + suffix)
     # Delete any file having the sequential name and then
     # rename
     if os.path.exists(new_fname):
