@@ -19,7 +19,7 @@ class Constraints:
                                      + self.setlst['curt']
                                      else 1)
                         for (pp, nd, ca)
-                        in set_to_list(self.ppall_ndca - self.curt_ndca,
+                        in set_to_list(self.ppall_ndca,
                                        [None, nd, ca]))
                     # incoming inter-node transmission
                     + sum(self.trm_rv[sy, nd, nd_2, ca] for (nd, nd_2, ca)
@@ -146,7 +146,7 @@ class Constraints:
         print('- Power capacity pps')
         def ppst_capac_rule(self, pp, ca, sy):
             ''' Produced power less than capacity. '''
-            
+
             dict_nuc_fr_scale = {(0, 34): 0.9505061879261046,
                                  (1, 34): 0.8137875854801296,
                                  (2, 34): 0.8022824210606725,
@@ -165,7 +165,7 @@ class Constraints:
 #                cap_scale = dict_nuc_fr_scale[(mt, 34)]
 #            else:
             cap_scale = 1
-            
+
             return (self.pwr[sy, pp, ca]
                     <= self.cap_pwr_tot[pp, ca] * cap_scale)
         self.PpStCapac = po.Constraint(self.pp_ca - self.pr_ca | self.st_ca
@@ -394,7 +394,7 @@ class Constraints:
                 po.Constraint(self.hyrs_ca, self.sy,
                               rule = hy_reservoir_boundary_conditions_rule))
 #
-        
+
         exclude_hyd = [self.mps.dict_pp_id[pp] for pp in [
 #                                                          'DE_HYD_RES',
 #                                                          'AT_HYD_RES',
@@ -402,7 +402,7 @@ class Constraints:
 #                                                          'IT_HYD_RES',
 #                                                          'FR_HYD_RES',
                                                           ]]
-        
+
         print('Hydro minimum monthly generation as fraction of maximum monthly inflow')
         def hy_month_min_rule(self, mt, pp, nd, ca, fl):
             if pp in exclude_hyd:
@@ -546,7 +546,7 @@ class Constraints:
 
         print('Ramp VC calculation rule')
         def calc_vc_ramp_rule(self, pp, ca):
-            
+
 #            if pp == 34:
 #                return po.Constraint.Skip
 #            else:
