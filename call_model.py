@@ -10,10 +10,9 @@ import grimsel.auxiliary.aux_sql_func as aql
 import grimsel.core.io as io
 import grimsel.analysis.sql_analysis_comp as sql_analysis_comp
 
-import grimsel.model_loop_modifier as mlm
+import grimsel.model_loop_modifier as model_loop_modifier
 
 import grimsel.config as config
-
 
 # sc_inp currently only used to copy imex_comp and priceprof_comp to sc_out
 sc_inp = config.SCHEMA
@@ -21,11 +20,10 @@ db = config.DATABASE
 
 sys.exit()
 
-
 # %%
 
 reload(model_loop)
-reload(mlm)
+reload(model_loop_modifier)
 reload(config)
 
 sqlc = aql.sql_connector(**dict(db=db,
@@ -53,14 +51,15 @@ iokwargs = {'sc_warmstart': False,
 
 nsteps_default = [
                   ('swhy', 1, np.arange),    # historic years
+                  ('swvre', 9, np.arange),    # vre scaling
                  ]
 
 mlkwargs = {#'sc_inp': 'lp_input_calibration_years_linonly',
-            'sc_out': 'out_cal',
+            'sc_out': 'out_cal_vre_de',
             'db': db,
             'nsteps': nsteps_default,
             'sql_connector': sqlc,
-            'dev_mode': True
+            'dev_mode': False
             }
 
 sc_out = mlkwargs['sc_out']
@@ -68,7 +67,7 @@ sc_out = mlkwargs['sc_out']
 ml = model_loop.ModelLoop(**mlkwargs, mkwargs=mkwargs, iokwargs=iokwargs)
 
 # init ModelLoopModifier
-mlm = mlm.ModelLoopModifier(ml)
+mlm = model_loop_modifier.ModelLoopModifier(ml)
 
 io.IO.param_to_df(ml.m.cf_max, ('mt_id', 'pp_id', 'ca_id')).pivot_table(index='mt_id', columns='pp_id', values='value').plot()
 
@@ -91,6 +90,12 @@ for irow in list(range(irow_0, len(ml.df_def_loop))):
     It currently only sets the dct_vl dictionary entry.
     '''
     mlm.set_historic_year()
+
+#    mlm.new_inflow_profile_for_ch()
+
+#    mlm.set_chp_on_off()
+
+    mlm.scale_vre_de()
 
     #########################################
     ############### RUN MODEL ###############
