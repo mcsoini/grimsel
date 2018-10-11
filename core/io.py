@@ -289,7 +289,7 @@ class IO():
         # read input data filtered by node and energy carrier
         _flt_nd = [('nd', self.model.slct_node)]
         _flt_ca = [('ca', self.model.slct_encar)]
-        _flt_pt = ([('pt_id', self.model.slct_pp_type)]
+        _flt_pt = ([('pt', self.model.slct_pp_type)]
                    if self.model.slct_pp_type else [])
         dict_tb_3 = {'def_node': _flt_nd,
                      'def_pp_type': _flt_pt,
@@ -305,6 +305,7 @@ class IO():
         _flt_nd = [('nd_id', self.model.slct_node_id)]
         _flt_ca = [('ca_id', self.model.slct_encar_id)]
         _flt_nd_2 = [('nd_2_id', self.model.df_def_node.nd_id.tolist())]
+        _flt_pt = [('pt_id', self.model.df_def_pp_type.pt_id.tolist())]
 
         # read input data filtered by node, energy carrier, and fuel
         # filter plants requiring input from non-existing ca
