@@ -137,6 +137,7 @@ class IO():
         defaults = {'sc_warmstart': False,
                     'resume_loop': False,
                     'model': None,
+                    'autocomplete_curtailment': False,
                     'sql_connector': None,
                     'autocompletion': True,
                     'no_output': False,
@@ -281,8 +282,7 @@ class IO():
 
 
         # unfiltered input
-        dict_tb_2 = {'def_fuel': [],
-                     'def_month': [], 'def_week': [],
+        dict_tb_2 = {'def_month': [], 'def_week': [],
                      'parameter_month': [], 'def_plant': []}
         df_from_dict(dict_tb_2)
 
@@ -308,20 +308,10 @@ class IO():
         _flt_pt = [('pt_id', self.model.df_def_pp_type.pt_id.tolist())]
 
         # read input data filtered by node, energy carrier, and fuel
-        # filter plants requiring input from non-existing ca
-        # e.g. if a fuel-cell is in the input table but no hydrogen is
-        # included in the model, the plant's H2 demand wouldn't be accounted
-        # for;
 
-        fl_id_ca = self.model.df_def_encar.fl_id.tolist()
-        mask_del = (self.model.df_def_fuel.is_ca.isin([1])
-                & - self.model.df_def_fuel.fl_id.isin(fl_id_ca))
 
-        self.model.df_def_fuel = self.model.df_def_fuel.loc[-mask_del]
 
-        _flt_flca = [('fl_id', self.model.df_def_fuel.fl_id.tolist())]
-
-        dict_tb_0 = {'def_plant': _flt_nd + _flt_pt + _flt_flca,
+        dict_tb_0 = {'def_plant': _flt_nd + _flt_pt,
                      'profdmnd': _flt_nd + _flt_ca,
                      'profchp': _flt_nd,
                      'profprice': _flt_nd,
@@ -329,14 +319,32 @@ class IO():
                      'node_connect': _flt_nd + _flt_ca + _flt_nd_2}
         df_from_dict(dict_tb_0)
 
+
+
         # secondary filtering by plant
         _flt_pp = [('pp_id', self.model.df_def_plant['pp_id'].tolist())]
-        _flt_fl = [('fl_id', self.model.df_def_plant['fl_id'].unique().tolist())]
-        dict_tb_1 = {'profinflow': _flt_pp, 'profsupply': _flt_pp,
-                     'plant_encar': _flt_pp + _flt_ca, 'hydro': _flt_pp,
-                     'plant_month': _flt_pp, 'plant_week': _flt_pp,
+        _flt_fl = [('fl_id', self.model.df_def_plant.fl_id.unique().tolist())]
+        dict_tb_1 = {'profinflow': _flt_pp,
+                     'profsupply': _flt_pp,
+                     'plant_encar': _flt_pp + _flt_ca,
+                     'hydro': _flt_pp,
+                     'def_fuel': [],
+                     'plant_month': _flt_pp,
+                     'plant_week': _flt_pp,
                      'fuel_node_encar': _flt_fl + _flt_nd + _flt_ca}
         df_from_dict(dict_tb_1)
+
+        # filter plants requiring input from non-existing ca
+        # e.g. if a fuel-cell is in the input table but no hydrogen is
+        # included in the model, the plant's H2 demand wouldn't be accounted
+        # for;
+        fl_id_ca = self.model.df_def_encar.fl_id.tolist()
+        mask_del = (self.model.df_def_fuel.is_ca.isin([1])
+                & - self.model.df_def_fuel.fl_id.isin(fl_id_ca))
+
+        self.model.df_def_fuel = self.model.df_def_fuel.loc[-mask_del]
+
+
 
         # filter table by special index name/id columns
         self.model.df_parameter_month = self.filter_by_name_id_cols(
@@ -352,7 +360,6 @@ class IO():
 
         self.write_input_tables_to_output_schema(input_table_list)
 
-    @skip_if_no_output
     def write_input_tables_to_output_schema(self, tb_list):
 
         for itb in tb_list:
@@ -463,7 +470,8 @@ class IO():
             ac.AutoCompletePlantTrns(self.model)
             ac.AutoCompletePlantDmnd(self.model)
             ac.AutoCompletePlantCons(self.model)
-            ac.AutoCompletePpCaFlex(self.model)
+            if self.autocomplete_curtailment:
+                ac.AutoCompletePpCaFlex(self.model)
             print('#' * 60)
 
     @skip_if_no_output
