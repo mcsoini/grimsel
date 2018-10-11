@@ -7,6 +7,7 @@ import pandas as pd
 import itertools
 import time
 from importlib import reload
+import datetime
 
 import grimsel.core.model_base as model_base
 import grimsel.core.io as io
@@ -67,7 +68,7 @@ class ModelLoop(parameter_changes.ParameterChanges):
         if self.sc_out: # output schema name is provided
             self.unq_code = self.sc_out.replace('out_', '')
         else: # generate output schema name
-            self.unq_code = datetime.now().strftime("%H%M")
+            self.unq_code = datetime.datetime.now().strftime("%H%M")
             self.sc_out = 'out_' + str(self.mkwargs['nhours'])
             self.sc_out += '_' + self.unq_code
 
@@ -116,7 +117,8 @@ class ModelLoop(parameter_changes.ParameterChanges):
 
         self.io.read_model_data()
 
-        self.m.mps = maps.Maps(self.sc_out, db=self.db)
+        print(self.sc_out, self.db)
+
 
         self.m.map_to_time_res()
 
@@ -124,6 +126,8 @@ class ModelLoop(parameter_changes.ParameterChanges):
         # resolution (profiles, boundary conditions).
         self.m.get_maximum_demand()
         self.io.write_runtime_tables()
+
+        self.m.mps = maps.Maps(self.sc_out, db=self.db)
 
         # Call method build_model (requires data read by io);
         self.m.build_model()
