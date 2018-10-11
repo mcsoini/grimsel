@@ -11,7 +11,6 @@ except Exception as e:
     print(e)
 
     PATH_CSV = os.path.join(grimsel.__path__[0], 'input_data')
-    PATH_CSV = os.path.abspath('input_data')
     print('Using default csv path %s'%PATH_CSV)
 
 try:
