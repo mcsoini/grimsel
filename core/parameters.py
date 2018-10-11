@@ -34,6 +34,7 @@ class Parameters:
         self.padd('inflowprof', (self.sy, self.hyrs | self.ror, self.ca), 'df_profinflow_soy', 'value', **mut) # Hydro inflow profiles.
         self.padd('priceprof', (self.sy, self.nd, self.fl), 'df_profprice_soy', 'value', **mut) # Relative heat demand profile.
 
+
         print('Hydro parameters')
         self.padd('min_erg_mt_out_share', (self.hyrs,), 'df_hydro') # minimum monthly production as share of max_erg_mt_in_share.
         self.padd('max_erg_mt_in_share', (self.hyrs,), 'df_hydro') # maximum monthly inflow as share of yearly total.
@@ -44,7 +45,7 @@ class Parameters:
         self.padd('month_weight', (self.mt,), self.df_def_month) # Hours per month.
 #        self.padd('wk_weight', (self.wk,), self.df_tm_soy) # Number of hours per week.
         self.padd('dmnd_sum', (self.nd,), self.df_node_encar, default=0) # .
-        self.padd('grid_losses', (self.nd, self.ca), self.df_node_encar) # Grid losses.
+        self.padd('grid_losses', (self.nd, self.ca), self.df_node_encar, **mut) # Grid losses.
         self.padd('vc_dmnd_flex', (self.nd, self.ca), self.df_node_encar) # VC of flexible demand.
 
         self.padd('chp_cap_pwr_leg', (self.nd,), self.df_def_node, **mut) # .
