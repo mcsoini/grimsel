@@ -535,6 +535,7 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
                        NATURAL LEFT JOIN {sc_out}.def_plant
                        WHERE bool_out=False
                        GROUP BY sy, nd_id, run_id) AS tb_volume
+                   
                    UNION ALL
 
                    SELECT * FROM {sc_out}._view_analysis_prices_stats_0
