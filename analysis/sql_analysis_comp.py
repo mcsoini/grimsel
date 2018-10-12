@@ -503,7 +503,7 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
                      price_eur_mwh AS price,
                      volume_mwh AS volume,
                      price_eur_mwh * volume_mwh AS price_volume,
-                     0 AS run_id, 'stats' AS sta_mod
+                     -1 AS run_id, 'stats' AS sta_mod
                    FROM {sc_out}.profprice_comp
                    NATURAL LEFT JOIN {sc_out}.def_loop
                    WHERE swhy_vl = 'yr2015';
