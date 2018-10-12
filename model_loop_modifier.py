@@ -31,6 +31,77 @@ class ModelLoopModifier():
         self.ml = ml
 
 
+    def raise_demand(self, list_sy, slct_nd):
+        
+        dict_syrs = {0: 'ref'}
+        dict_syrs.update({kk + 1: val for kk, val in enumerate(list_sy)})
+        
+        slct_sy = dict_syrs[self.ml.dct_step['swsyrs']]
+        
+        slct_nd_id = self.ml.m.mps.dict_nd_id[slct_nd]
+        
+        dict_dmnd = self.ml.m.df_profdmnd_soy.set_index(['sy', 'nd_id', 'ca_id'])['value'].to_dict()
+        
+        # reset
+        for ind, val in dict_dmnd.items():
+            self.ml.m.dmnd[ind].value = val
+            
+        if slct_sy != 'ref':
+            
+            self.ml.m.dmnd[(slct_sy, slct_nd_id, 0)].value += 1
+        
+        self.ml.dct_vl['swsyrs_vl'] = str(slct_sy)
+        
+    
+
+    def chp_on_off(self, slct_nd):
+        
+        dict_chp = {0: 'chp_on', 1: 'chp_off'}
+        
+        slct_chp = self.ml.dct_step['swchp']
+        str_chp = dict_chp[slct_chp]
+
+        slct_nd_id = [self.ml.m.mps.dict_nd_id[nd] for nd in slct_nd]
+
+        # reset
+        for ind in self.ml.m.chp_prof:
+            self.ml.m.chp_prof[ind].activate()
+            
+        if str_chp == 'chp_off':
+            for ind in [ind for ind in self.ml.m.chp_prof_index if ind[1] in slct_nd_id]:
+                self.ml.m.chp_prof[ind].deactivate()
+        
+        self.ml.dct_vl['swchp_vl'] = str_chp
+
+    def cost_adjustment_literature(self):
+        
+        # based on BUBL2017
+        
+        dict_cadj = {0: 'orig', 1: 'adjs'}
+   
+
+        slct_cadj = self.ml.dct_step['swcadj']
+        str_cadj = dict_cadj[slct_cadj]
+     
+        self.ml.m.vc_fl_lin_0.display()
+        
+        df_vc_fl = self.ml.m.df_plant_encar.set_index(['pp_id', 'ca_id'])[['vc_fl_lin_0', 'vc_fl_lin_1']]
+
+        # reset
+        for row in df_vc_fl.iterrows():
+            if row[0] in self.ml.m.vc_fl_lin_0:
+                self.ml.m.vc_fl_lin_0[row[0]].value = row[1].vc_fl_lin_0
+                self.ml.m.vc_fl_lin_1[row[0]].value = row[1].vc_fl_lin_1
+        
+        if str_cadj == 'adjs':
+            
+            self.ml.m.vc_fl_lin_0[(self.ml.m.mps.dict_pp_id['DE_GAS_LIN'], 0)].value = 32
+            self.ml.m.vc_fl_lin_1[(self.ml.m.mps.dict_pp_id['DE_GAS_LIN'], 0)].value = 0.0016
+
+
+        self.ml.dct_vl['swcadj_vl'] = str_cadj
+
+
     def scale_vre_de(self):
         
         dict_vre = {0: 1,
@@ -54,7 +125,7 @@ class ModelLoopModifier():
         
         
         for ind, val in dict_cap.items():
-            self.ml.m.cap_pwr_leg[ind].value = val
+            self.ml.m.cap_pwr_leg[ind].value = val * str_vre
 
         self.ml.dct_vl['swvre_vl'] = 'x%.2f'%str_vre
 
