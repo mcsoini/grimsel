@@ -321,7 +321,7 @@ dfpt_cols = ['pt_id', 'pt', 'pp_broad_cat', 'color']
 df_def_pp_type = read_xlsx_table(wb, ['DEF_PP_TYPE'], dfpt_cols)
 
 nd_cols = ['nd_id', 'nd', 'discount_rate', 'charging', 'share_ws_set',
-           'chp_cap_pwr_leg', 'color'] + yr_getter('price_co2')
+           'chp_cap_pwr_leg', 'color', 'price_co2']
 df_def_node = read_xlsx_table(wb, ['DEF_NODE'], nd_cols)
 
 ndca_cols = ['nd_id', 'ca_id', 'grid_losses',
