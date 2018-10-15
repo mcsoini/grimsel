@@ -41,17 +41,21 @@ mkwargs = {
 #           'skip_runs': True,
 #           'tm_filt': [('wk_id', [27]), ('dow', [2])],
 #           'verbose_solver': False,
-           'constraint_groups': MB.get_constraint_groups(excl=['chp', 'ror'])
+           'constraint_groups': MB.get_constraint_groups(excl=['chp', 'ror', 
+                                                               'chp_new'])
            }
 # additional kwargs for the i/o
 iokwargs = {'sc_warmstart': False,
             'resume_loop': False,
-#            'no_output': True
+            'autocomplete_curtailment': True
            }
+
+list_raise_dmnd = [916, 471]
 
 nsteps_default = [
                   ('swhy', 1, np.arange),    # historic years
-                  ('swvre', 9, np.arange),    # vre scaling
+                  ('swsyrs', len(list_raise_dmnd) + 1, np.arange),    # vre scaling
+#                  ('swcadj', 2, np.arange),    # vre scaling
                  ]
 
 mlkwargs = {#'sc_inp': 'lp_input_calibration_years_linonly',
@@ -93,9 +97,11 @@ for irow in list(range(irow_0, len(ml.df_def_loop))):
 
 #    mlm.new_inflow_profile_for_ch()
 
-#    mlm.set_chp_on_off()
+#    mlm.chp_on_off(['DE0'])
+#
+#    mlm.cost_adjustment_literature()
 
-    mlm.scale_vre_de()
+    mlm.raise_demand(list_raise_dmnd, 'DE0')
 
     #########################################
     ############### RUN MODEL ###############
@@ -112,7 +118,7 @@ for tb in ['profprice_comp', 'imex_comp']:
                  .format(tb=tb, sc_out=mlkwargs['sc_out'], sc_inp=sc_inp), db=db)
 
 # %%
-
+        
 sc_out = ml.io.sc_out
 sqac = sql_analysis_comp.SqlAnalysisComp(sc_out=sc_out, db=db)
 sqac.analysis_production_comparison()
