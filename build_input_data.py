@@ -954,7 +954,7 @@ for tb in aql.get_sql_tables(sc, db):
     print(tb)
     df = aql.read_sql(db, sc, tb)
 
-    if 'prof' in tb:
+    if 'prof' in tb and 'value' in df.columns:
         df['value'] = df['value'].round(13)
 
     df.to_csv(os.path.join(data_path, '%s.csv'%tb), index=False)
