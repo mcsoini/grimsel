@@ -147,23 +147,6 @@ class Constraints:
         def ppst_capac_rule(self, pp, ca, sy):
             ''' Produced power less than capacity. '''
 
-            dict_nuc_fr_scale = {(0, 34): 0.9505061879261046,
-                                 (1, 34): 0.8137875854801296,
-                                 (2, 34): 0.8022824210606725,
-                                 (3, 34): 0.6766355042299101,
-                                 (4, 34): 0.6579847531960288,
-                                 (5, 34): 0.6664230450313823,
-                                 (6, 34): 0.7219366181477619,
-                                 (7, 34): 0.6941977859795634,
-                                 (8, 34): 0.66484147338352,
-                                 (9, 34): 0.7473448651685072,
-                                 (10, 34): 0.774015880758718,
-                                 (11, 34): 0.874112544211129}
-
-#            if pp == 34:
-#                mt = set_to_list(self.sy_mt, [sy, None])[0][1]
-#                cap_scale = dict_nuc_fr_scale[(mt, 34)]
-#            else:
             cap_scale = 1
 
             return (self.pwr[sy, pp, ca]
@@ -189,12 +172,48 @@ class Constraints:
 
 
     def add_chp_new_rules(self):
+
+        # temporary fix: CHP profiles limited to capacity
+        
+        from grimsel.core.io import IO as IO
+        import pandas as pd
+        
+        df_prf = IO.param_to_df(self.chpprof, ('sy', 'nd_id', 'ca_id')).rename(columns={'value': 'prof'})
+        df_erg = IO.param_to_df(self.erg_chp, ('nd_id', 'ca_id', 'fl_id')).rename(columns={'value': 'erg'})
+        df_erg = df_erg.loc[df_erg.erg > 0]
+        df_cap = IO.param_to_df(self.cap_pwr_leg, ('pp_id', 'ca_id')).rename(columns={'value': 'cap'})
+    
+        cap_scale = IO.param_to_df(self.cf_max, ('mt_id', 'pp_id', 'ca_id')).rename(columns={'value': 'cap_scale'})
+        df_cap = cap_scale.join(df_cap.set_index(['pp_id', 'ca_id']), on=['pp_id', 'ca_id'])
+        df_cap['cap'] *= df_cap.cap_scale
+    
+        df_cap = df_cap.join(self.df_def_plant.set_index('pp_id')[['fl_id', 'nd_id']], on='pp_id')
+       
+        df_cap = df_cap.pivot_table(index=['nd_id', 'fl_id', 'mt_id'],
+                           values='cap', aggfunc=sum)
+    
+        df_exp = pd.merge(df_prf, df_erg, on=['nd_id', 'ca_id'], how='outer')
+        df_exp['prof_scaled'] = df_exp.prof * df_exp.erg
+        df_exp = df_exp.join(self.tm.df_time_map.set_index('sy')['mt_id'], on='sy')
+    
+        df_exp = df_exp.join(df_cap, on=df_cap.index.names)
+    
+        mask_viol = df_exp.prof_scaled > df_exp.cap
+        df_exp.loc[mask_viol, 'prof_scaled'] = df_exp.loc[mask_viol, 'cap'] * 0.999
+        
+        df_exp['prof_new'] = df_exp.prof_scaled / df_exp.erg
+        
+        df_prf_new = df_exp.pivot_table(index=['sy', 'nd_id', 'ca_id'], values='prof_new', aggfunc=min).reset_index()
+        
+        dict_prf_new = df_prf_new.set_index(['sy', 'nd_id', 'ca_id'])['prof_new'].to_dict()
+        
         def chp_prof_rule(model, sy, nd, ca, fl):
             '''Produced power greater than CHP output profile.'''
 
             sum_pwr = sum(self.pwr[sy, pp, ca] for (pp, nd, ca, fl)
                           in set_to_list(self.pp_ndcafl, (None, nd, ca, fl)))
-            chp_prf = self.chpprof[sy, nd, ca] * self.erg_chp[nd, ca, fl]
+#            chp_prf = self.chpprof[sy, nd, ca] * self.erg_chp[nd, ca, fl]
+            chp_prf = dict_prf_new[sy, nd, ca] * self.erg_chp[nd, ca, fl]
 
             return sum_pwr >= chp_prf
 
