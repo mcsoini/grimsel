@@ -5,6 +5,8 @@ from importlib import reload
 
 import grimsel.core.model_loop as model_loop
 from grimsel.core.model_base import ModelBase as MB
+from grimsel.core.io import IO as IO
+
 
 import grimsel.auxiliary.aux_sql_func as aql
 import grimsel.core.io as io
@@ -18,7 +20,7 @@ import grimsel.config as config
 sc_inp = config.SCHEMA
 db = config.DATABASE
 
-sys.exit()
+#sys.exit()
 
 # %%
 
@@ -41,25 +43,24 @@ mkwargs = {
 #           'skip_runs': True,
 #           'tm_filt': [('wk_id', [27]), ('dow', [2])],
 #           'verbose_solver': False,
-           'constraint_groups': MB.get_constraint_groups(excl=['chp', 'ror', 
-                                                               'chp_new'])
+           'constraint_groups': MB.get_constraint_groups(excl=['chp', 'ror'])
            }
 # additional kwargs for the i/o
 iokwargs = {'sc_warmstart': False,
             'resume_loop': False,
-            'autocomplete_curtailment': True
+#            'autocomplete_curtailment': True
            }
 
-list_raise_dmnd = [916, 471]
 
 nsteps_default = [
                   ('swhy', 1, np.arange),    # historic years
-                  ('swsyrs', len(list_raise_dmnd) + 1, np.arange),    # vre scaling
-#                  ('swcadj', 2, np.arange),    # vre scaling
+#                  ('swsyrs', len(list_raise_dmnd) + 1, np.arange),    # vre scaling
+                  ('swcfcap', 2, np.arange),    #
+                  ('swchp', 2, np.arange)
                  ]
 
 mlkwargs = {#'sc_inp': 'lp_input_calibration_years_linonly',
-            'sc_out': 'out_cal_vre_de',
+            'sc_out': 'out_cal_cap_vs_cf',
             'db': db,
             'nsteps': nsteps_default,
             'sql_connector': sqlc,
@@ -95,19 +96,23 @@ for irow in list(range(irow_0, len(ml.df_def_loop))):
     '''
     mlm.set_historic_year()
 
+    mlm.availability_cf_cap()
+
+    mlm.chp_on_off(ml.m.slct_node)
+
 #    mlm.new_inflow_profile_for_ch()
 
 #    mlm.chp_on_off(['DE0'])
 #
 #    mlm.cost_adjustment_literature()
 
-    mlm.raise_demand(list_raise_dmnd, 'DE0')
+#    mlm.raise_demand(list_raise_dmnd, 'DE0')
 
     #########################################
     ############### RUN MODEL ###############
     ml.m.fill_peaker_plants(demand_factor=2)
 
-    ml.m._limit_prof_to_cap('cap_pwr_leg')
+#    ml.m._limit_prof_to_cap('cap_pwr_leg')
 
     ml.perform_model_run()
 
@@ -118,7 +123,7 @@ for tb in ['profprice_comp', 'imex_comp']:
                  .format(tb=tb, sc_out=mlkwargs['sc_out'], sc_inp=sc_inp), db=db)
 
 # %%
-        
+
 sc_out = ml.io.sc_out
 sqac = sql_analysis_comp.SqlAnalysisComp(sc_out=sc_out, db=db)
 sqac.analysis_production_comparison()
