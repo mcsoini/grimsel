@@ -12,6 +12,8 @@ from grimsel.auxiliary.aux_m_func import pdef
 from grimsel.auxiliary.aux_m_func import cols2tuplelist
 import grimsel.auxiliary.maps as maps
 
+import pyomo.environ as po
+
 
 class ModelLoopModifier():
     '''
@@ -31,33 +33,94 @@ class ModelLoopModifier():
         self.ml = ml
 
 
+    def availability_cf_cap(self):
+        '''
+        Switch between availability constraints
+            * capacity factor
+            * capacity
+        Note: requires monthly availability!
+        '''
+
+        dict_avcfcap = {0: 'cap', 1: 'cf'}
+
+        slct_avcfcap = dict_avcfcap[self.ml.dct_step['swcfcap']]
+
+
+        # reset
+        self.ml.m.pp_cf.activate()
+        self.ml.m.PpStCapac.activate()
+        if hasattr(self.ml.m, 'ppst_cap_monthly'):
+            self.ml.m.ppst_cap_monthly.deactivate()
+
+        #define new constraint
+        if not hasattr(self.ml.m, 'ppst_cap_monthly'):
+
+            cf_max = IO.param_to_df(self.ml.m.cf_max, ('mt_id', 'pp_id', 'ca_id'))
+            cap_scale = cf_max.set_index(['mt_id', 'pp_id', 'ca_id'])['value'].to_dict()
+
+            def ppst_cap_monthly_rule(model, pp, ca, sy, mt):
+                ''' Produced power less than capacity. '''
+
+                scale = (cap_scale[(mt, pp, ca)]
+                         if (mt, pp, ca) in cap_scale.keys()
+                         else 1)
+
+                return (self.ml.m.pwr[sy, pp, ca]
+                        <= self.ml.m.cap_pwr_tot[pp, ca] * scale)
+            self.ml.m.ppst_cap_monthly = po.Constraint((self.ml.m.pp_ca - self.ml.m.pr_ca) | self.ml.m.st_ca
+                                             | self.ml.m.hyrs_ca,
+                                             self.ml.m.sy_mt, rule=ppst_cap_monthly_rule)
+            self.ml.m.ppst_cap_monthly.deactivate()
+
+
+        if slct_avcfcap == 'cap':
+            self.ml.m.PpStCapac.deactivate() # yearly capacity constraint
+            self.ml.m.pp_cf.deactivate()            # monthly cf constraints
+            self.ml.m.ppst_cap_monthly.activate()          # monthly capacity constraint
+        elif slct_avcfcap == 'cf':
+            self.ml.m.PpStCapac.activate() # yearly capacity constraint
+            self.ml.m.pp_cf.activate()            # monthly cf constraints
+            self.ml.m.ppst_cap_monthly.deactivate()          # monthly capacity constraint
+
+
+
+
+        self.ml.dct_vl['swcfcap_vl'] = str(slct_avcfcap)
+
+
+
+
     def raise_demand(self, list_sy, slct_nd):
-        
+        '''
+        Used for shadow price disaggregation.
+        '''
+
+
         dict_syrs = {0: 'ref'}
         dict_syrs.update({kk + 1: val for kk, val in enumerate(list_sy)})
-        
+
         slct_sy = dict_syrs[self.ml.dct_step['swsyrs']]
-        
+
         slct_nd_id = self.ml.m.mps.dict_nd_id[slct_nd]
-        
+
         dict_dmnd = self.ml.m.df_profdmnd_soy.set_index(['sy', 'nd_id', 'ca_id'])['value'].to_dict()
-        
+
         # reset
         for ind, val in dict_dmnd.items():
             self.ml.m.dmnd[ind].value = val
-            
+
         if slct_sy != 'ref':
-            
+
             self.ml.m.dmnd[(slct_sy, slct_nd_id, 0)].value += 1
-        
+
         self.ml.dct_vl['swsyrs_vl'] = str(slct_sy)
-        
-    
+
+
 
     def chp_on_off(self, slct_nd):
-        
+
         dict_chp = {0: 'chp_on', 1: 'chp_off'}
-        
+
         slct_chp = self.ml.dct_step['swchp']
         str_chp = dict_chp[slct_chp]
 
@@ -66,25 +129,25 @@ class ModelLoopModifier():
         # reset
         for ind in self.ml.m.chp_prof:
             self.ml.m.chp_prof[ind].activate()
-            
+
         if str_chp == 'chp_off':
             for ind in [ind for ind in self.ml.m.chp_prof_index if ind[1] in slct_nd_id]:
                 self.ml.m.chp_prof[ind].deactivate()
-        
+
         self.ml.dct_vl['swchp_vl'] = str_chp
 
     def cost_adjustment_literature(self):
-        
+
         # based on BUBL2017
-        
+
         dict_cadj = {0: 'orig', 1: 'adjs'}
-   
+
 
         slct_cadj = self.ml.dct_step['swcadj']
         str_cadj = dict_cadj[slct_cadj]
-     
+
         self.ml.m.vc_fl_lin_0.display()
-        
+
         df_vc_fl = self.ml.m.df_plant_encar.set_index(['pp_id', 'ca_id'])[['vc_fl_lin_0', 'vc_fl_lin_1']]
 
         # reset
@@ -92,9 +155,9 @@ class ModelLoopModifier():
             if row[0] in self.ml.m.vc_fl_lin_0:
                 self.ml.m.vc_fl_lin_0[row[0]].value = row[1].vc_fl_lin_0
                 self.ml.m.vc_fl_lin_1[row[0]].value = row[1].vc_fl_lin_1
-        
+
         if str_cadj == 'adjs':
-            
+
             self.ml.m.vc_fl_lin_0[(self.ml.m.mps.dict_pp_id['DE_GAS_LIN'], 0)].value = 32
             self.ml.m.vc_fl_lin_1[(self.ml.m.mps.dict_pp_id['DE_GAS_LIN'], 0)].value = 0.0016
 
@@ -103,7 +166,7 @@ class ModelLoopModifier():
 
 
     def scale_vre_de(self):
-        
+
         dict_vre = {0: 1,
                     1: 1.25,
                     2: 1.5,
@@ -112,9 +175,9 @@ class ModelLoopModifier():
                     5: 2.25,
                     6: 2.5,
                     7: 2.75,
-                    8: 3}    
+                    8: 3}
         slct_vre = self.ml.dct_step['swvre']
-    
+
         str_vre = dict_vre[slct_vre]
 
         # reset
@@ -122,8 +185,8 @@ class ModelLoopModifier():
         df = df.loc[df.pp_id.isin([self.ml.m.mps.dict_pp_id[pp] for pp in
                                    ['DE_SOL_PHO', 'DE_WIN_ONS', 'DE_WIN_OFF']])]
         dict_cap = df.set_index(['pp_id', 'ca_id'])['cap_pwr_leg'].to_dict()
-        
-        
+
+
         for ind, val in dict_cap.items():
             self.ml.m.cap_pwr_leg[ind].value = val * str_vre
 
@@ -131,40 +194,40 @@ class ModelLoopModifier():
 
 
     def deactivate_swiss_reservoir_constraint(self):
-        
+
         dict_chrs = {0: 'on', 1: 'off'}
-    
+
         slct_chrs = self.ml.dct_step['swchrs']
-    
+
         str_chrs = dict_chrs[slct_chrs]
 
         # reset
         for kk in self.ml.m.CapacStEn:
             self.ml.m.CapacStEn[kk].activate()
-            
+
         if str_chrs == 'off':
             for kk in self.ml.m.CapacStEn:
                 if kk[0] == self.ml.m.mps.dict_pp_id['CH_HYD_RES']:
                     self.ml.m.CapacStEn[kk].deactivate()
-            
+
         self.ml.dct_vl['swchrs_vl'] = str_chrs
 
     def new_inflow_profile_for_ch(self):
-        
+
         dict_inflchat = {0: 'original', 1: 'new'}
-    
+
         slct_inflchat = self.ml.dct_step['swinflchat']
-    
+
         str_inflchat = dict_inflchat[slct_inflchat]
-        
+
         # reset
         df_infl_ch = self.ml.m.df_profinflow.loc[self.ml.m.df_profinflow.pp_id == self.ml.m.mps.dict_pp_id['CH_HYD_RES']]
         dict_infl_ch = df_infl_ch.set_index(['hy', 'pp_id', 'ca_id'])['value'].to_dict()
         for kk, val in dict_infl_ch.items():
             self.ml.m.inflowprof[kk].value = val
-            
+
         if str_inflchat == 'new':
-            
+
             dict_new_mt = {0: 0.02340,
                            1: 0.01614,
                            2: 0.02666,
@@ -177,7 +240,7 @@ class ModelLoopModifier():
                            9: 0.05646,
                            10: 0.02579,
                            11: 0.02383}
-    
+
             df_infl_ch_new = self.ml.m.df_tm_soy[['mt_id', 'sy']].assign(pp_id=self.ml.m.mps.dict_pp_id['CH_HYD_RES'], ca_id=0)
             df_infl_ch_new['value'] = df_infl_ch_new.mt_id.replace(dict_new_mt)
             df_infl_ch_new['value'] /= df_infl_ch_new.value.sum()
@@ -185,7 +248,7 @@ class ModelLoopModifier():
             df_infl_new = pd.concat([df_infl_ch_new,
                                      df_infl_ch_new.assign(pp_id=self.ml.m.mps.dict_pp_id['DE_HYD_RES'])])
             dict_infl_ch_new = df_infl_new.set_index(['hy', 'pp_id', 'ca_id'])['value'].to_dict()
-    
+
             for kk, val in dict_infl_ch_new.items():
                 self.ml.m.inflowprof[kk].value = val
 
