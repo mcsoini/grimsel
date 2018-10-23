@@ -147,10 +147,14 @@ class Constraints:
         def ppst_capac_rule(self, pp, ca, sy):
             ''' Produced power less than capacity. '''
 
-            cap_scale = 1
+            mt = self.dict_soy_month[sy]
 
-            return (self.pwr[sy, pp, ca]
-                    <= self.cap_pwr_tot[pp, ca] * cap_scale)
+            if pp in self.setlst['pp']:
+                return (self.pwr[sy, pp, ca] <= self.cap_pwr_tot[pp, ca]
+                                                * self.cap_avlb[mt, pp, ca])
+            else:
+                return (self.pwr[sy, pp, ca] <= self.cap_pwr_tot[pp, ca])
+                
         self.PpStCapac = po.Constraint(self.pp_ca - self.pr_ca | self.st_ca
                                        | self.hyrs_ca,
                                        self.sy, rule=ppst_capac_rule)
@@ -175,37 +179,6 @@ class Constraints:
 
         # temporary fix: CHP profiles limited to capacity
         
-        from grimsel.core.io import IO as IO
-        import pandas as pd
-        
-        df_prf = IO.param_to_df(self.chpprof, ('sy', 'nd_id', 'ca_id')).rename(columns={'value': 'prof'})
-        df_erg = IO.param_to_df(self.erg_chp, ('nd_id', 'ca_id', 'fl_id')).rename(columns={'value': 'erg'})
-        df_erg = df_erg.loc[df_erg.erg > 0]
-        df_cap = IO.param_to_df(self.cap_pwr_leg, ('pp_id', 'ca_id')).rename(columns={'value': 'cap'})
-    
-        cap_scale = IO.param_to_df(self.cf_max, ('mt_id', 'pp_id', 'ca_id')).rename(columns={'value': 'cap_scale'})
-        df_cap = cap_scale.join(df_cap.set_index(['pp_id', 'ca_id']), on=['pp_id', 'ca_id'])
-        df_cap['cap'] *= df_cap.cap_scale
-    
-        df_cap = df_cap.join(self.df_def_plant.set_index('pp_id')[['fl_id', 'nd_id']], on='pp_id')
-       
-        df_cap = df_cap.pivot_table(index=['nd_id', 'fl_id', 'mt_id'],
-                           values='cap', aggfunc=sum)
-    
-        df_exp = pd.merge(df_prf, df_erg, on=['nd_id', 'ca_id'], how='outer')
-        df_exp['prof_scaled'] = df_exp.prof * df_exp.erg
-        df_exp = df_exp.join(self.tm.df_time_map.set_index('sy')['mt_id'], on='sy')
-    
-        df_exp = df_exp.join(df_cap, on=df_cap.index.names)
-    
-        mask_viol = df_exp.prof_scaled > df_exp.cap
-        df_exp.loc[mask_viol, 'prof_scaled'] = df_exp.loc[mask_viol, 'cap'] * 0.999
-        
-        df_exp['prof_new'] = df_exp.prof_scaled / df_exp.erg
-        
-        df_prf_new = df_exp.pivot_table(index=['sy', 'nd_id', 'ca_id'], values='prof_new', aggfunc=min).reset_index()
-        
-        dict_prf_new = df_prf_new.set_index(['sy', 'nd_id', 'ca_id'])['prof_new'].to_dict()
         
         def chp_prof_rule(model, sy, nd, ca, fl):
             '''Produced power greater than CHP output profile.'''
