@@ -45,8 +45,6 @@ class IO():
     # the model components.
     var_sy = [
               ('pwr', ('sy', 'pp_id', 'ca_id', 'bool_out')),
-        #      ('pwr_ramp', ('sy', 'pp_id', 'ca_id')),
-        #      ('pwr_ramp_abs', ('sy', 'pp_id', 'ca_id')),
               ('dmnd_flex', ('sy', 'nd_id', 'ca_id', 'bool_out')),
               ('pwr_st_ch', ('sy', 'pp_id', 'ca_id', 'bool_out'), 'pwr'),
               ('erg_st', ('sy', 'pp_id', 'ca_id'))
@@ -80,6 +78,7 @@ class IO():
         ('price_co2', ('nd_id',)),
         ('co2_int', ('fl_id',)),
         ('cap_pwr_leg', ('pp_id', 'ca_id')),
+        ('cap_avlb', ('pp_id', 'ca_id')),
         ('cap_trm_leg', ('mt_id', 'nd_id', 'nd_2_id', 'ca_id')),
         ('weight', ('sy',)),
         ('cf_max', ('pp_id', 'ca_id')),
