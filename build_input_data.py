@@ -419,7 +419,7 @@ df_cfmt_new = df_cfmt_new.drop(['fl_id', 'nd_id'], axis=1)
 df_cfmt_new = df_cfmt_new.rename(columns={'pp_id': 'set_1_id', 'ca_id': 'set_2_id'})
 df_cfmt_new['set_1_name'] = 'pp_id'
 df_cfmt_new['set_2_name'] = 'ca_id'
-df_cfmt_new['parameter'] = 'cap_pwr_leg' # USING CAP_PWR_LEG INSTEAD OF CF_MAX!!!
+df_cfmt_new['parameter'] = 'cap_avlb' # USING capacity availability INSTEAD OF CF_MAX!!!
 
 # combine
 df_parmt = pd.concat([df_parmt.loc[-mask_cf_max].drop(['set_3_name', 'set_3_id'], axis=1),
