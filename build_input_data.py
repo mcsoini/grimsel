@@ -40,12 +40,10 @@ exec_str = ('''
             ''').format(sc=sc, )
 aql.exec_sql(exec_str, db=db)
 
-
 def yr_getter(par, data_type=False, rnge=range(2017, 2005 - 1, -1)):
     return [par + i if not data_type else (par + i, data_type)
             for i in [''] + ['_yr' + str(ii) for ii
             in rnge if not ii == 2015]]
-
 
 # <codecell>
 tb_name = 'def_pp_type'
@@ -338,13 +336,15 @@ df_fuel_node_encar = read_xlsx_table(wb, ['FUEL_NODE_ENCAR'],
                                       + yr_getter('erg_inp')
                                       + yr_getter('vc_fl')
                                       + yr_getter('erg_chp')))
-df_fuel_node_encar = df_fuel_node_encar[[c for c in df_fuel_node_encar.columns if not 'yr20' in c]]
+df_fuel_node_encar = df_fuel_node_encar[[c for c in df_fuel_node_encar.columns
+                                         if not 'yr20' in c]]
 
 
 ndcn_cols = ['nd_id', 'nd_2_id', 'ca_id', 'mt_id', 'eff'
             ] + yr_getter('cap_trm_leg')
 df_node_connect = read_xlsx_table(wb, ['NODE_CONNECT'], ndcn_cols)
-df_node_connect = df_node_connect[[c for c in df_node_connect.columns if not 'yr20' in c]]
+df_node_connect = df_node_connect[[c for c in df_node_connect.columns
+                                   if not 'yr20' in c]]
 
 ###############################################################################
 
@@ -419,7 +419,7 @@ df_cfmt_new = df_cfmt_new.drop(['fl_id', 'nd_id'], axis=1)
 df_cfmt_new = df_cfmt_new.rename(columns={'pp_id': 'set_1_id', 'ca_id': 'set_2_id'})
 df_cfmt_new['set_1_name'] = 'pp_id'
 df_cfmt_new['set_2_name'] = 'ca_id'
-df_cfmt_new['parameter'] = 'cf_max'
+df_cfmt_new['parameter'] = 'cap_pwr_leg' # USING CAP_PWR_LEG INSTEAD OF CF_MAX!!!
 
 # combine
 df_parmt = pd.concat([df_parmt.loc[-mask_cf_max].drop(['set_3_name', 'set_3_id'], axis=1),
