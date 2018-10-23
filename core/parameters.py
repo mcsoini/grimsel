@@ -34,7 +34,6 @@ class Parameters:
         self.padd('inflowprof', (self.sy, self.hyrs | self.ror, self.ca), 'df_profinflow_soy', 'value', **mut) # Hydro inflow profiles.
         self.padd('priceprof', (self.sy, self.nd, self.fl), 'df_profprice_soy', 'value', **mut) # Relative heat demand profile.
 
-
         print('Hydro parameters')
         self.padd('min_erg_mt_out_share', (self.hyrs,), 'df_hydro') # minimum monthly production as share of max_erg_mt_in_share.
         self.padd('max_erg_mt_in_share', (self.hyrs,), 'df_hydro') # maximum monthly inflow as share of yearly total.
@@ -43,7 +42,6 @@ class Parameters:
         print('Defining general parameters')
         self.padd('weight', (self.sy,), self.df_tm_soy) # Weight per time slot.
         self.padd('month_weight', (self.mt,), self.df_def_month) # Hours per month.
-#        self.padd('wk_weight', (self.wk,), self.df_tm_soy) # Number of hours per week.
         self.padd('dmnd_sum', (self.nd,), self.df_node_encar, default=0) # .
         self.padd('grid_losses', (self.nd, self.ca), self.df_node_encar, **mut) # Grid losses.
         self.padd('vc_dmnd_flex', (self.nd, self.ca), self.df_node_encar) # VC of flexible demand.
@@ -78,22 +76,16 @@ class Parameters:
         self.padd('factor_vc_co2_lin_1', (self.lin, self.ca), _df, default=0, **mut) # EUR/MWh_el
         self.padd('price_co2', (self.nd,), 'df_def_node', **mut) # EUR/MWh_el
 
-#        _df = self.df_def_fuel.copy()
-#        _df = _df.loc[_df['fl_id'].isin(self.setlst['fl'])]
-#        self.padd('co2_int', (self.fl,), _df, **mut) # tCO2/MWh_fl
-
         print('Defining parameters for all generators')
         _df = self.df_plant_encar.copy()
-        _df = _df.loc[
-                      _df['pp_id'].isin(self.setlst['ppall'])
-#                  & - _df['pp_id'].isin(self.setlst['curt'])
-                     ]
-        sets = (self.pp | self.pr | self.ror | self.st | self.hyrs | self.curt | self.lin,
-                self.ca)
+        _df = _df.loc[_df['pp_id'].isin(self.setlst['ppall'])]
+        sets = (self.pp | self.pr | self.ror | self.st | self.hyrs |
+                self.curt | self.lin, self.ca)
         self.padd('cap_pwr_leg', sets, _df, **mut) # .
         self.padd('vc_om', sets, _df, **mut) # .
         self.padd('fc_om', sets, _df, **mut, default=0) # .
         self.padd('fc_dc', sets, _df, **mut) # .
+        self.padd('cap_avlb', sets, 1, **mut) # .
 
         print('Defining parameters investment')
         _df = self.df_plant_encar.copy()
@@ -105,9 +97,6 @@ class Parameters:
         _df = _df.loc[_df['pp_id'].isin(self.setlst['st'])]
         self.padd('st_lss_hr', (self.st, self.ca), _df, **mut)
         self.padd('st_lss_rt', (self.st, self.ca), _df, **mut)
-
-#        print('Defining ror parameters')
-#        self.padd('week_ror_output', (self.wk, self.ror), self.df_plant_week, **mut)
 
         print('Defining hy parameters')
         self.padd('hyd_erg_bc', (self.sy, self.hyrs), self.df_plant_month)
