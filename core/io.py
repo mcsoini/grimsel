@@ -119,6 +119,13 @@ class IO():
 
     loop_pk = ['run_id']
 
+    def skip_if_resume_loop(f):
+        def wrapper(self, *args, **kwargs):
+            if self.resume_loop:
+                pass
+            else:
+                f(self, *args, **kwargs)
+        return wrapper
 
     def skip_if_no_output(f):
         def wrapper(self, *args, **kwargs):
