@@ -282,7 +282,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 #            self.chpprof[key].value = val
 
 
-    def limit_prof_to_cap(self, param_mod):
+    def limit_prof_to_cap(self, param_mod='cap_pwr_leg'):
         '''
         Make sure CHP profiles don't ask for more power than feasible.
 
