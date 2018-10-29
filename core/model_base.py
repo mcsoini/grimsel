@@ -15,6 +15,8 @@ import tempfile
 import warnings
 import numpy as np
 
+import pandas as pd
+
 import pyomo.environ as po
 from pyomo.core.base.objective import SimpleObjective
 
