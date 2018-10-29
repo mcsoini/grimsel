@@ -364,7 +364,9 @@ class IO():
         input_table_list = (list(dict_tb_1.keys()) + list(dict_tb_2.keys())
                             + list(dict_tb_0.keys())+ list(dict_tb_3.keys()))
 
-        self.write_input_tables_to_output_schema(input_table_list)
+
+        if not self.resume_loop:
+            self.write_input_tables_to_output_schema(input_table_list)
 
     def write_input_tables_to_output_schema(self, tb_list):
 
