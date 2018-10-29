@@ -218,10 +218,11 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         for cg in self.constraint_groups:
             getattr(self, 'add_%s_rules'%cg)()
 
-    def _limit_prof_to_cap(self, param_mod):
+
+    def _limit_prof_to_cap(self):
 
         if len(self.ndcafl_chp) > 0:
-            self.limit_prof_to_cap(param_mod)
+            self.limit_prof_to_cap()
 
 #    def limit_prof_to_cap(self):
 #        '''
