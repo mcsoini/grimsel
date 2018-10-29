@@ -298,8 +298,7 @@ class Parameters:
         self.delete_component(param)
 
         # get set objects
-        param_index = tuple([getattr(self,
-                                     ss.replace('_id', ''))
+        param_index = tuple([getattr(self, ss.replace('_id', ''))
                              for ss in sets_new])
 
         # save final tables in dict
