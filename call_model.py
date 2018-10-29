@@ -41,9 +41,10 @@ mkwargs = {
            'nhours': 1,
 #           'slct_pp_type': slct_pt,
 #           'skip_runs': True,
-#           'tm_filt': [('wk_id', [27]), ('dow', [2])],
+#           'tm_filt': [('hy', range(8758))],
 #           'verbose_solver': False,
-           'constraint_groups': MB.get_constraint_groups(excl=['chp', 'ror'])
+           'constraint_groups': MB.get_constraint_groups(excl=['chp', 'ror',
+                                                               'chp_new'])
            }
 # additional kwargs for the i/o
 iokwargs = {'sc_warmstart': False,
@@ -52,29 +53,40 @@ iokwargs = {'sc_warmstart': False,
            }
 
 
+
 nsteps_default = [
                   ('swhy', 1, np.arange),    # historic years
 #                  ('swsyrs', len(list_raise_dmnd) + 1, np.arange),    # vre scaling
-                  ('swcfcap', 2, np.arange),    #
-                  ('swchp', 2, np.arange)
+#                  ('swcfcap', 2, np.arange),    #
+#                  ('swchp', 2, np.arange)
                  ]
 
 mlkwargs = {#'sc_inp': 'lp_input_calibration_years_linonly',
-            'sc_out': 'out_cal_cap_vs_cf',
+            'sc_out': 'out_test_avail',
             'db': db,
             'nsteps': nsteps_default,
             'sql_connector': sqlc,
-            'dev_mode': False
+            'dev_mode': True
             }
 
 sc_out = mlkwargs['sc_out']
 
 ml = model_loop.ModelLoop(**mlkwargs, mkwargs=mkwargs, iokwargs=iokwargs)
 
+df = IO.param_to_df(ml.m.supprof, ('sy', 'pp_id', 'ca_id'))
+df.pivot_table(index='sy',
+               columns='pp_id',
+               values='value')
+
+prf = IO.param_to_df(ml.m.supprof, ('sy', 'pp_id', 'ca_id'))
+cap = IO.param_to_df(ml.m.cap_pwr_leg, ('pp_id', 'ca_id')).set_index(['pp_id', 'ca_id'])['value'].rename('cap')
+prf = prf.join(cap, on=cap.index.names)
+prf['prof'] = prf.value * prf.cap
+
+prf.pivot_table(values='prof', index='pp_id', aggfunc=sum)
+
 # init ModelLoopModifier
 mlm = model_loop_modifier.ModelLoopModifier(ml)
-
-io.IO.param_to_df(ml.m.cf_max, ('mt_id', 'pp_id', 'ca_id')).pivot_table(index='mt_id', columns='pp_id', values='value').plot()
 
 # starting row of loop
 irow_0 = ml.io.resume_loop if ml.io.resume_loop else 0
@@ -96,9 +108,9 @@ for irow in list(range(irow_0, len(ml.df_def_loop))):
     '''
     mlm.set_historic_year()
 
-    mlm.availability_cf_cap()
+#    mlm.availability_cf_cap()
 
-    mlm.chp_on_off(ml.m.slct_node)
+#    mlm.chp_on_off(ml.m.slct_node)
 
 #    mlm.new_inflow_profile_for_ch()
 
@@ -112,7 +124,7 @@ for irow in list(range(irow_0, len(ml.df_def_loop))):
     ############### RUN MODEL ###############
     ml.m.fill_peaker_plants(demand_factor=2)
 
-#    ml.m._limit_prof_to_cap('cap_pwr_leg')
+    ml.m._limit_prof_to_cap('cap_pwr_leg')
 
     ml.perform_model_run()
 
@@ -128,7 +140,7 @@ sc_out = ml.io.sc_out
 sqac = sql_analysis_comp.SqlAnalysisComp(sc_out=sc_out, db=db)
 sqac.analysis_production_comparison()
 sqac.build_tables_plant_run()
-sqac.analysis_cf_comparison()
+#sqac.analysis_cf_comparison()
 sqac.analysis_price_comparison(valmin=-20, valmax=150, nbins=170)
 sqac.build_table_plant_run_tot_balance()
 sqac.analysis_production_comparison_hourly(stats_years=['2015'])
