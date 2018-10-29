@@ -12,106 +12,19 @@ import grimsel.auxiliary.timemap as tm
 from grimsel.auxiliary.aux_general import get_config
 
 from grimsel.analysis.sql_analysis_hourly import SqlAnalysisHourly
+from grimsel.analysis.decorators import DecoratorsSqlAnalysis
 
 
 
-#
-#
-#class SqlPostAnalysis():
-#
-#
-#format_kw = {'sc_out': 'out_nucspreadvr', 'sc_inp': 'lp_input'}
-#
-#exec_str = '''
-#            DROP VIEW IF EXISTS tb_sto;
-#            CREATE VIEW tb_sto AS
-#            WITH tb_slct AS (
-#                SELECT run_id, tb.pp_id, AVG(1 - st_lss_rt) AS eff, mt_id, bool_out, SUM(erg_yr_sy)
-#                FROM {sc_out}.analysis_plant_mt_id_run_tot AS tb
-#                LEFT JOIN lp_input.plant_encar AS ppca ON ppca.pp_id = tb.pp_id
-#                WHERE tb.pp_id IN (SELECT pp_id FROM lp_input.def_plant WHERE set_def_st = 1 OR set_def_hyrs = 1)
-#                GROUP BY run_id, tb.pp_id, mt_id, bool_out
-#            ), tb_true AS (
-#                SELECT *, sum AS sum_chg FROM tb_slct WHERE bool_out = True
-#                UNION ALL
-#                SELECT run_id, pp_id, eff, mt_id, bool_out, sum, sum_chg FROM (
-#                    SELECT pp_id, AVG(1) AS eff, mt_id, True AS bool_out,
-#                        SUM(infl.value) AS sum, SUM(infl.value) AS sum_chg
-#                    FROM lp_input.profinflow AS infl
-#                    NATURAL LEFT JOIN (SELECT sy AS hy, mt_id FROM out_nucspreadvr_2.tm_soy) AS mt_map
-#                    GROUP BY pp_id, mt_id
-#                ) AS tb
-#                FULL OUTER JOIN (SELECT DISTINCT run_id FROM {sc_out}.analysis_plant_mt_id_run_tot) AS list_run_id ON True
-#            ), tb_flse AS (SELECT *, sum AS sum_dch FROM tb_slct WHERE bool_out = False),
-#            tb_net AS (
-#                SELECT tb_true.run_id, tb_true.pp_id, tb_true.mt_id, tb_true.eff AS eff_chg, tb_flse.eff AS eff_dch,
-#                    sum_chg, sum_dch,
-#                    sum_chg * SQRT(tb_true.eff) - sum_dch / SQRT(tb_flse.eff) AS netchgdch
-#                    FROM tb_true
-#                LEFT JOIN tb_flse ON tb_flse.run_id = tb_true.run_id
-#                    AND tb_flse.pp_id = tb_true.pp_id
-#                    AND tb_flse.mt_id = tb_true.mt_id
-#            ), tb_erg AS (
-#                SELECT tb1.run_id, tb1.pp_id, tb1.eff_chg, tb1.eff_dch, tb1.mt_id, tb1.sum_chg, tb1.sum_dch, tb1.netchgdch, SUM(tb2.netchgdch) AS erg_0 FROM tb_net AS tb1
-#                LEFT JOIN tb_net AS tb2 ON tb2.run_id = tb1.run_id
-#                    AND tb2.pp_id = tb1.pp_id
-#                    AND tb2.mt_id <= tb1.mt_id
-#                GROUP BY tb1.run_id, tb1.pp_id, tb1.mt_id, tb1.netchgdch, tb1.sum_chg, tb1.sum_dch, tb1.eff_chg, tb1.eff_dch
-#                ORDER BY run_id, pp_id, mt_id
-#            ), tb_erg_min AS (
-#                SELECT run_id, pp_id, MIN(erg_0) AS erg_min
-#                FROM tb_erg
-#                GROUP BY run_id, pp_id
-#            )
-#            SELECT tb_erg.*, erg_min, (tb_erg.erg_0 - tb_erg_min.erg_min) AS erg FROM tb_erg
-#            NATURAL LEFT JOIN tb_erg_min;
-#            '''.format(**format_kw)
-#aql.exec_sql(exec_str)
-#
-#
-#aql.exec_sql('''
-#             DROP TABLE IF EXISTS {sc_out}.analysis_plant_mt_id_run_erg_stohyd CASCADE;
-#             SELECT *
-#             INTO {sc_out}.analysis_plant_mt_id_run_erg_stohyd
-#             FROM tb_sto
-#             '''.format(**format_kw))
-#
-#
-#sw_columns = [c for c in aql.get_sql_cols('analysis_plant_mt_id_run_tot', format_kw['sc_out']).keys() if '_vl' in c]
-#
-#
-#aql.exec_sql('''
-#            DROP TABLE IF EXISTS {sc_out}.def_loop_bare CASCADE;
-#            SELECT DISTINCT run_id, {list_sw_columns}
-#            INTO {sc_out}.def_loop_bare
-#            FROM {sc_out}.analysis_plant_mt_id_run_tot;
-#            '''.format(**format_kw, list_sw_columns=', '.join(sw_columns))
-#            )
-#
-#
-#sc_out = format_kw['sc_out']
-#sc_inp = format_kw['sc_inp']
-#itb = 'analysis_plant_mt_id_run_erg_stohyd'
-#
-#aql.joinon(['pt_id', 'fl_id', 'nd_id'], ['pp_id'],
-#           [sc_out, itb], [sc_inp, 'def_plant'])
-#aql.joinon(['pp_broad_cat', 'pt'], ['pt_id'],
-#           [sc_out, itb], [sc_inp, 'def_pp_type'])
-#aql.joinon(sw_columns, ['run_id'],
-#           [sc_out, itb], [sc_out, 'def_loop_bare'])
-#aql.joinon(['fl'], ['fl_id'],
-#           [sc_out, itb], [sc_inp, 'def_fuel'])
-#aql.joinon(['nd'], ['nd_id'],
-#           [sc_out, itb], [sc_inp, 'def_node'])
-#
 
 
-class SqlAnalysis(SqlAnalysisHourly):
+class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
     ''' Performs various SQL-based analyses on the output tables. '''
 
     def __init__(self, sc_out, db, slct_run_id=None, bool_run=True, nd_id=False,
                  suffix=False, slct_pt=False):
         ''' Init extracts model run parameter names from def_loop table. '''
+
 
         self.bool_run = bool_run
 
@@ -133,10 +46,10 @@ class SqlAnalysis(SqlAnalysisHourly):
 
 
         self.in_run_id = '(' + ', '.join(map(str, self.slct_run_id)) + ')'
-        _nd_id = nd_id if nd_id else aql.read_sql(self.db, sc_out, 'def_node',
-                                                  filt=[('0', ['0'])],
-                                                  keep=['nd_id'])['nd_id'].tolist()
-        self.in_nd_id = '(' + ', '.join(map(str, _nd_id)) + ')'
+        self._nd_id = nd_id if nd_id else aql.read_sql(self.db, sc_out, 'def_node',
+                                                       filt=[('0', ['0'])],
+                                                       keep=['nd_id'])['nd_id'].tolist()
+        self.in_nd_id = '(' + ', '.join(map(str, self._nd_id)) + ')'
 
 
         _nd = aql.read_sql(self.db, sc_out, 'def_node', filt=[('0', ['0'])],
@@ -168,9 +81,14 @@ class SqlAnalysis(SqlAnalysisHourly):
 #        list_pt_id = self.list_to_str(aql.read_sql(self.db, self.sc_out, 'def_pp_type',
 #                                                   filt=[('pt', slct_pt + ['%STO%'], ' LIKE ')] if slct_pt else False)['pt_id'])
         list_pt_id = aql.read_sql(self.db, self.sc_out, 'def_pp_type',
-                                 filt=[('pt', slct_pt + ['%STO%'], ' LIKE ')] if slct_pt else False)['pt_id']
+                                  filt=[('pt', slct_pt + ['%STO%'], ' LIKE ')] if slct_pt else False)['pt_id']
+        self.slct_pp_id = aql.read_sql(self.db, self.sc_out, 'def_plant',
+                                  filt=[('pt_id', list_pt_id),
+                                        ('nd_id', self._nd_id)])['pp_id']
+
         list_slct_pp_id =  self.list_to_str(aql.read_sql(self.db, self.sc_out, 'def_plant',
-                                                         filt=[('pt_id', list_pt_id.tolist(), ' = ')] if slct_pt else False)['pp_id'])
+                                                         filt=[('pt_id', list_pt_id.tolist(), ' = '),
+                                                               ('nd_id', self._nd_id)] if slct_pt else False)['pp_id'])
 
         self.format_kw = {'sfx': self._suffix, 'sc_out': self.sc_out,
                           'in_run_id': self.in_run_id,
@@ -788,15 +706,14 @@ class SqlAnalysis(SqlAnalysisHourly):
                     CREATE VIEW plant_run_quick_0 AS
                     SELECT
                         erg.run_id, erg.bool_out, erg.ca_id, erg.pp_id,
-                        dfplt.nd_id, dfplt.set_def_st, dfplt.pt_id, dfplt.set_def_chp,
+                        dfplt.nd_id, dfplt.set_def_st, dfplt.pt_id,
                         SUM((CASE WHEN erg.bool_out = True THEN -1 ELSE 1 END) * erg.value) AS erg_yr_yr,
-                        SUM(co2_int / eff.value * erg.value) AS co2_el,
+                        SUM(co2_int / NULLIF(eff.value * erg.value, 0)) AS co2_el,
                         COUNT(erg.run_id) AS count_check
                     FROM (SELECT * FROM {sc_out}.var_yr_erg_yr
                           WHERE run_id IN {in_run_id}) AS erg
                     LEFT JOIN (
-                        SELECT pp_id, pt_id, fl_id, nd_id, set_def_st,
-                               set_def_chp
+                        SELECT pp_id, pt_id, fl_id, nd_id, set_def_st
                         FROM {sc_out}.def_plant) AS dfplt
                     ON dfplt.pp_id = erg.pp_id
                     LEFT JOIN (
@@ -807,9 +724,13 @@ class SqlAnalysis(SqlAnalysisHourly):
                     ON eff.pp_id = erg.pp_id AND eff.run_id = erg.run_id AND eff.ca_id = erg.ca_id
                     GROUP BY erg.run_id, erg.ca_id, dfplt.pt_id,
                              dfplt.fl_id, erg.pp_id, dfplt.nd_id,
-                             erg.bool_out, dfplt.set_def_st,
-                             dfplt.set_def_chp;
+                             erg.bool_out, dfplt.set_def_st;
+                    ''').format(**self.format_kw)
+        if self.bool_run:
+            aql.exec_sql(exec_str, db=self.db, ret_res=False)
 
+
+        exec_str = ('''
                     /* ADD DERIVED COLUMNS */
                     DROP VIEW IF EXISTS plant_run_quick_01 CASCADE;
                     CREATE VIEW plant_run_quick_01 AS
@@ -874,7 +795,7 @@ class SqlAnalysis(SqlAnalysisHourly):
         if self.bool_run:
             aql.joinon(self.db, ['pp_broad_cat', 'pt'], ['pt_id'], [self.sc_out, tb],
                        [self.sc_out, 'def_pp_type'])
-            aql.joinon(self.db, ['run_name'] + self.sw_columns, ['run_id'],
+            aql.joinon(self.db, self.sw_columns, ['run_id'],
                        [self.sc_out, tb], [self.sc_out, 'def_loop'])
             aql.joinon(self.db, ['set_def_winsol', 'fl_id', 'pp'], ['pp_id'], [self.sc_out, tb],
                        [self.sc_out, 'def_plant'])
@@ -1550,6 +1471,55 @@ class SqlAnalysis(SqlAnalysisHourly):
                        [self.sc_out, 'def_loop'])
 
         return exec_str
+
+    @DecoratorsSqlAnalysis.append_sw_columns
+    def analysis_chp_shares(self):
+        '''
+        Compares the chp profile generated from
+        '''
+
+        tb_name = 'analysis_chp_shares'
+        cols = [('fl', 'VARCHAR'),
+                ('nd', 'VARCHAR'),
+                ('run_id', 'SMALLINT'),
+                ('erg_chp_prf', 'DOUBLE PRECISION'),
+                ('erg_chp_input', 'DOUBLE PRECISION'),
+                ('erg_tot', 'DOUBLE PRECISION'),
+                ('share_chp', 'DOUBLE PRECISION')
+               ]
+        pk = ['fl', 'nd', 'run_id']
+        slct_cols = aql.init_table(tb_name=tb_name,
+                                  cols=cols, schema=self.sc_out,
+                                  pk=pk, db=self.db)
+
+        exec_strg = '''
+        WITH tb_tot AS (
+            SELECT fl, nd, run_id, SUM(value) AS erg_tot FROM {sc_out}.var_yr_erg_yr AS erg
+            LEFT JOIN (SELECT pp_id, pp, fl_id, nd_id FROM {sc_out}.def_plant) AS dfpp ON dfpp.pp_id = erg.pp_id
+            LEFT JOIN (SELECT fl_id, fl FROM {sc_out}.def_fuel) AS dffl ON dffl.fl_id = dfpp.fl_id
+            LEFT JOIN (SELECT nd_id, nd FROM {sc_out}.def_node) AS dfnd ON dfnd.nd_id = dfpp.nd_id
+            GROUP BY fl, nd, run_id
+        ), tb_chp AS (
+            SELECT fl, erg.run_id, nd, SUM(prf.value * tm.weight * erg.value) AS erg_chp_prf, MIN(flndca.erg_chp) AS erg_chp_input FROM {sc_out}.par_chpprof AS prf
+            FULL OUTER JOIN {sc_out}.par_erg_chp AS erg ON erg.nd_id = prf.nd_id AND erg.ca_id = prf.ca_id AND erg.run_id = prf.run_id
+            LEFT JOIN (SELECT nd_id, nd FROM {sc_out}.def_node) AS dfnd ON dfnd.nd_id = prf.nd_id
+            LEFT JOIN (SELECT fl_id, fl FROM {sc_out}.def_fuel) AS dffl ON dffl.fl_id = erg.fl_id
+            LEFT JOIN (SELECT sy, weight FROM {sc_out}.tm_soy) AS tm ON tm.sy = prf.sy
+            LEFT JOIN (SELECT is_chp, fl_id, nd_id, ca_id, erg_chp FROM {sc_out}.fuel_node_encar) AS flndca
+                ON flndca.fl_id = erg.fl_id AND flndca.nd_id = prf.nd_id
+            WHERE is_chp = 1
+            GROUP BY nd, erg.run_id, fl
+        ), tb_final AS (
+            SELECT tb_chp.*, erg_tot, erg_chp_prf / erg_tot AS share_chp FROM tb_chp
+            LEFT JOIN tb_tot ON tb_tot.fl = tb_chp.fl AND tb_tot.nd = tb_chp.nd AND tb_tot.run_id = tb_chp.run_id
+        )
+        INSERT INTO {sc_out}.analysis_chp_shares ({slct_cols})
+        SELECT {slct_cols} FROM tb_final;
+
+        '''.format(slct_cols=slct_cols, **self.format_kw)
+        aql.exec_sql(exec_strg, db=self.db)
+
+
 
 if __name__ == '__main__':
 
