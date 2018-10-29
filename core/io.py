@@ -237,7 +237,7 @@ class IO():
     def get_input_table(self, table, filt):
 
         if self.sc_inp:
-            tb_exists = table in aql.get_sql_tables(self.db, self.sc_inp)
+            tb_exists = table in aql.get_sql_tables(self.sc_inp, self.db)
             if tb_exists:
                 df = aql.read_sql(self.db, self.sc_inp, table, filt)
         else:
