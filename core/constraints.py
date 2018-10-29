@@ -309,8 +309,8 @@ class Constraints:
 
             # Skipping the case where erg_yr = 0 and no corresponding plants
             erg_inp_is_zero = self.erg_inp[nd, ca, fl] == 0
-            no_plants_for_fuel = set_to_list(self.ppall_ndcafl,
-                                             [None, nd, ca, fl]) == []
+            no_plants_for_fuel = not set_to_list(self.ppall_ndcafl,
+                                                 [None, nd, ca, fl])
 
             if is_constr and not erg_inp_is_zero and not no_plants_for_fuel:
                 left = sum(self.erg_fl_yr[pp, nd_1, ca_1, fl_1]
