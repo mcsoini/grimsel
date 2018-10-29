@@ -223,6 +223,65 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         if len(self.ndcafl_chp) > 0:
             self.limit_prof_to_cap(param_mod)
 
+#    def limit_prof_to_cap(self):
+#        '''
+#        Make sure CHP profiles don't ask for more power than feasible.
+#
+#        This operates on the parameters and is called before each model run.
+#        '''
+#
+#        df_prf = self.df_profchp_soy.copy().rename(columns={'value': 'prof'})
+#        df_prf = df_prf.join(self.df_tm_soy.set_index(['sy'])['weight'], on='sy')
+#        df_prf['prof'] *= df_prf.weight
+#        df_erg = IO.param_to_df(self.erg_chp, ('nd_id', 'ca_id', 'fl_id')).rename(columns={'value': 'erg'})
+#        df_erg = df_erg.loc[df_erg.erg > 0]
+#        df_cap = IO.param_to_df(self.cap_pwr_leg, ('pp_id', 'ca_id')).rename(columns={'value': 'cap'})
+#
+#        cap_scale = IO.param_to_df(self.cap_avlb, ('mt_id', 'pp_id', 'ca_id')).rename(columns={'value': 'cap_scale'})
+#        df_cap = cap_scale.join(df_cap.set_index(['pp_id', 'ca_id']), on=['pp_id', 'ca_id'])
+#        df_cap['cap'] *= df_cap.cap_scale
+#
+#        df_cap = df_cap.join(self.df_def_plant.set_index('pp_id')[['fl_id', 'nd_id']], on='pp_id')
+#
+#        df_cap = df_cap.pivot_table(index=['nd_id', 'fl_id', 'mt_id'],
+#                           values='cap', aggfunc=sum)
+#
+#        df_exp = pd.merge(df_prf, df_erg, on=['nd_id', 'ca_id'], how='outer')
+#
+#        df_exp['prof_scaled'] = df_exp.prof * df_exp.erg
+#        df_exp = df_exp.join(self.df_tm_soy_full.set_index('sy')['mt_id'], on='sy')
+#
+#        df_exp.pivot_table(values='prof', aggfunc=sum, index=['nd_id', 'fl_id'])
+#        df_exp.pivot_table(values='erg', aggfunc=[np.min, max], index=['nd_id', 'fl_id'])
+#
+#
+#
+#
+#        df_exp = df_exp.join(df_cap, on=df_cap.index.names)
+#
+#        mask_viol = df_exp.prof_scaled > df_exp.cap
+#        df_exp.loc[mask_viol, 'prof_scaled'] = df_exp.loc[mask_viol, 'cap'] * 0.999
+#
+#        df_exp['prof_new'] = df_exp.prof_scaled / df_exp.erg
+#
+#        df_exp.pivot_table(index='sy', values=['prof_new', 'prof'], columns=['fl_id', 'nd_id'], aggfunc=sum).plot()
+#
+#
+#        df_prf_new = df_exp.pivot_table(index=['sy', 'nd_id', 'ca_id'], values='prof_new', aggfunc=min).reset_index()
+#
+#
+#        print('New sum of profile')
+#        df_print = df_prf_new.pivot_table(index='nd_id', values='prof_new', aggfunc=sum).reset_index()
+#        df_print['nd_id'] = df_print.nd_id.replace(self.mps.dict_nd)
+#        print(df_print)
+#
+#
+#        dict_prf_new = df_prf_new.set_index(['sy', 'nd_id', 'ca_id'])['prof_new'].to_dict()
+#
+#        for key, val in dict_prf_new.items():
+#            self.chpprof[key].value = val
+
+
     def limit_prof_to_cap(self, param_mod):
         '''
         Make sure CHP profiles don't ask for more power than feasible.
