@@ -306,7 +306,7 @@ class Parameters:
         self.parameter_month_dict[param] = df1
 
         # add new parameter component
-        self.padd(param, param_index, df1, value_col='value',
+        self.padd(param, param_index, df1, value_col='value', default=1,
                   mutable=True)
 
         # store this in the class attribute so we can make case
