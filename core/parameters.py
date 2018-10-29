@@ -78,7 +78,6 @@ class Parameters:
 
         print('Defining parameters for all generators')
         _df = self.df_plant_encar.copy()
-        _df['cap_avlb'] = 1 # init 1, adjusted from monthly correction factors
         _df = _df.loc[_df['pp_id'].isin(self.setlst['ppall'])]
         sets = (self.pp | self.pr | self.ror | self.st | self.hyrs |
                 self.curt | self.lin, self.ca)
@@ -86,7 +85,10 @@ class Parameters:
         self.padd('vc_om', sets, _df, **mut) # .
         self.padd('fc_om', sets, _df, **mut, default=0) # .
         self.padd('fc_dc', sets, _df, **mut) # .
-        self.padd('cap_avlb', sets, _df, **mut) # .
+
+        _df['cap_avlb'] = 1 # init 1, adjusted from monthly correction factors
+        _df = _df.loc[_df['pp_id'].isin(self.setlst['pp'])]
+        self.padd('cap_avlb', (self.pp, self.ca), _df, **mut) # .
 
         print('Defining parameters investment')
         _df = self.df_plant_encar.copy()
