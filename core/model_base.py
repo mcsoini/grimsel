@@ -18,6 +18,7 @@ import numpy as np
 import pyomo.environ as po
 from pyomo.core.base.objective import SimpleObjective
 
+from grimsel.core.io import IO as IO
 
 def create_tempfile(self, suffix=None, prefix=None, text=False, dir=None):
     """
