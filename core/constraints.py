@@ -138,8 +138,11 @@ class Constraints:
         print('Capacity constraints rules...')
         print('- Transmission')
         def trm_sd_capac_rule(self, sy, nd1, nd2, ca):
+
+            mt = self.dict_soy_month[sy]
+
             return (self.trm_sd[sy, nd1, nd2, ca]
-                    <= self.cap_trm_leg[self.dict_soy_month[sy], nd1, nd2, ca])
+                    <= self.cap_trm_leg[mt, nd1, nd2, ca])
         self.trm_sd_capac_rule = po.Constraint(self.sy, self.ndcnn,
                                                rule=trm_sd_capac_rule)
 
