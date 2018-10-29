@@ -507,7 +507,6 @@ class IO():
             self.write_prim_data('var_tr')
 
     @skip_if_resume_loop
-
     @skip_if_no_output
     def write_runtime_tables(self):
         '''
