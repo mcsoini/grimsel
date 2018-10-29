@@ -19,11 +19,11 @@ import grimsel.analysis.sql_analysis as  sql_analysis
 
 class SqlAnalysisComp(sql_analysis.SqlAnalysis):
 
-    
+
     def __init__(self, sc_out, db, **kwargs):
-        
+
         self.mps = maps.Maps(sc_out, db)
-        
+
         super().__init__(sc_out, db, **kwargs)
 
 
@@ -42,8 +42,8 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
         aql.init_table(tb_name=tb_name,
                        cols=cols, schema=self.sc_out,
                        pk=pk, db=self.db)
-        
-        
+
+
         exec_strg = '''
         WITH map_input AS (
             SELECT input::VARCHAR, input_simple::VARCHAR
@@ -52,14 +52,14 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
                          ('ch_elektrizitaetsstatistik', 'stats'),
                          ('model_erg_max_from_cf', 'model_max'),
                          ('model_var_sy_pwr', 'model'), ('model_tr', 'model'),
-                         ('entsoe_cross_border', 'stats'), 
-                         ('entsoe_commercial_exchange', 'stats'), 
+                         ('entsoe_cross_border', 'stats'),
+                         ('entsoe_commercial_exchange', 'stats'),
                          ('terna', 'stats'))
             AS temp (input, input_simple)
         ), tb_model_erg_max_from_cf AS (
             SELECT fl, tbcf.mt_id, nd, tbcf.run_id,
                 SUM(cap.value * tbcf.value * month_weight) AS erg,
-                'model_erg_max_from_cf'::VARCHAR AS input 
+                'model_erg_max_from_cf'::VARCHAR AS input
             FROM {sc_out}.par_cf_max AS tbcf
             NATURAL LEFT JOIN (SELECT pp_id, pp, fl_id, nd_id FROM {sc_out}.def_plant) AS dfpp
             NATURAL LEFT JOIN (SELECT fl_id, fl FROM {sc_out}.def_fuel) AS dffl
@@ -92,16 +92,16 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
             SELECT fl, mt_id, nd, 0::SMALLINT AS run_id, SUM(value) AS erg,
                 'entsoe_cross_border'::VARCHAR AS input
             FROM {sc_out}.analysis_time_series
-            WHERE sta_mod = 'stats_imex_entsoe' 
+            WHERE sta_mod = 'stats_imex_entsoe'
             GROUP BY fl, mt_id, nd, run_id
         ), tb_rte_eco2mix AS (
             SELECT fl, mt_id, nd, 0::SMALLINT AS run_id, SUM(value) AS erg,
                 'rte_eco2mix'::VARCHAR AS input
             FROM {sc_out}.analysis_time_series
-            WHERE sta_mod = 'stats_rte_eco2mix' 
+            WHERE sta_mod = 'stats_rte_eco2mix'
             GROUP BY fl, mt_id, nd, run_id
         ), tb_model_sd AS (
-            SELECT 
+            SELECT
                 fl, mt_id, nd, run_id,
                 -SUM(value * weight) AS erg,
                 'model_tr'::VARCHAR AS input
@@ -140,9 +140,9 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
             GROUP BY fl, mt_id, nd, run_id
         ), tb_all AS (
         SELECT * FROM tb_agora_month_sum
-        UNION ALL 
+        UNION ALL
         SELECT * FROM tb_rte_month_sum
-        UNION ALL 
+        UNION ALL
         SELECT * FROM tb_model_erg_max_from_cf
         UNION ALL
         SELECT * FROM tb_model_var_sy_pwr
@@ -163,9 +163,9 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
                                                           erg, input, input_simple)
         SELECT fl, mt_id, nd, run_id, erg, input, input_simple
         FROM tb_all
-        NATURAL LEFT JOIN map_input; 
-        
-        
+        NATURAL LEFT JOIN map_input;
+
+
         /* ADD CAPACITY FACTORS CROSS-BORDER TRANSMISSION */
         INSERT INTO {sc_out}.analysis_monthly_comparison (
                         fl, mt_id, nd, run_id, erg, input, input_simple)
@@ -176,7 +176,7 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
         FROM {sc_out}.par_cap_trm_leg AS tbrv
         LEFT JOIN (SELECT nd_id, nd AS nd FROM {sc_out}.def_node) AS dfnd
             ON dfnd.nd_id = tbrv.nd_2_id
-        LEFT JOIN (SELECT nd_id, 'import_' || nd AS fl 
+        LEFT JOIN (SELECT nd_id, 'import_' || nd AS fl
                    FROM {sc_out}.def_node) AS dfnd2
             ON dfnd2.nd_id = tbrv.nd_id
         LEFT JOIN (SELECT mt_id, month_weight FROM {sc_out}.def_month) AS dfmt
@@ -196,7 +196,7 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
         FROM {sc_out}.par_cap_trm_leg AS tbrv
         LEFT JOIN (SELECT nd_id, nd AS nd FROM {sc_out}.def_node) AS dfnd
             ON dfnd.nd_id = tbrv.nd_id
-        LEFT JOIN (SELECT nd_id, 'export_' || nd AS fl 
+        LEFT JOIN (SELECT nd_id, 'export_' || nd AS fl
                    FROM {sc_out}.def_node) AS dfnd2
             ON dfnd2.nd_id = tbrv.nd_2_id
         LEFT JOIN (SELECT mt_id, month_weight FROM {sc_out}.def_month) AS dfmt
@@ -206,10 +206,10 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
                    WHERE input = 'model_tr' AND fl LIKE 'export_%') AS tban
             ON tban.mt_id = tbrv.mt_id AND tban.run_id = tbrv.run_id
                 AND tban.fl = dfnd2.fl AND tban.nd = dfnd.nd;
-        
+
         ALTER TABLE {sc_out}.analysis_monthly_comparison
         ADD COLUMN fl2 VARCHAR;
-        
+
         UPDATE {sc_out}.analysis_monthly_comparison
         SET fl2 = fl;
         '''.format(**self.format_kw)
@@ -273,14 +273,14 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
                     LEFT JOIN {sc_out}.tm_soy_full AS tm ON tm.sy = ent.hy
                     WHERE ent.year IN ({st_yr})
                         AND ent.nd_id IN {in_nd};
-                        
+
                     INSERT INTO
                         {sc_out}.analysis_time_series(run_id, bool_out, fl, nd,
                                                      swhy_vl, sy, value,
                                                      value_posneg, dow,
                                                      dow_type, hom, hour,
                                                      how, mt_id, season, wk_id,
-                                                     wom, sta_mod, pwrerg_cat)                        
+                                                     wom, sta_mod, pwrerg_cat)
                     SELECT -1::SMALLINT AS run_id, False::BOOLEAN AS bool_out, --'EL' AS ca,
                         fl_id AS fl, nd_id AS nd,
                         'yr' || tm.year::VARCHAR AS swhy_vl,
@@ -315,8 +315,8 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
                                WHERE year IN ({st_yr})) AS ts
                     ON ts.datetime = tb."DateTime"
                     LEFT JOIN {sc_out}.tm_soy_full AS tm ON tm.sy = ts.slot
-                    WHERE tb.year IN ({st_yr});    
-                    
+                    WHERE tb.year IN ({st_yr});
+
                     WITH tb_raw AS (
                         SELECT nd_to AS nd, 'import_' || nd_from AS fl,
                                 False::BOOLEAN AS bool_out, value, year, hy
@@ -352,7 +352,7 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
                    [self.sc_out, 'def_loop'])
 
         for col in self.sw_columns:
-            exec_strg = '''        
+            exec_strg = '''
                         UPDATE {sc_out}.analysis_time_series
                         SET {col} = 'none'
                         WHERE {col} IS NULL;
@@ -377,7 +377,8 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
                     INTO {sc_out}.analysis_production_comparison
                     FROM {sc_out}.var_yr_erg_yr AS erg
                     NATURAL LEFT JOIN {sc_out}.def_loop AS dflp
-                    NATURAL LEFT JOIN {sc_out}.def_plant AS dfpp;
+                    NATURAL LEFT JOIN {sc_out}.def_plant AS dfpp
+                    WHERE run_id = -1;
                     '''.format(**self.format_kw)
 
         aql.exec_sql(exec_str, db=self.db)
@@ -388,40 +389,36 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
         df_erg_inp = df_erg_inp.stack().reset_index().rename(columns={'level_3': 'swhy_vl', 0: 'value'})
         df_erg_inp['swhy_vl'] = df_erg_inp['swhy_vl'].replace({'erg_inp': 'erg_inp_yr2015'}).map(lambda x: x[-6:])
         df_erg_inp['sta_mod'] = 'stats'
-        df_erg_inp['bool_out'] = False
-
-        df_swhy = aql.read_sql(self.db, self.sc_out, 'def_loop').set_index('swhy_vl')['run_id']
-        df_erg_inp = df_erg_inp.join(df_swhy, on=df_swhy.index.names)
-        df_erg_inp = df_erg_inp.loc[-df_erg_inp.run_id.apply(np.isnan)].drop('swhy_vl', axis=1)
+        df_erg_inp['run_id'] = -1
 
         # add imex stats
-        if 'export' in self.mps.dict_fl_id.keys():
+#        if 'export' in self.mps.dict_fl_id.keys():
+#
+#            df_imex = aql.read_sql(self.db, self.sc_out, 'imex_comp')
+#
+#            df_imex = df_imex.set_index(['nd_id', 'nd_2_id']).stack().reset_index()
+#            df_imex = df_imex.rename(columns={'level_2': 'swhy_vl', 0: 'value'})
+#
+#            df_imex['value'] *= 1000
+#
+#            df_imex['swhy_vl'] = df_imex['swhy_vl'].replace({'erg_trm': 'erg_trm_yr2015'}).map(lambda x: x[-6:])
+#            df_imex['sta_mod'] = 'stats'
+#            df_imex['ca_id'] = self.mps.dict_ca_id['EL']
+#            df_imex = df_imex.join(df_swhy, on=df_swhy.index.names)
+#            df_imex = df_imex.loc[-df_imex.run_id.apply(np.isnan)].drop('swhy_vl', axis=1)
+#
+#            df_imex_exp = df_imex.groupby(['nd_id', 'sta_mod', 'ca_id', 'run_id'])['value'].sum().reset_index()
+#            df_imex_exp['fl_id'] = self.mps.dict_fl_id['export']
+#            df_imex_exp['bool_out'] = True
+#            df_imex_imp = df_imex.groupby(['nd_2_id', 'sta_mod', 'ca_id', 'run_id'])['value'].sum().reset_index()
+#            df_imex_imp['fl_id'] = self.mps.dict_fl_id['import']
+#            df_imex_imp['bool_out'] = False
+#            df_imex_imp = df_imex_imp.rename(columns={'nd_2_id': 'nd_id'})
+#        else:
+#            df_imex_imp = pd.DataFrame()
+#            df_imex_exp = pd.DataFrame()
 
-            df_imex = aql.read_sql(self.db, self.sc_out, 'imex_comp')
-
-            df_imex = df_imex.set_index(['nd_id', 'nd_2_id']).stack().reset_index()
-            df_imex = df_imex.rename(columns={'level_2': 'swhy_vl', 0: 'value'})
-
-            df_imex['value'] *= 1000
-
-            df_imex['swhy_vl'] = df_imex['swhy_vl'].replace({'erg_trm': 'erg_trm_yr2015'}).map(lambda x: x[-6:])
-            df_imex['sta_mod'] = 'stats'
-            df_imex['ca_id'] = self.mps.dict_ca_id['EL']
-            df_imex = df_imex.join(df_swhy, on=df_swhy.index.names)
-            df_imex = df_imex.loc[-df_imex.run_id.apply(np.isnan)].drop('swhy_vl', axis=1)
-
-            df_imex_exp = df_imex.groupby(['nd_id', 'sta_mod', 'ca_id', 'run_id'])['value'].sum().reset_index()
-            df_imex_exp['fl_id'] = self.mps.dict_fl_id['export']
-            df_imex_exp['bool_out'] = True
-            df_imex_imp = df_imex.groupby(['nd_2_id', 'sta_mod', 'ca_id', 'run_id'])['value'].sum().reset_index()
-            df_imex_imp['fl_id'] = self.mps.dict_fl_id['import']
-            df_imex_imp['bool_out'] = False
-            df_imex_imp = df_imex_imp.rename(columns={'nd_2_id': 'nd_id'})
-        else:
-            df_imex_imp = pd.DataFrame()
-            df_imex_exp = pd.DataFrame()
-
-        df_erg_inp = pd.concat([df_erg_inp, df_imex_exp, df_imex_imp])
+        df_erg_inp = pd.concat([df_erg_inp])
 
         aql.write_sql(df_erg_inp, self.db, self.sc_out,
                       'analysis_production_comparison', 'append')
@@ -507,11 +504,11 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
                    FROM {sc_out}.profprice_comp
                    NATURAL LEFT JOIN {sc_out}.def_loop
                    WHERE swhy_vl = 'yr2015';
-                   
+
                    /* Double Germany for Austria */
                    CREATE VIEW {sc_out}._view_analysis_prices_stats_at AS
                    SELECT hy,
-                       (SELECT nd_id 
+                       (SELECT nd_id
                         FROM {sc_out}.def_node
                         WHERE nd = 'AT0') AS nd_id,
                         ca_id, price, volume, price_volume, run_id, sta_mod
@@ -539,7 +536,7 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
                    UNION ALL
 
                    SELECT * FROM {sc_out}._view_analysis_prices_stats_0
-  
+
                    UNION ALL
 
                    SELECT * FROM {sc_out}._view_analysis_prices_stats_at
