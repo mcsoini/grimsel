@@ -157,7 +157,7 @@ class Constraints:
                                                 * self.cap_avlb[mt, pp, ca])
             else:
                 return (self.pwr[sy, pp, ca] <= self.cap_pwr_tot[pp, ca])
-                
+
         self.PpStCapac = po.Constraint(self.pp_ca - self.pr_ca | self.st_ca
                                        | self.hyrs_ca,
                                        self.sy, rule=ppst_capac_rule)
@@ -181,8 +181,8 @@ class Constraints:
     def add_chp_new_rules(self):
 
         # temporary fix: CHP profiles limited to capacity
-        
-        
+
+
         def chp_prof_rule(model, sy, nd, ca, fl):
             '''Produced power greater than CHP output profile.'''
 
@@ -270,34 +270,29 @@ class Constraints:
 
     def add_energy_constraint_rules(self):
 
-#        if 'cf_max' in self.parameter_month_list:
-#
-#            print('Capacity factor limitation rule')
-#            def pp_cf_rule(self, mt, pp, ca):
-#
-##                if 34 == pp:
-##                    return po.Constraint.Skip
-##                else:
-#                return (self.erg_mt[mt, pp, ca]
-#                        <= self.cf_max[mt, pp, ca]
-#                           * self.cap_pwr_tot[pp, ca]
-#                           * self.month_weight[mt])
-#            self.pp_cf = po.Constraint(self.mt, self.pp_ca - self.pr_ca,
-#                                       rule=pp_cf_rule,
-#                                       doc='Capacity factor constrained.')
-#        else:
-#            print('Capacity factor limitation rule')
-#            def pp_cf_rule(self, pp, ca):
-##                if 34 == pp:
-##                    return po.Constraint.Skip
-##                else:
-#                return (self.erg_yr[pp, ca]
-#                        <= self.cf_max[pp, ca]
-#                            * self.cap_pwr_tot[pp, ca]
-#                            * 8760)
-#            self.pp_cf = po.Constraint(self.pp_ca - self.pr_ca,
-#                                       rule=pp_cf_rule,
-#                                       doc='Capacity factor constrained.')
+        if 'cf_max' in self.parameter_month_list:
+
+            print('Capacity factor limitation rule')
+            def pp_cf_rule(self, mt, pp, ca):
+
+                return (self.erg_mt[mt, pp, ca]
+                        <= self.cf_max[mt, pp, ca]
+                           * self.cap_pwr_tot[pp, ca]
+                           * self.month_weight[mt])
+            self.pp_cf = po.Constraint(self.mt, self.pp_ca - self.pr_ca,
+                                       rule=pp_cf_rule,
+                                       doc='Capacity factor constrained.')
+        else:
+            print('Capacity factor limitation rule')
+            def pp_cf_rule(self, pp, ca):
+
+                return (self.erg_yr[pp, ca]
+                        <= self.cf_max[pp, ca]
+                            * self.cap_pwr_tot[pp, ca]
+                            * 8760)
+            self.pp_cf = po.Constraint(self.pp_ca - self.pr_ca,
+                                       rule=pp_cf_rule,
+                                       doc='Capacity factor constrained.')
 
         print('Fuel constraint rule')
         def pp_max_fuel_rule(self, nd, ca, fl):
@@ -524,13 +519,6 @@ class Constraints:
 #        self.calc_vc_co2_pp = po.Constraint(self.pp_ndcafl - self.lin_ppndcafl,
 #                                            rule=calc_vc_co2_pp_rule)
 #
-
-
-
-
-
-
-
 #        print('Flexible demand VC calculation rule')
 #        def calc_vc_flex_dmnd_rule(self, nd, ca):
 #            return (self.vc_dmnd_flex_yr[nd, ca]
