@@ -9,7 +9,6 @@ import warnings
 
 import grimsel.auxiliary.aux_sql_func as aql
 import grimsel.auxiliary.timemap as tm
-from grimsel.auxiliary.aux_general import get_config
 
 from grimsel.analysis.sql_analysis_hourly import SqlAnalysisHourly
 from grimsel.analysis.decorators import DecoratorsSqlAnalysis
@@ -351,7 +350,7 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
             join_timescale_id = \
                     ('''
                      LEFT JOIN (
-                     SELECT {timescale}, sy FROM {sc_out}.tm_soy) AS dftsc
+                     SELECT {timescale}, sy FROM {sc_out}.tm_soy_full) AS dftsc
                      ON dftsc.sy = pwr.sy
                      ''').format(sc_out=self.sc_out,
                                  timescale=timescale)
