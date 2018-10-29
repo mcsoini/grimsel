@@ -12,8 +12,8 @@ import sqlalchemy
 import string
 import random
 
-from grimsel.auxiliary.aux_general import get_config
-
+#from grimsel.auxiliary.aux_general import get_config
+import grimsel.config as config
 
 # %%
 
@@ -33,10 +33,15 @@ class sql_connector():
 
         self.db = db
 
+        config_dict = {
+        'user': config.PSQL_USER,
+        'password': config.PSQL_PASSWORD,
+        'host': config.PSQL_HOST,
+        'port': config.PSQL_PORT
+        }
 
-        kwargs_keys = ['user', 'password', 'host', 'port']
-        for kw in kwargs_keys:
-            setattr(self, kw, get_config('sql_connect')[kw])
+        for kw, val in config_dict.items():
+            setattr(self, kw, val)
         self.__dict__.update(**kwargs)
 
         self.pg_str = ('dbname={db} user={user} password={password} '
@@ -44,6 +49,10 @@ class sql_connector():
 
         self.sqlal_str = ('postgresql://{user}:{password}'
                           '@{host}:{port}/{db}').format(**self.__dict__)
+
+    def get_sqlalchemy_engine(self):
+        return create_engine(self.sqlal_str)
+
 
     def get_pg_con_cur(self):
         conn = pg.connect(self.pg_str)
@@ -54,6 +63,7 @@ class sql_connector():
     def __repr__(self):
         strg = '%s\n%s'%(self.pg_str, self.sqlal_str)
         return(strg)
+
 
 def exec_sql(exec_str, ret_res=True, time_msg=False, db=None, con_cur=None):
     t = time.time()
@@ -80,6 +90,7 @@ def exec_sql(exec_str, ret_res=True, time_msg=False, db=None, con_cur=None):
     if ret_res:
         return result
 
+
 # %%
 
 def get_column_string(cols, kind):
@@ -104,7 +115,6 @@ def get_column_string(cols, kind):
                                   for col in cols])
 
 
-
 # %%
 
 def get_sql_tables(sc, db=None):
@@ -119,6 +129,7 @@ def get_sql_tables(sc, db=None):
                AND table_type = \'BASE TABLE\'
                '''.format(sc=sc)
     return [itb[0] for itb in exec_sql(exec_str, db=db)]
+
 
 # %%
 
@@ -137,9 +148,6 @@ def get_sql_cols(tb, sc='public', db=None):
 
     lst_col = exec_sql(exec_str, db=db)
     return {kk: vv for kk, vv in lst_col}
-
-#if __name__ == '__main__':
-#    get_sql_cols('public')
 
 
 # %%
@@ -184,12 +192,13 @@ Hit enter to proceed.
              '''.format(sc_out=sc), db=db)
 
 
+
 # %%
 
 def write_sql(df, db, sc, tb, if_exists, chunksize=None):
 
-    engine = create_engine(get_config('sql_connect')['sqlalchemy']
-                           .format(db=db))
+    sqlc = sql_connector(db)
+    engine = sqlc.get_sqlalchemy_engine()
 
     if if_exists == 'replace':
         exec_str = ('''DROP TABLE IF EXISTS {sc}.{tb} CASCADE;
@@ -346,8 +355,8 @@ def read_sql(db, sc, tb, filt=False, filt_func=False, drop=False, keep=False,
                                     ({'nd': 'FR0', 'bool_out': False}, ' NOT ')]
     '''
 
-    engine = create_engine(get_config('sql_connect')['sqlalchemy']
-                           .format(db=db))
+    sqlc = sql_connector(db)
+    engine = sqlc.get_sqlalchemy_engine()
 
     if verbose:
         print('Reading ' + sc + '.' + tb +  ' from database ' + db)
@@ -721,58 +730,58 @@ def filtered_aggregates(nbin=20,
 
 # %%
 
-def multijoin(tables, col_select, merge_cols, keep_cols, output_where):
-
-    '''
-    dict tables --- {0: ['schema', 'name', 'alias'], 1: ...,
-                     'out': ['schema', 'name']}
-    dict col_select = {0: ['column_1', ['column_2', 'AS alias']], 1: ...,
-                       'out': ['col_from_input']}
-    dict merge_cols = {0: [], # not relevant by definition
-                       1: ['col_1'], ...}
-    dict keep_cols = {0: ['variable', 'soy', 'node', 'node_2', 'encar',
-                     'year','power_transmission'],
-                     1: ['mc_node',],
-                     2: ['mc_node_2']}
-    list output_where = ['power_transmission <> 0']
-    '''
-
-    ntb = len(tables) - 1
-    exec_str = 'DROP TABLE IF EXISTS ' + '.'.join(tables['out']) + ';'
-    exec_str += ' WITH '
-    for itb in range(ntb):
-        exec_str += (tables[itb][2] +
-                     ' AS ( SELECT ' + slct_str(col_select[itb]) +
-                     ' FROM ' + '.'.join(tables[itb][:2]) + '), '
-                     )
-    exec_str += 'temp_mrg AS (SELECT '
-    for itb in range(0, ntb):
-        exec_str += slct_str(keep_cols[itb], pl=tables[itb][2] + '.')
-        exec_str += ', ' if (itb < ntb - 1) else ' '
-    exec_str += 'FROM ' + tables[0][2] + ' '
-    for itb in range(1, ntb):
-        exec_str += 'LEFT JOIN ' + tables[itb][2] + ' ON '
-
-        exec_str += on_str(merge_cols[itb], pl=tables[0][2],
-                                            pr=tables[itb][2])
-    exec_str += ') SELECT ' + slct_str(col_select['out'])
-    exec_str += ' INTO ' + '.'.join(tables['out'])
-    exec_str += ' FROM temp_mrg '
-    exec_str += (' WHERE ' + ' AND '.join(['(' + o + ')'
-                                           for o in output_where])
-                  if output_where != [] else '')
-
-    conn = pg.connect(get_config('sql_connect')['psycopg2']
-                      .format(db=get_config('sql_connect')['db']))
-    cur = conn.cursor()
-    cur.execute(exec_str)
-    conn.commit()
-    try:
-        cur.fetchall()
-    except:
-        print("No results")
-    conn.close()
-
+#def multijoin(tables, col_select, merge_cols, keep_cols, output_where):
+#
+#    '''
+#    dict tables --- {0: ['schema', 'name', 'alias'], 1: ...,
+#                     'out': ['schema', 'name']}
+#    dict col_select = {0: ['column_1', ['column_2', 'AS alias']], 1: ...,
+#                       'out': ['col_from_input']}
+#    dict merge_cols = {0: [], # not relevant by definition
+#                       1: ['col_1'], ...}
+#    dict keep_cols = {0: ['variable', 'soy', 'node', 'node_2', 'encar',
+#                     'year','power_transmission'],
+#                     1: ['mc_node',],
+#                     2: ['mc_node_2']}
+#    list output_where = ['power_transmission <> 0']
+#    '''
+#
+#    ntb = len(tables) - 1
+#    exec_str = 'DROP TABLE IF EXISTS ' + '.'.join(tables['out']) + ';'
+#    exec_str += ' WITH '
+#    for itb in range(ntb):
+#        exec_str += (tables[itb][2] +
+#                     ' AS ( SELECT ' + slct_str(col_select[itb]) +
+#                     ' FROM ' + '.'.join(tables[itb][:2]) + '), '
+#                     )
+#    exec_str += 'temp_mrg AS (SELECT '
+#    for itb in range(0, ntb):
+#        exec_str += slct_str(keep_cols[itb], pl=tables[itb][2] + '.')
+#        exec_str += ', ' if (itb < ntb - 1) else ' '
+#    exec_str += 'FROM ' + tables[0][2] + ' '
+#    for itb in range(1, ntb):
+#        exec_str += 'LEFT JOIN ' + tables[itb][2] + ' ON '
+#
+#        exec_str += on_str(merge_cols[itb], pl=tables[0][2],
+#                                            pr=tables[itb][2])
+#    exec_str += ') SELECT ' + slct_str(col_select['out'])
+#    exec_str += ' INTO ' + '.'.join(tables['out'])
+#    exec_str += ' FROM temp_mrg '
+#    exec_str += (' WHERE ' + ' AND '.join(['(' + o + ')'
+#                                           for o in output_where])
+#                  if output_where != [] else '')
+#
+#    conn = pg.connect(get_config('sql_connect')['psycopg2']
+#                      .format(db=get_config('sql_connect')['db']))
+#    cur = conn.cursor()
+#    cur.execute(exec_str)
+#    conn.commit()
+#    try:
+#        cur.fetchall()
+#    except:
+#        print("No results")
+#    conn.close()
+#
 
 # %%
 
@@ -908,76 +917,77 @@ def joinon(db, new_col, on_col, tb_target, tb_source,
     return exec_str
 
 # %%
+# CONSIDERED OBSOLETE DUE TO MISSING DB ARGUMENT
 
-def filtered_histogram(nbin=50,
-                       input_table = ['public', 'temp_mrg'],
-                       input_select = ['value', 'constr', 'encar', 'node',
-                                       'year', 'value_mask', 'fuel_mask',
-                                       'encar_mask', 'variable_mask'],
-                       input_filter = ['value_mask <> 0'],
-                       column_histogram = 'value',
-                       histogram_sum_cols = ['value', 'value_mask'],
-                       out_table=['out_st_lp_analysis', 'filtered_tr_prices']):
-
-    nbin=50
-    input_table = ['public', 'temp_mrg']
-    input_select = ['value', 'constr', 'encar', 'node',
-                    'year', 'value_mask', 'fuel_mask',
-                    'encar_mask', 'variable_mask']
-    input_filter = ['value_mask <> 0']
-    column_histogram = 'value'
-    histogram_sum_cols = ['value', 'value_mask']
-    out_table=['out_st_lp_analysis', 'filtered_tr_prices']
-
-    exec_str = ('DROP TABLE IF EXISTS ' + '.'.join(out_table) + '; ')
-    exec_str += (' WITH ' + input_table[1] + '_filt AS (' +
-                 ' SELECT ' + slct_str(input_select) +
-                 ' FROM ' + '.'.join(input_table) +
-                 ' ), ')
-    excl_list = [column_histogram] + histogram_sum_cols
-    exec_str += ('val_min_max AS ( SELECT *, ' +
-                 ' MIN(' + column_histogram + ') OVER (PARTITION BY ' +
-                 slct_str(input_select, exclude=excl_list) +
-                 ') as min, ' +
-                 ' MAX(' + column_histogram + ') OVER (PARTITION BY ' +
-                 slct_str(input_select, exclude=excl_list) +
-                 ') as max, ' +
-                 ' COUNT(' + column_histogram + ') OVER (PARTITION BY ' +
-                 slct_str(input_select, exclude=excl_list) +
-                 ') as cnt ' +
-                 ' FROM ' + input_table[1] + '_filt' +
-                 '), ')
-    exec_str += ('val_min_max_filt AS ( SELECT * FROM val_min_max' +
-                 ((' WHERE ' + ' AND '.join(input_filter))
-                   if input_filter != [] else '') +
-                 ')')
-    exec_str += (' SELECT ' +
-                 slct_str(input_select, exclude=excl_list) +
-                 ', MIN(min), MAX(max), ' +
-                 ' width_bucket(' + column_histogram +
-                                ', min, max * 1.0000000001, ' +
-                                str(nbin) + ') as bucket,' +
-                 ' COUNT(*) AS freq, ' +
-                 ', '.join(['SUM(' + c + ') AS ' + c + '_sum'
-                            for c in histogram_sum_cols]))
-    exec_str += (' INTO ' + '.'.join(out_table) +
-                 ' FROM val_min_max_filt ' +
-                 ' GROUP BY bucket '
-                 + slct_str(input_select, exclude=excl_list, commas=[',',''])
-                 )
-
-    conn = pg.connect(get_config('sql_connect')['psycopg2']
-                      .format(db=get_config('sql_connect')['db']))
-    cur = conn.cursor()
-    cur.execute(exec_str)
-    conn.commit()
-    try:
-        cur.fetchall()
-    except:
-        print("No results")
-    conn.close()
-
-    return dt.read_sql('storage1', *out_table), exec_str
+#def filtered_histogram(nbin=50,
+#                       input_table = ['public', 'temp_mrg'],
+#                       input_select = ['value', 'constr', 'encar', 'node',
+#                                       'year', 'value_mask', 'fuel_mask',
+#                                       'encar_mask', 'variable_mask'],
+#                       input_filter = ['value_mask <> 0'],
+#                       column_histogram = 'value',
+#                       histogram_sum_cols = ['value', 'value_mask'],
+#                       out_table=['out_st_lp_analysis', 'filtered_tr_prices']):
+#
+#    nbin=50
+#    input_table = ['public', 'temp_mrg']
+#    input_select = ['value', 'constr', 'encar', 'node',
+#                    'year', 'value_mask', 'fuel_mask',
+#                    'encar_mask', 'variable_mask']
+#    input_filter = ['value_mask <> 0']
+#    column_histogram = 'value'
+#    histogram_sum_cols = ['value', 'value_mask']
+#    out_table=['out_st_lp_analysis', 'filtered_tr_prices']
+#
+#    exec_str = ('DROP TABLE IF EXISTS ' + '.'.join(out_table) + '; ')
+#    exec_str += (' WITH ' + input_table[1] + '_filt AS (' +
+#                 ' SELECT ' + slct_str(input_select) +
+#                 ' FROM ' + '.'.join(input_table) +
+#                 ' ), ')
+#    excl_list = [column_histogram] + histogram_sum_cols
+#    exec_str += ('val_min_max AS ( SELECT *, ' +
+#                 ' MIN(' + column_histogram + ') OVER (PARTITION BY ' +
+#                 slct_str(input_select, exclude=excl_list) +
+#                 ') as min, ' +
+#                 ' MAX(' + column_histogram + ') OVER (PARTITION BY ' +
+#                 slct_str(input_select, exclude=excl_list) +
+#                 ') as max, ' +
+#                 ' COUNT(' + column_histogram + ') OVER (PARTITION BY ' +
+#                 slct_str(input_select, exclude=excl_list) +
+#                 ') as cnt ' +
+#                 ' FROM ' + input_table[1] + '_filt' +
+#                 '), ')
+#    exec_str += ('val_min_max_filt AS ( SELECT * FROM val_min_max' +
+#                 ((' WHERE ' + ' AND '.join(input_filter))
+#                   if input_filter != [] else '') +
+#                 ')')
+#    exec_str += (' SELECT ' +
+#                 slct_str(input_select, exclude=excl_list) +
+#                 ', MIN(min), MAX(max), ' +
+#                 ' width_bucket(' + column_histogram +
+#                                ', min, max * 1.0000000001, ' +
+#                                str(nbin) + ') as bucket,' +
+#                 ' COUNT(*) AS freq, ' +
+#                 ', '.join(['SUM(' + c + ') AS ' + c + '_sum'
+#                            for c in histogram_sum_cols]))
+#    exec_str += (' INTO ' + '.'.join(out_table) +
+#                 ' FROM val_min_max_filt ' +
+#                 ' GROUP BY bucket '
+#                 + slct_str(input_select, exclude=excl_list, commas=[',',''])
+#                 )
+#
+#    conn = pg.connect(get_config('sql_connect')['psycopg2']
+#                      .format(db=get_config('sql_connect')['db']))
+#    cur = conn.cursor()
+#    cur.execute(exec_str)
+#    conn.commit()
+#    try:
+#        cur.fetchall()
+#    except:
+#        print("No results")
+#    conn.close()
+#
+#    return dt.read_sql('storage1', *out_table), exec_str
 
 
 # %% compare schemas
