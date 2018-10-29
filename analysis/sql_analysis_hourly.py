@@ -9,7 +9,9 @@ Created on Thu Nov  2 13:28:17 2017
 
 import grimsel.auxiliary.aux_sql_func as aql
 
-class SqlAnalysisHourly:
+from grimsel.analysis.decorators import DecoratorsSqlAnalysis
+
+class SqlAnalysisHourly(DecoratorsSqlAnalysis):
     ''' Performs various SQL-based analyses on the output tables. '''
 
     def generate_complete_dual_supply(self):
@@ -183,17 +185,27 @@ class SqlAnalysisHourly:
                                            for c in list_sw_not_st])
 
 
-        lst_pp_id_st = self.list_to_str(aql.read_sql(self.db, self.sc_out, 'def_plant',
-                               filt=[('pp', ['%STO%'], ' LIKE ')])['pp_id'])
+        slct_pp_id_st = aql.read_sql(self.db, self.sc_out, 'def_plant',
+                               filt=[('pp', ['%STO%'], ' LIKE '),
+                                     ('nd_id', self._nd_id)])['pp_id']
+        lst_pp_id_st = self.list_to_str(slct_pp_id_st)
+
+        slct_pp_id_non_st = [pp for pp in self.slct_pp_id
+                             if not pp in slct_pp_id_st.tolist()]
+        lst_pp_id_non_st = self.list_to_str(slct_pp_id_non_st)
+
         run_id_zero_st = self.list_to_str(aql.read_sql(self.db, self.sc_out, 'def_loop',
-                                      filt=[('swst_vl', ['0.0%'])])['run_id'])
+                                      filt=[('swst', [0]),
+                                            ('run_id', self.slct_run_id)])['run_id'])
         run_id_nonzero_st = self.list_to_str(aql.read_sql(self.db, self.sc_out, 'def_loop',
-                                        filt=[('swst_vl', ['0.0%'], ' <> ')])['run_id'])
+                                        filt=[('swst', [0], ' <> '),
+                                            ('run_id', self.slct_run_id)])['run_id'])
 
 
         self.format_kw.update({'sw_not_st': sw_not_st,
                                'join_ref': join_ref,
                                'lst_pp_id_st': lst_pp_id_st,
+                               'lst_pp_id_non_st': lst_pp_id_non_st,
                                'run_id_zero_st': run_id_zero_st,
                                'run_id_nonzero_st': run_id_nonzero_st})
 
@@ -359,7 +371,14 @@ class SqlAnalysisHourly:
         else:
 
             aql.init_table(self.format_kw['out_tb'],
-                           ['pp_id', ('pp_id_st', 'SMALLINT'), 'bool_out', ('bool_out_st', 'BOOLEAN'), 'run_id', ('run_id_ref', 'SMALLINT'), ('swst_vl_ref', 'VARCHAR(5)'), 'value'],
+                           ['pp_id',
+                            ('pp_id_st', 'SMALLINT'),
+                            'bool_out',
+                            ('bool_out_st', 'BOOLEAN'),
+                            'run_id',
+                            ('run_id_ref', 'SMALLINT'),
+                            ('swst_vl_ref', 'VARCHAR(5)'),
+                            'value'],
                            schema=self.sc_out,
                            ref_schema=self.sc_out, pk=['pp_id', 'pp_id_st',
                                                        'bool_out', 'bool_out_st',
@@ -371,24 +390,22 @@ class SqlAnalysisHourly:
                         CREATE VIEW temp_map_run_id_ref AS
                         WITH ref_st AS (
                             SELECT {sw_not_st}run_id AS run_id_rf FROM {sc_out}.def_loop
-                            WHERE swst_vl = '0.0%'
+                            WHERE swst_vl = '0.00%'
                         )
                         SELECT dflp.run_id, ref_st.run_id_rf FROM {sc_out}.def_loop AS dflp
                         NATURAL JOIN ref_st
                         ORDER BY run_id;
 
                         /* FILTER TIME SERIES TABLE */
-                        DROP VIEW IF EXISTS temp_analysis_time_series_subset CASCADE;
-                        CREATE VIEW temp_analysis_time_series_subset AS
+                        DROP TABLE IF EXISTS temp_analysis_time_series_subset CASCADE;
                         SELECT sy, ca_id, nd_id, ts.pp_id, bool_out, value, ts.run_id, value_posneg, run_id_rf
+                        INTO temp_analysis_time_series_subset
                         FROM {sc_out}.analysis_time_series_view_power AS ts
                         LEFT JOIN {sc_out}.def_plant AS dfpp ON dfpp.pp_id = ts.pp_id
                         LEFT JOIN {sc_out}.def_loop AS dflp ON dflp.run_id = ts.run_id
                         LEFT JOIN {sc_out}.def_pp_type AS dfpt ON dfpt.pt_id = dfpp.pt_id
                         LEFT JOIN temp_map_run_id_ref AS run_id_ref ON run_id_ref.run_id = ts.run_id
-                        WHERE (ts.pp_id NOT IN {lst_pp_id_st} or pp LIKE '%HYD_STO'
-                              OR pt LIKE swtc_vl||'_STO')
-                              AND dfpp.pp_id IN {list_slct_pp_id};
+                        WHERE dfpp.pp_id IN {list_slct_pp_id};
 
                         /* CREATE TABLE WITH NO-STORAGE REFERENCE VALUES */
                         DROP VIEW IF EXISTS temp_tbrf CASCADE;
@@ -406,9 +423,9 @@ class SqlAnalysisHourly:
                         WHERE pp_id IN {lst_pp_id_st}
                         AND run_id IN {run_id_nonzero_st};
 
-                        DROP VIEW IF EXISTS temp_analysis_time_series_subset_ref CASCADE;
-                        CREATE VIEW temp_analysis_time_series_subset_ref AS
+                        DROP TABLE IF EXISTS temp_analysis_time_series_subset_ref CASCADE;
                         SELECT ts.*, ts.value - rf.value_ref AS value_diff
+                        INTO temp_analysis_time_series_subset_ref
                         FROM temp_analysis_time_series_subset AS ts
                         LEFT JOIN temp_tbrf AS rf
                         ON rf.run_id = ts.run_id_rf AND rf.sy = ts.sy
@@ -448,10 +465,10 @@ class SqlAnalysisHourly:
 
         aql.exec_sql('''
                      DROP VIEW IF EXISTS temp_map_run_id_ref CASCADE;
-                     DROP VIEW IF EXISTS temp_analysis_time_series_subset CASCADE;
+                     DROP TABLE IF EXISTS temp_analysis_time_series_subset CASCADE;
                      DROP VIEW IF EXISTS temp_tbrf CASCADE;
                      DROP VIEW IF EXISTS temp_tbst CASCADE;
-                     DROP VIEW IF EXISTS temp_analysis_time_series_subset_ref CASCADE;
+                     DROP TABLE IF EXISTS temp_analysis_time_series_subset_ref CASCADE;
                      ''', db=self.db)
 
         aql.exec_sql('''
@@ -465,7 +482,7 @@ class SqlAnalysisHourly:
                      SET pt_st = map_pt.pt, pp_st = map_pt.pp
                      FROM (
                          SELECT pp_id AS pp_id, pt, pp
-                             FROM out_nucspreadvr.def_plant AS dfpp
+                             FROM {sc_out}.def_plant AS dfpp
                          LEFT JOIN {sc_out}.def_pp_type AS dfpt
                         ON dfpp.pt_id = dfpt.pt_id
                      ) AS map_pt
@@ -480,7 +497,7 @@ class SqlAnalysisHourly:
         aql.joinon(self.db, ['pt_id', 'fl_id', 'nd_id'], ['pp_id'],
                    [self.sc_out, self.format_kw['out_tb']],
                    [self.sc_out, 'def_plant'])
-        # add pp indices
+        # add pt indices
         aql.joinon(self.db, ['pt'], ['pt_id'], [self.sc_out, self.format_kw['out_tb']],
                    [self.sc_out, 'def_pp_type'])
         # add fl indices
@@ -491,6 +508,161 @@ class SqlAnalysisHourly:
                    [self.sc_out, 'def_node'])
 
 
+    def append_nd_id_columns(f):
+        def wrapper(self, *args, **kwargs):
+            f(self, *args, **kwargs)
+            aql.joinon(self.db, ['nd'], ['nd_id'],
+                       [self.sc_out, f.__name__], [self.sc_out, 'def_node'])
+        return wrapper
+
+
+    @DecoratorsSqlAnalysis.append_nd_id_columns('analysis_agg_filtdiff')
+    @DecoratorsSqlAnalysis.append_pt_id_columns('analysis_agg_filtdiff')
+    @DecoratorsSqlAnalysis.append_fl_id_columns('analysis_agg_filtdiff')
+    @DecoratorsSqlAnalysis.append_pp_id_columns('analysis_agg_filtdiff')
+    @DecoratorsSqlAnalysis.append_sw_columns('analysis_agg_filtdiff')
+    def analysis_agg_filtdiff(self):
+        '''
+        New style.
+        '''
+
+        list_sw_not_st = [c for c in self.sw_columns if not c == 'swst_vl']
+        sw_not_st = ', '.join(list_sw_not_st) + (', ' if len(list_sw_not_st) > 0 else '')
+
+        join_ref = ' AND ' + '\nAND '.join(['tbrel.{} = tbrf.{}'.format(c, c)
+                                           for c in list_sw_not_st])
+
+        slct_pp_id_st = aql.read_sql(self.db, self.sc_out, 'def_plant',
+                               filt=[('pp', ['%STO%'], ' LIKE '),
+                                     ('nd_id', self._nd_id)])['pp_id']
+        lst_pp_id_st = self.list_to_str(slct_pp_id_st)
+
+        slct_pp_id_non_st = [pp for pp in self.slct_pp_id
+                             if not pp in slct_pp_id_st.tolist()]
+        lst_pp_id_non_st = self.list_to_str(slct_pp_id_non_st)
+
+        run_id_zero_st = self.list_to_str(aql.read_sql(self.db, self.sc_out, 'def_loop',
+                                      filt=[('swst', [0]),
+                                            ('run_id', self.slct_run_id)])['run_id'])
+        run_id_nonzero_st = self.list_to_str(aql.read_sql(self.db, self.sc_out, 'def_loop',
+                                        filt=[('swst', [0], ' <> '),
+                                            ('run_id', self.slct_run_id)])['run_id'])
+
+        self.format_kw.update({'sw_not_st': sw_not_st,
+                               'join_ref': join_ref,
+                               'lst_pp_id_st': lst_pp_id_st,
+                               'lst_pp_id_non_st': lst_pp_id_non_st,
+                               'run_id_zero_st': run_id_zero_st,
+                               'run_id_nonzero_st': run_id_nonzero_st,
+                               'out_tb': 'analysis_agg_filtdiff'})
+
+
+        cols = aql.init_table('analysis_agg_filtdiff',
+               [
+                ('sy', 'SMALLINT'),
+                ('pp_id', 'SMALLINT'),
+                ('bool_out', 'BOOLEAN'),
+                ('run_id', 'SMALLINT'),
+                ('run_id_rf', 'SMALLINT'),
+                ('pp_id_st', 'SMALLINT'),
+                ('bool_out_st', 'BOOLEAN'),
+                ('value_st', 'DOUBLE PRECISION'),
+                ('value', 'DOUBLE PRECISION'),
+                ('value_ref', 'DOUBLE PRECISION'),
+                ('value_diff', 'DOUBLE PRECISION'),
+               ],
+               schema=self.sc_out,
+               ref_schema=self.sc_out,
+               pk=['sy', 'pp_id', 'bool_out', 'run_id', 'run_id_rf',
+                   'pp_id_st', 'bool_out_st'],
+               db=self.db)
+
+
+
+        exec_strg = '''
+        /* CREATE MAP BETWEEN run_ids and reference run_ids */
+        DROP VIEW IF EXISTS temp_map_run_id_ref CASCADE;
+        CREATE VIEW temp_map_run_id_ref AS
+        WITH ref_st AS (
+            SELECT swvr_vl, swtc_vl, swpt_vl, swyr_vl, swco_vl, run_id AS run_id_rf
+            FROM {sc_out}.def_loop
+            WHERE swst_vl = '0.00%' AND run_id IN {in_run_id}
+        )
+        SELECT dflp.run_id, ref_st.run_id_rf FROM {sc_out}.def_loop AS dflp
+        NATURAL JOIN ref_st
+        WHERE run_id IN {in_run_id}
+        ORDER BY run_id;
+        '''.format(**self.format_kw)
+        aql.exec_sql(exec_strg, db=self.db)
+
+        exec_strg = '''
+        /* FILTER TIME SERIES TABLE */
+        DROP TABLE IF EXISTS temp_analysis_time_series_subset CASCADE;
+        SELECT sy, ca_id, nd_id, ts.pp_id, pp, bool_out, value, ts.run_id, value_posneg, run_id_rf
+        INTO temp_analysis_time_series_subset
+        FROM {sc_out}.analysis_time_series_view_power AS ts
+        LEFT JOIN {sc_out}.def_plant AS dfpp ON dfpp.pp_id = ts.pp_id
+        LEFT JOIN {sc_out}.def_loop AS dflp ON dflp.run_id = ts.run_id
+        LEFT JOIN {sc_out}.def_pp_type AS dfpt ON dfpt.pt_id = dfpp.pt_id
+        LEFT JOIN temp_map_run_id_ref AS run_id_ref ON run_id_ref.run_id = ts.run_id
+        WHERE dfpp.pp_id IN {list_slct_pp_id} AND ts.run_id IN {in_run_id};
+        '''.format(**self.format_kw)
+        aql.exec_sql(exec_strg, db=self.db)
+
+        exec_strg = '''
+        WITH mask_st AS (
+            SELECT sy, pp_id AS pp_id_st, bool_out AS bool_out_st, value AS value_st, run_id
+            FROM temp_analysis_time_series_subset
+            WHERE pp_id IN {lst_pp_id_st}
+                AND run_id IN (SELECT DISTINCT run_id FROM temp_map_run_id_ref
+                               WHERE NOT run_id
+                               IN (SELECT DISTINCT run_id_rf FROM temp_map_run_id_ref))
+        ), tb_pp AS (
+            SELECT sy, pp_id, bool_out, value AS value, run_id, run_id_rf
+            FROM temp_analysis_time_series_subset
+            WHERE pp_id IN {lst_pp_id_non_st}
+                AND run_id IN (SELECT DISTINCT run_id FROM temp_map_run_id_ref
+                               WHERE NOT run_id
+                               IN (SELECT DISTINCT run_id_rf FROM temp_map_run_id_ref))
+        ), tb_pp_ref AS (
+            SELECT sy, pp_id, bool_out, value AS value_ref, run_id_rf
+            FROM temp_analysis_time_series_subset
+            WHERE pp_id IN {lst_pp_id_non_st}
+                AND run_id IN (SELECT DISTINCT run_id_rf FROM temp_map_run_id_ref)
+        )
+        INSERT INTO {sc_out}.{out_tb} ({cols})
+        SELECT tb_pp.sy, tb_pp.pp_id, tb_pp.bool_out, tb_pp.run_id, tb_pp.run_id_rf,
+            pp_id_st, bool_out_st, value_st,
+            value, value_ref, value - value_ref AS value_diff
+        FROM tb_pp
+        LEFT JOIN tb_pp_ref
+            ON tb_pp.sy = tb_pp_ref.sy
+            AND tb_pp.pp_id = tb_pp_ref.pp_id
+            AND tb_pp.bool_out = tb_pp_ref.bool_out
+            AND tb_pp.run_id_rf = tb_pp_ref.run_id_rf
+        FULL OUTER JOIN mask_st ON mask_st.sy = tb_pp.sy
+                                AND mask_st.run_id = tb_pp.run_id
+        WHERE ABS(value_st) > 1;
+        '''.format(**self.format_kw, cols=cols)
+        aql.exec_sql(exec_strg, db=self.db)
+
+
+        aql.joinon(self.db,
+                   {'pp': 'pp_st', 'pt_id': 'pt_id_st'},
+                   {'pp_id': 'pp_id_st'},
+                   [self.sc_out, 'analysis_agg_filtdiff'],
+                   [self.sc_out, 'def_plant'])
+
+        aql.joinon(self.db,
+                   {'pt': 'pt_st'},
+                   {'pt_id': 'pt_id_st'},
+                   [self.sc_out, 'analysis_agg_filtdiff'],
+                   [self.sc_out, 'def_pp_type'])
+
+
+        aql.joinon(self.db, ['mt_id', 'season'], ['sy'],
+                   [self.sc_out, 'analysis_agg_filtdiff'],
+                   [self.sc_out, 'tm_soy_full'])
 
 
 
