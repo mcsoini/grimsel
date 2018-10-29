@@ -185,8 +185,7 @@ class Constraints:
 
             sum_pwr = sum(self.pwr[sy, pp, ca] for (pp, nd, ca, fl)
                           in set_to_list(self.pp_ndcafl, (None, nd, ca, fl)))
-#            chp_prf = self.chpprof[sy, nd, ca] * self.erg_chp[nd, ca, fl]
-            chp_prf = dict_prf_new[sy, nd, ca] * self.erg_chp[nd, ca, fl]
+            chp_prf = (self.chpprof[sy, nd, ca] * self.erg_chp[nd, ca, fl])
 
             return sum_pwr >= chp_prf
 
