@@ -29,7 +29,7 @@ class Parameters:
 
         print('Profile parameters:')
         self.padd('dmnd', (self.sy, self.nd, self.ca), 'df_profdmnd_soy', 'value', **mut, default=0) # Complete information on demand
-        self.padd('chpprof', (self.sy, self.nd, self.ca), 'df_profchp_soy', 'value') # Relative heat demand profile.
+        self.padd('chpprof', (self.sy, self.nd, self.ca), 'df_profchp_soy', 'value', **mut) # Relative heat demand profile.
         self.padd('supprof', (self.sy, self.pr, self.ca), 'df_profsupply_soy', 'value', **mut) # Supply from variable generators.
         self.padd('inflowprof', (self.sy, self.hyrs | self.ror, self.ca), 'df_profinflow_soy', 'value', **mut) # Hydro inflow profiles.
         self.padd('priceprof', (self.sy, self.nd, self.fl), 'df_profprice_soy', 'value', **mut) # Relative heat demand profile.
