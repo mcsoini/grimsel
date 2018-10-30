@@ -784,10 +784,10 @@ exec_strg = '''
             '''.format(sc=sc)
 aql.exec_sql(exec_strg, db=db)
 
-slct_pp_id = [vv for kk, vv in dict_plant_id.items() if kk == 'DE_WIN_OFF']
+slct_pp_id = [vv for kk, vv in dict_plant_id.items() if 'FR_WIN_OFF' in kk or 'DE_WIN_OFF' in kk]
 df_slct = aql.read_sql(db, sc, 'profsupply',
              filt=[('pp_id', slct_pp_id)]).set_index('hy')
-df_slct[[c for c in df_slct.columns if 'value' in c]].plot()
+df_slct.sort_index()[[c for c in df_slct.columns if 'value' in c]].plot()
 
 # %% ADDING BIOMASS PRODUCTION PROILE AS VRE
 
