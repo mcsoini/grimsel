@@ -376,71 +376,6 @@ df_imex_comp = read_xlsx_table(wb, ['IMEX_STATS'], imex_stats_cols)
 df_imex_comp = df_imex_comp[[c for c in df_imex_comp.columns if not 'yr20' in c]]
 
 
-
-parmt_cols = ['mt_id', 'set_1_name', 'set_2_name', 'set_3_name',
-              'set_1_id', 'set_2_id', 'set_3_id', 'parameter']  + yr_getter('mt_fact')
-
-df_parmt = pd.concat([read_xlsx_table(wb, ['MONTHLY_FL_CO2'], columns=parmt_cols),
-                      read_xlsx_table(wb, ['MONTHLY_CF'], columns=parmt_cols)], axis=0)
-df_parmt = df_parmt[[c for c in df_parmt.columns if not 'yr20' in c]]
-
-###############################################################################
-## original data expresses cf_max for fuels... need to apply to all corresponding pps
-
-# replace (fl_id, nd_id) with (pp_id) for all cf_max monthly factors
-mask_cf_max = df_parmt.parameter.isin(['cf_max'])
-df_cfmt = df_parmt.loc[mask_cf_max]
-
-# get those plants which are relevant for the cf_max parameter
-df_def_plant_slct = df_def_plant[['pp', 'fl_id', 'nd_id']].rename(columns={'pp': 'pp_id'})
-df_def_plant_slct = df_def_plant_slct.loc[df_def_plant.set_def_pp == 1]
-df_plant_encar_slct = df_plant_encar.loc[df_plant_encar.pp_id.isin(df_def_plant_slct.pp_id), ['pp_id', 'ca_id']]
-
-# combine the two tables (this essentially just adds the ca_id column)
-df_cfmt_new = pd.merge(df_def_plant_slct,
-                       df_plant_encar_slct,
-                       on=['pp_id'], how='outer')
-
-# add month column
-df_cfmt_new = cols2tuplelist(df_cfmt_new, df_parmt.mt_id.drop_duplicates(), return_df=True)
-
-# rename columns for joining data to new table
-set_names = {1: 'fl_id', 2: 'ca_id', 3: 'nd_id'}
-df_cfmt = df_cfmt.rename(columns={'set_{}_id'.format(kk): vv for kk, vv in set_names.items()})
-df_cfmt = df_cfmt.set_index(list(set_names.values()) + ['mt_id'])[[c for c in df_cfmt.columns if 'mt_fact' in c]]
-
-# join data to new table; gaps are filled with ones
-df_cfmt_new = df_cfmt_new.join(df_cfmt, on=df_cfmt.index.names).fillna(1)
-
-# get rid of the obsolete columns
-df_cfmt_new = df_cfmt_new.drop(['fl_id', 'nd_id'], axis=1)
-
-# make it compatible with the original df_parmt structure
-df_cfmt_new = df_cfmt_new.rename(columns={'pp_id': 'set_1_id', 'ca_id': 'set_2_id'})
-df_cfmt_new['set_1_name'] = 'pp_id'
-df_cfmt_new['set_2_name'] = 'ca_id'
-df_cfmt_new['parameter'] = 'cap_avlb' # USING capacity availability INSTEAD OF CF_MAX!!!
-
-# combine
-df_parmt = pd.concat([df_parmt.loc[-mask_cf_max].drop(['set_3_name', 'set_3_id'], axis=1),
-                      df_cfmt_new], axis=0, sort=True)
-
-###############################################################################
-
-###############################################################################
-## expanding monthly factors for vc_fl to all countries
-
-mask_vc_fl = df_parmt.parameter.isin(['vc_fl'])
-
-df_parmt = pd.concat([df_parmt.loc[-mask_vc_fl],
-                      expand_rows(df_parmt.loc[mask_vc_fl], ['set_2_id'],
-                                  [df_def_node.nd.tolist()])], axis=0)
-
-print_full(df_parmt[[c for c in df_parmt.columns if 'set' in c or 'param' in c]].drop_duplicates())
-
-###############################################################################
-
-
 tm = TimeMap()
 tm.gen_hoy_timemap()
 
@@ -582,12 +517,6 @@ df_imex_comp, _ = translate_id(df_imex_comp, df_def_node, 'nd')
 df_imex_comp, _ = translate_id(df_imex_comp, df_def_node, ['nd', 'nd_2'])
 
 
-for idict in [dict_node_id, dict_encar_id, dict_fuel_id, dict_plant_id]:
-    for icol in ['set_1_id', 'set_2_id']:
-        df_parmt[icol] = df_parmt[icol].astype(str).replace(idict)
-
-        df_parmt.loc[df_parmt[icol]=='-1.0', icol] = int(-1)
-
 
 
 
@@ -614,7 +543,7 @@ write_dfs = [
              (df_plant_encar, 'plant_encar'),
 #             (df_profchp, 'profchp'),
 #             (df_profdmnd, 'profdmnd'),
-             (df_parmt, 'parameter_month'),
+#             (df_parmt, 'parameter_month'),
 #             (df_profsupply, 'profsupply'),
              (df_profinflow, 'profinflow'),
              (df_hydro, 'hydro'),
@@ -807,9 +736,9 @@ for idf in write_dfs:
 # Copy capacity scale adjusted base year profiles to profsupply table
 exec_strg = '''
             DROP TABLE IF EXISTS {sc}.profsupply CASCADE;
-            SELECT hy, pp_id AS pp, 0::SMALLINT AS ca_id, value_sc AS value
+            SELECT hy, pp_id AS pp, 0::SMALLINT AS ca_id, value_mod AS value
             INTO {sc}.profsupply
-            FROM profiles_raw.ninja
+            FROM profiles_raw.ninja_mod
             WHERE year = 2015;
             '''.format(sc=sc)
 aql.exec_sql(exec_strg, db=db)
@@ -945,6 +874,108 @@ write_dfs = [
 for idf in write_dfs:
     print('Writing ', idf[1])
     aql.write_sql(idf[0], db, sc, idf[1], 'append')
+
+
+
+# %% PARAMETER MONTHLY ADJUSTMENTS
+
+
+
+# capacity availability for lignite and nuclear from monthly production and capacities
+exec_strg = '''
+WITH nhours AS (
+    SELECT mt_id, COUNT(datetime) FROM profiles_raw.timestamp_template
+    WHERE year = 2015
+    GROUP BY mt_id
+), ppca AS (
+    SELECT nd, fl, pp, cap_pwr_leg FROM lp_input_replace.plant_encar
+    NATURAL LEFT JOIN (SELECT pp, pp_id, fl_id, nd_id FROM lp_input_replace.def_plant) AS dfpp
+    NATURAL LEFT JOIN (SELECT fl, fl_id FROM lp_input_replace.def_fuel) AS dffl
+    NATURAL LEFT JOIN (SELECT nd, nd_id FROM lp_input_replace.def_node) AS dfnd
+), all_cap_fl AS (
+    SELECT fl, nd, SUM(cap_pwr_leg) AS cap_pwr_leg FROM ppca
+    GROUP BY fl, nd
+), tb_fr AS (
+    SELECT fl_id AS fl, year, nd_id AS nd, mt_id, SUM(value) AS erg FROM profiles_raw.rte_production_eco2mix
+    WHERE fl_id IN ('nuclear_fuel') AND year = 2015
+    GROUP BY fl_id, year, nd_id, mt_id
+), tb_de AS (
+    SELECT fl_id AS fl, year, nd_id AS nd, mt_id, 1000 * SUM(value) AS erg
+    FROM (SELECT *, EXTRACT(month FROM "DateTime") - 1 AS mt_id
+          FROM profiles_raw.agora_profiles) AS tbag
+    WHERE fl_id IN ('nuclear_fuel', 'lignite') AND year = 2015
+    GROUP BY fl_id, year, nd_id, mt_id
+), tb_ch AS (
+    SELECT fl, 2015::SMALLINT AS year, nd, mt_id, erg FROM profiles_raw.monthly_production
+    WHERE fl IN ('nuclear_fuel')
+), tb_all AS (
+    SELECT * FROM tb_fr
+    UNION ALL
+    SELECT * FROM tb_de
+    UNION ALL
+    SELECT * FROM tb_ch
+), tb_final AS (
+    SELECT tb_all.*, erg / count AS cap_from_erg, erg / count / cap_pwr_leg AS cap_avlb
+    FROM tb_all
+    LEFT JOIN nhours ON nhours.mt_id = tb_all.mt_id
+    NATURAL LEFT JOIN (SELECT nd, fl, cap_pwr_leg FROM all_cap_fl) AS ppca
+)
+SELECT tb_final.fl, tb_final.nd, pp, year, tb_final.mt_id, 'EL'::VARCHAR AS ca,
+CASE WHEN cap_avlb > 1 THEN 1 ELSE cap_avlb END AS cap_avlb
+FROM tb_final
+/* EXPAND TO PLANTS */
+FULL OUTER JOIN (SELECT nd, fl, pp FROM ppca WHERE fl IN (SELECT fl FROM tb_final)) AS ppca
+    ON ppca.fl = tb_final.fl AND ppca.nd = tb_final.nd;
+'''
+
+df_parmt_cap_avlb = pd.DataFrame(aql.exec_sql(exec_strg, db=db),
+                                 columns=['fl_id', 'nd_id', 'pp_id', 'year',
+                                          'mt_id', 'ca_id', 'cap_avlb'])
+df_parmt_cap_avlb = df_parmt_cap_avlb.pivot_table(index=['pp_id', 'ca_id', 'mt_id'], values='cap_avlb')
+df_parmt_cap_avlb = df_parmt_cap_avlb.reset_index().rename(columns={'cap_avlb': 'mt_fact',
+                                                                    'pp_id': 'set_1_id',
+                                                                    'ca_id': 'set_2_id'})
+df_parmt_cap_avlb['set_1_name'] = 'pp_id'
+df_parmt_cap_avlb['set_2_name'] = 'ca_id'
+df_parmt_cap_avlb['parameter'] = 'cap_avlb'
+df_parmt_cap_avlb['set_3_name'] = np.nan
+df_parmt_cap_avlb['set_3_id'] = -1
+
+###############################################################################
+## expanding monthly factors for vc_fl to all countries #######################
+
+parmt_cols = ['mt_id', 'set_1_name', 'set_2_name', 'set_3_name',
+              'set_1_id', 'set_2_id', 'set_3_id', 'parameter']  + yr_getter('mt_fact')
+df_parmt_fl_co2 = read_xlsx_table(wb, ['MONTHLY_FL_CO2'], columns=parmt_cols)
+df_parmt_fl_co2 = df_parmt_fl_co2[[c for c in df_parmt_fl_co2.columns if not 'yr20' in c]]
+
+
+mask_vc_fl = df_parmt_fl_co2.parameter.isin(['vc_fl'])
+df_parmt_fl_co2 = pd.concat([df_parmt_fl_co2.loc[-mask_vc_fl],
+                             expand_rows(df_parmt_fl_co2.loc[mask_vc_fl], ['set_2_id'],
+                                  [df_def_node.nd.tolist()])], axis=0)
+###############################################################################
+
+
+df_parmt = pd.concat([df_parmt_fl_co2, df_parmt_cap_avlb], axis=0, sort=True)
+df_parmt = df_parmt.drop(['set_3_id', 'set_3_name'], axis=1)
+
+for idict in [dict_node_id, dict_encar_id, dict_fuel_id, dict_plant_id]:
+    for icol in ['set_1_id', 'set_2_id']:
+        df_parmt[icol] = df_parmt[icol].astype(str).replace(idict)
+
+        df_parmt.loc[df_parmt[icol]=='-1.0', icol] = int(-1)
+
+
+print('Write all output')
+write_dfs = [
+             (df_parmt, 'parameter_month'),
+             ]
+for idf in write_dfs:
+    print('Writing ', idf[1])
+    aql.write_sql(idf[0], db, sc, idf[1], 'append')
+
+
 
 
 
