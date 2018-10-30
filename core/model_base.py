@@ -78,7 +78,6 @@ from datetime import datetime
 import grimsel.auxiliary.aux_sql_func as aql
 import grimsel.auxiliary.maps as maps
 import grimsel.auxiliary.timemap as timemap
-from grimsel.auxiliary.aux_general import get_config
 from grimsel.auxiliary.aux_m_func import pdef, set_to_list
 
 # model components
