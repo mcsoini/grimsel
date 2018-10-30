@@ -1102,27 +1102,31 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
 
     # %% Table energy balance
 
-    def build_table_plant_run_tot_balance(self):
+    def build_table_plant_run_tot_balance(self, from_quick=False):
+
+        erg_col = 'erg_yr_yr' if from_quick else 'erg_yr_sy'
+        tb_base = 'analysis_plant_run_quick' if from_quick else 'analysis_plant_run_tot'
+
         exec_str = ('''
                     DROP TABLE IF EXISTS
                         {sc_out}.analysis_plant_run_tot_balance CASCADE;
                     SELECT
                         run_id, bool_out,
-                        (CASE WHEN bool_out = False THEN 1 ELSE -1 END ) * erg_yr_sy AS erg_yr_sy_posneg,
+                        (CASE WHEN bool_out = False THEN 1 ELSE -1 END ) * {erg_col} AS {erg_col}_posneg,
                         pp_broad_cat, pt, fl, nd, nd_id, ca_id, pp
                     INTO {sc_out}.analysis_plant_run_tot_balance
-                    FROM {sc_out}.analysis_plant_run_tot;
+                    FROM {sc_out}.{tb_base};
 
                     /* GRID LOSSES */
                     INSERT INTO {sc_out}.analysis_plant_run_tot_balance
                     SELECT
                         run_id, True AS bool_out,
-                        - SUM(erg_yr_sy * grid_losses) AS erg_yr_sy,
+                        - SUM({erg_col} * grid_losses) AS {erg_col},
                         'GRIDLOSSES' AS pp_broad_cat,
                         'GRDLSS' AS pt, 'gridlosses' AS fl,
                         dfnd.nd, ndca.nd_id, prt.ca_id,
                         prt.nd::VARCHAR || '_GRIDLSS' AS pp
-                    FROM {sc_out}.analysis_plant_run_tot AS prt
+                    FROM {sc_out}.{tb_base} AS prt
                     LEFT JOIN (SELECT nd_id, ca_id, grid_losses
                                FROM {sc_out}.node_encar) AS ndca
                         ON ndca.nd_id = prt.nd_id AND ndca.ca_id = prt.ca_id
@@ -1137,7 +1141,7 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
                         AND prt.bool_out = False
                     GROUP BY run_id, prt.bool_out, prt.nd, ndca.nd_id, dfnd.nd, prt.ca_id
                     ORDER BY run_id;
-                    ''').format(**self.format_kw)
+                    ''').format(**self.format_kw, erg_col=erg_col, tb_base=tb_base)
         aql.exec_sql(exec_str, db=self.db)
 
         if len(self.sw_columns) > 0:
