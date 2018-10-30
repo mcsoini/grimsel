@@ -646,30 +646,5 @@ class Constraints:
         self.objective_quad = po.Objective(rule=objective_rule_quad,
                                            sense=po.minimize,
                                            doc='Quadratic objective function')
-#
-#        print('Objective rule linear')
-#        nnn = [None] * 3
-#        nn = [None] * 2
-#        def objective_rule(self):
-#            return (sum(self.vc_fl_pp_yr[pp, ca, fl]
-#                        for (pp, ca, fl) in set_to_list(self.pp_cafl - self.lin_cafl, nnn))
-#                  + sum(self.vc_co2_pp_yr[pp, ca]
-#                        for (pp, ca) in set_to_list(self.pp_ca, nn))
-#                  + sum(self.vc_om_pp_yr[pp, ca]
-#                        for (pp, ca) in set_to_list(self.ppall_ca, nn))
-##                  + sum(self.vc_dmnd_flex_yr[nd, ca]
-##                        for (nd, ca) in set_to_list(self.ndca_EL, nn))
-#                  + sum(self.vc_ramp_yr[pp, ca]
-#                        for (pp, ca) in set_to_list(self.pp_ca | self.hyrs_ca
-#                                                    | self.ror_ca, nn))
-#                  + sum(self.fc_om_pp_yr[pp, ca]
-#                        for (pp, ca) in set_to_list(self.ppall_ca, nn))
-#                  + sum(self.fc_cp_pp_yr[pp, ca]
-#                        for (pp, ca) in set_to_list(self.add_ca, nn))
-#                )
-#        self.objective_lin = po.Objective(rule=objective_rule,
-#                                          sense=po.minimize,
-#                                          doc='Objective function')
-#
 
 
