@@ -745,23 +745,21 @@ aql.exec_sql(exec_strg, db=db)
 
 
 # only 2015 !!
-#for iyr in list(set([yr[0] for yr in
-#                aql.exec_sql('SELECT DISTINCT year FROM profiles_raw.ninja;',
-#                db=db) if not 2015 in yr])):
-#
-#    exec_strg = '''
-#                ALTER TABLE {sc}.profsupply
-#                ADD COLUMN IF NOT EXISTS value_yr{yr} DOUBLE PRECISION;
-#
-#                UPDATE {sc}.profsupply AS prf
-#                SET value_yr{yr} = rw.value_sc
-#                FROM profiles_raw.ninja AS rw
-#                WHERE rw.year = {yr}
-#                    AND prf.hy = rw.hy
-#                    AND prf.pp = rw.pp_id;
-#                '''.format(yr=str(iyr), sc=sc)
-#    aql.exec_sql(exec_strg, db=db)
+for iyr in list(set([yr[0] for yr in
+                aql.exec_sql('SELECT DISTINCT year FROM profiles_raw.ninja_mod;',
+                db=db) if not 2015 in yr])):
+    exec_strg = '''
+                ALTER TABLE {sc}.profsupply
+                ADD COLUMN IF NOT EXISTS value_yr{yr} DOUBLE PRECISION;
 
+                UPDATE {sc}.profsupply AS prf
+                SET value_yr{yr} = rw.value_mod
+                FROM profiles_raw.ninja_mod AS rw
+                WHERE rw.year = {yr}
+                    AND prf.hy = rw.hy
+                    AND prf.pp = rw.pp_id;
+                '''.format(yr=str(iyr), sc=sc)
+    aql.exec_sql(exec_strg, db=db)
 exec_strg = '''
             ALTER TABLE {sc}.profsupply
             ADD COLUMN pp_id SMALLINT;
