@@ -44,7 +44,7 @@ mkwargs = {
 #           'tm_filt': [('hy', range(8758))],
 #           'verbose_solver': False,
            'constraint_groups': MB.get_constraint_groups(excl=['chp', 'ror',
-                                                               'chp_new'])
+                                                               ])
            }
 # additional kwargs for the i/o
 iokwargs = {'sc_warmstart': False,
@@ -124,7 +124,7 @@ for irow in list(range(irow_0, len(ml.df_def_loop))):
     ############### RUN MODEL ###############
     ml.m.fill_peaker_plants(demand_factor=2)
 
-    ml.m._limit_prof_to_cap('cap_pwr_leg')
+    ml.m._limit_prof_to_cap()
 
     ml.perform_model_run()
 
