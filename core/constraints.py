@@ -588,7 +588,7 @@ class Constraints:
                   + sum(sum(self.pwr[sy, lin, ca]
                             * self.weight[sy]
                             * (self.vc_fl_lin_0[lin, ca]
-                               + self.pwr[sy, lin, ca]
+                               + 0.5 * self.pwr[sy, lin, ca]
                                * self.vc_fl_lin_1[lin, ca])
                             for sy in self.sy)
                         for (lin, ca) in set_to_list(self.lin_ca, nn))
@@ -599,7 +599,7 @@ class Constraints:
                                if 'price_co2' in self.parameter_month_list
                                else self.price_co2[nd])
                             * (self.factor_vc_co2_lin_0[lin, ca]
-                               + self.pwr[sy, lin, ca]
+                               + 0.5 * self.pwr[sy, lin, ca]
                                * self.factor_vc_co2_lin_1[lin, ca])
                             for (sy, mt) in set_to_list(self.sy_mt, nn))
                         for (lin, nd, ca) in set_to_list(self.lin_ndca, nnn))
