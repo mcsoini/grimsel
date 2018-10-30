@@ -390,6 +390,8 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
         df_erg_inp['swhy_vl'] = df_erg_inp['swhy_vl'].replace({'erg_inp': 'erg_inp_yr2015'}).map(lambda x: x[-6:])
         df_erg_inp['sta_mod'] = 'stats'
         df_erg_inp['run_id'] = -1
+        df_erg_inp['bool_out'] = False
+
 
         # add imex stats
 #        if 'export' in self.mps.dict_fl_id.keys():
