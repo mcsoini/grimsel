@@ -269,30 +269,30 @@ class Constraints:
                                                rule=ramp_rate_abs_rule)
 
     def add_energy_constraint_rules(self):
-
-        if 'cf_max' in self.parameter_month_list:
-
-            print('Capacity factor limitation rule')
-            def pp_cf_rule(self, mt, pp, ca):
-
-                return (self.erg_mt[mt, pp, ca]
-                        <= self.cf_max[mt, pp, ca]
-                           * self.cap_pwr_tot[pp, ca]
-                           * self.month_weight[mt])
-            self.pp_cf = po.Constraint(self.mt, self.pp_ca - self.pr_ca,
-                                       rule=pp_cf_rule,
-                                       doc='Capacity factor constrained.')
-        else:
-            print('Capacity factor limitation rule')
-            def pp_cf_rule(self, pp, ca):
-
-                return (self.erg_yr[pp, ca]
-                        <= self.cf_max[pp, ca]
-                            * self.cap_pwr_tot[pp, ca]
-                            * 8760)
-            self.pp_cf = po.Constraint(self.pp_ca - self.pr_ca,
-                                       rule=pp_cf_rule,
-                                       doc='Capacity factor constrained.')
+#
+#        if 'cf_max' in self.parameter_month_list:
+#
+#            print('Capacity factor limitation rule')
+#            def pp_cf_rule(self, mt, pp, ca):
+#
+#                return (self.erg_mt[mt, pp, ca]
+#                        <= self.cf_max[mt, pp, ca]
+#                           * self.cap_pwr_tot[pp, ca]
+#                           * self.month_weight[mt])
+#            self.pp_cf = po.Constraint(self.mt, self.pp_ca - self.pr_ca,
+#                                       rule=pp_cf_rule,
+#                                       doc='Capacity factor constrained.')
+#        else:
+#            print('Capacity factor limitation rule')
+#            def pp_cf_rule(self, pp, ca):
+#
+#                return (self.erg_yr[pp, ca]
+#                        <= self.cf_max[pp, ca]
+#                            * self.cap_pwr_tot[pp, ca]
+#                            * 8760)
+#            self.pp_cf = po.Constraint(self.pp_ca - self.pr_ca,
+#                                       rule=pp_cf_rule,
+#                                       doc='Capacity factor constrained.')
 
         print('Fuel constraint rule')
         def pp_max_fuel_rule(self, nd, ca, fl):
