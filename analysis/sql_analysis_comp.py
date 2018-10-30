@@ -56,7 +56,7 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
                          ('entsoe_commercial_exchange', 'stats'),
                          ('terna', 'stats'))
             AS temp (input, input_simple)
-        ), tb_model_erg_max_from_cf AS (
+/*        ), tb_model_erg_max_from_cf AS (
             SELECT fl, tbcf.mt_id, nd, tbcf.run_id,
                 SUM(cap.value * tbcf.value * month_weight) AS erg,
                 'model_erg_max_from_cf'::VARCHAR AS input
@@ -67,7 +67,7 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
             LEFT JOIN (SELECT mt_id, month_weight FROM {sc_out}.def_month) AS dfmt ON dfmt.mt_id = tbcf.mt_id
             LEFT JOIN (SELECT pp_id, value, run_id FROM {sc_out}.par_cap_pwr_leg) AS cap ON tbcf.run_id = cap.run_id AND tbcf.pp_id = cap.pp_id
             GROUP BY fl, tbcf.mt_id, nd, tbcf.run_id
-        ), tb_model_var_sy_pwr AS (
+ */       ), tb_model_var_sy_pwr AS (
             SELECT fl, mt_id, nd, run_id,
                 SUM(value * weight) AS erg,
                 'model_var_sy_pwr'::VARCHAR AS input
@@ -143,8 +143,8 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
         UNION ALL
         SELECT * FROM tb_rte_month_sum
         UNION ALL
-        SELECT * FROM tb_model_erg_max_from_cf
-        UNION ALL
+--        SELECT * FROM tb_model_erg_max_from_cf
+--        UNION ALL
         SELECT * FROM tb_model_var_sy_pwr
         UNION ALL
         SELECT * FROM tb_entsoe_xborder
@@ -378,7 +378,8 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
                     FROM {sc_out}.var_yr_erg_yr AS erg
                     NATURAL LEFT JOIN {sc_out}.def_loop AS dflp
                     NATURAL LEFT JOIN {sc_out}.def_plant AS dfpp
-                    WHERE run_id = -1;
+                    WHERE run_id IN (0, -1)
+                    ;
                     '''.format(**self.format_kw)
 
         aql.exec_sql(exec_str, db=self.db)
