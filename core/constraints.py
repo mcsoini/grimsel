@@ -4,6 +4,12 @@ import numpy as np
 
 from grimsel.auxiliary.aux_m_func import set_to_list
 
+nnnn = [None] * 4
+nnn = [None] * 3
+nn = [None] * 2
+
+
+
 class Constraints:
     '''
     Mixin class containing all constraints.
@@ -577,8 +583,7 @@ class Constraints:
 
     def add_objective_rules(self):
         print('Objective rule quadratic')
-        nnn = [None] * 3
-        nn = [None] * 2
+
         def objective_rule_quad(self):
             return (# FUEL COST CONSTANT
                     sum(self.vc_fl_pp_yr[pp, ca, fl]
