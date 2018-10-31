@@ -1292,6 +1292,207 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
         return(exec_str)
 
 
+    # %% COST DISAGGREGATION NEW
+
+    @DecoratorsSqlAnalysis.append_nd_id_columns('analysis_cost_disaggregation_lin')
+    @DecoratorsSqlAnalysis.append_pt_id_columns('analysis_cost_disaggregation_lin')
+    @DecoratorsSqlAnalysis.append_fl_id_columns('analysis_cost_disaggregation_lin')
+    @DecoratorsSqlAnalysis.append_pp_id_columns('analysis_cost_disaggregation_lin')
+    @DecoratorsSqlAnalysis.append_sw_columns('analysis_cost_disaggregation_lin')
+    def analysis_cost_disaggregation_lin(self):
+
+        #%%
+        tb_name = 'analysis_cost_disaggregation_lin'
+        cols = [('pp_id', 'SMALLINT'),
+                ('ca_id', 'SMALLINT'),
+                ('run_id', 'SMALLINT'),
+                ('value', 'DOUBLE PRECISION'),
+                ('type', 'VARCHAR'),
+               ]
+        pk = ['pp_id', 'ca_id', 'run_id', 'type']
+        aql.init_table(tb_name=tb_name,
+                       cols=cols, schema=self.sc_out,
+                       pk=pk, db=self.db)
+
+
+        exec_strg = '''
+        DROP TABLE IF EXISTS temp_vc_lin CASCADE;
+        SELECT pwr.pp_id, pwr.ca_id, pwr.run_id,
+        SUM(pwr.value * weight * vc_fl * (factor_vc_fl_lin_0 + 0.5 * pwr.value * factor_vc_fl_lin_1)) AS value_vc_fl_lin,
+        SUM(pwr.value * weight * price_co2 * (factor_vc_co2_lin_0 + 0.5 * pwr.value * factor_vc_co2_lin_1)) AS value_vc_co2_lin
+        INTO temp_vc_lin
+        FROM {sc_out}.var_sy_pwr AS pwr
+        LEFT JOIN (SELECT pp_id, ca_id, run_id, value AS factor_vc_fl_lin_0
+                   FROM {sc_out}.par_factor_vc_fl_lin_0) AS parfl0
+            ON parfl0.pp_id = pwr.pp_id AND parfl0.ca_id = pwr.ca_id
+            AND parfl0.run_id = pwr.run_id
+        LEFT JOIN (SELECT pp_id, ca_id, run_id, value AS factor_vc_fl_lin_1
+                   FROM {sc_out}.par_factor_vc_fl_lin_1) AS parfl1
+            ON parfl1.pp_id = pwr.pp_id AND parfl1.ca_id = pwr.ca_id
+            AND parfl1.run_id = pwr.run_id
+        LEFT JOIN (SELECT pp_id, ca_id, run_id, value AS factor_vc_co2_lin_0 FROM {sc_out}.par_factor_vc_co2_lin_0) AS parco0
+        ON parco0.pp_id = pwr.pp_id AND parco0.ca_id = pwr.ca_id AND parco0.run_id = pwr.run_id
+        LEFT JOIN (SELECT pp_id, ca_id, run_id, value AS factor_vc_co2_lin_1 FROM {sc_out}.par_factor_vc_co2_lin_1) AS parco1
+        ON parco1.pp_id = pwr.pp_id AND parco1.ca_id = pwr.ca_id AND parco1.run_id = pwr.run_id
+        LEFT JOIN (SELECT fl_id, nd_id, pp_id FROM {sc_out}.def_plant) AS dfpp
+        ON dfpp.pp_id = pwr.pp_id
+        LEFT JOIN (SELECT sy, weight, mt_id FROM {sc_out}.tm_soy) AS tm
+        ON pwr.sy = tm.sy
+        LEFT JOIN (SELECT mt_id, fl_id, nd_id, run_id, value AS vc_fl FROM {sc_out}.par_vc_fl) AS parvcfl
+        ON parvcfl.fl_id = dfpp.fl_id AND parvcfl.nd_id = dfpp.nd_id AND parvcfl.mt_id = tm.mt_id AND parvcfl.run_id = pwr.run_id
+        LEFT JOIN (SELECT mt_id, nd_id, run_id, value AS price_co2 FROM {sc_out}.par_price_co2) AS parprco
+        ON parprco.nd_id = dfpp.nd_id AND parprco.mt_id = tm.mt_id AND parprco.run_id = pwr.run_id
+        WHERE pwr.pp_id IN (SELECT pp_id FROM {sc_out}.def_plant WHERE set_def_lin = 1)
+        AND pwr.run_id IN {in_run_id}
+        GROUP BY pwr.pp_id, pwr.ca_id, pwr.run_id;
+        '''.format(**self.format_kw)
+        aql.exec_sql(exec_strg, db=self.db)
+
+        for vc in ['fl', 'co2']:
+            print('Inserting vc_%s_lin ... '%vc, end='')
+            exec_strg = '''
+            INSERT INTO {sc_out}.analysis_cost_disaggregation_lin (pp_id, ca_id, run_id, value, type)
+            SELECT pp_id, ca_id, run_id, value_vc_{vc}_lin AS value, 'vc_{vc}_lin'::VARCHAR AS type
+            FROM temp_vc_lin;
+            '''.format(**self.format_kw, vc=vc)
+            aql.exec_sql(exec_strg, db=self.db)
+            print('done.')
+
+        print('Inserting vc_fl ... ', end='')
+        exec_strg = '''
+        DELETE FROM {sc_out}.analysis_cost_disaggregation_lin
+        WHERE type = 'vc_fl';
+
+        WITH tb_final AS (
+            SELECT pwr.pp_id, pwr.ca_id, pwr.run_id,
+            SUM(pwr.value * weight * vc_fl / pp_eff) AS value_vc_fl
+            FROM {sc_out}.var_sy_pwr AS pwr
+            LEFT JOIN (SELECT fl_id, nd_id, pp_id, pp FROM {sc_out}.def_plant) AS dfpp
+            ON dfpp.pp_id = pwr.pp_id
+            LEFT JOIN (SELECT pp_id, ca_id, run_id, value AS pp_eff FROM {sc_out}.par_pp_eff) AS eff
+            ON eff.pp_id = pwr.pp_id AND eff.ca_id = pwr.ca_id AND eff.run_id = pwr.run_id
+            LEFT JOIN (SELECT sy, weight, mt_id FROM {sc_out}.tm_soy) AS tm
+            ON pwr.sy = tm.sy
+            LEFT JOIN (SELECT mt_id, fl_id, nd_id, run_id, value AS vc_fl FROM {sc_out}.par_vc_fl) AS parvcfl
+            ON parvcfl.fl_id = dfpp.fl_id AND parvcfl.nd_id = dfpp.nd_id AND parvcfl.mt_id = tm.mt_id AND parvcfl.run_id = pwr.run_id
+            WHERE pwr.pp_id IN (SELECT pp_id FROM {sc_out}.def_plant WHERE set_def_lin = 0 AND set_def_pp = 1)
+            AND pwr.run_id IN {in_run_id}
+            GROUP BY pwr.pp_id, pwr.ca_id, pwr.run_id
+        )
+        INSERT INTO {sc_out}.analysis_cost_disaggregation_lin (pp_id, ca_id, run_id, value, type)
+        SELECT pp_id, ca_id, run_id, value_vc_fl AS value, 'vc_fl'::VARCHAR AS type
+        FROM tb_final;
+        '''.format(**self.format_kw)
+        aql.exec_sql(exec_strg, db=self.db)
+        print('done.')
+
+
+        print('Inserting vc_fl_agg ... ', end='')
+        exec_strg = '''
+        DELETE FROM {sc_out}.analysis_cost_disaggregation_lin
+        WHERE type = 'vc_fl_agg';
+
+        INSERT INTO {sc_out}.analysis_cost_disaggregation_lin (pp_id, ca_id, run_id, value, type)
+        SELECT pp_id, ca_id, run_id, value, 'vc_fl_agg'::VARCHAR AS type
+        FROM {sc_out}.var_yr_vc_om_pp_yr
+        WHERE run_id IN {in_run_id}
+        AND pp_id IN (SELECT pp_id FROM {sc_out}.def_plant WHERE set_def_pp = 1 AND set_def_lin = 0);
+        '''.format(**self.format_kw)
+        aql.exec_sql(exec_strg, db=self.db)
+        print('done.')
+
+        print('Inserting vc_om ... ', end='')
+        exec_strg = '''
+        DELETE FROM {sc_out}.analysis_cost_disaggregation_lin
+        WHERE type = 'vc_om';
+
+        WITH tb_final AS (
+            SELECT pwr.pp_id, pwr.ca_id, pwr.run_id,
+            SUM(pwr.value * weight * vc_om) AS value_vc_om
+            FROM {sc_out}.var_sy_pwr AS pwr
+            LEFT JOIN (SELECT sy, weight, mt_id FROM {sc_out}.tm_soy) AS tm
+            ON pwr.sy = tm.sy
+            LEFT JOIN (SELECT pp_id, ca_id, run_id, value AS vc_om FROM {sc_out}.par_vc_om) AS parvcom
+            ON parvcom.pp_id = pwr.pp_id AND parvcom.ca_id = pwr.ca_id AND parvcom.run_id = pwr.run_id
+            WHERE pwr.run_id IN {in_run_id}
+            GROUP BY pwr.pp_id, pwr.ca_id, pwr.run_id
+        )
+        INSERT INTO {sc_out}.analysis_cost_disaggregation_lin (pp_id, ca_id, run_id, value, type)
+        SELECT pp_id, ca_id, run_id, value_vc_om AS value, 'vc_om'::VARCHAR AS type
+        FROM tb_final;
+        '''.format(**self.format_kw)
+        aql.exec_sql(exec_strg, db=self.db)
+        print('done.')
+
+        print('Inserting fc_om ... ', end='')
+        exec_strg = '''
+        DELETE FROM {sc_out}.analysis_cost_disaggregation_lin
+        WHERE type = 'fc_om';
+
+        WITH tb_final AS (
+            SELECT cap.pp_id, cap.ca_id, run_id, cap.value * fc_om AS value
+            FROM {sc_out}.var_yr_cap_pwr_tot AS cap
+            LEFT JOIN (SELECT pp_id, ca_id, fc_om FROM {sc_out}.plant_encar) AS ppca ON ppca.pp_id = cap.pp_id AND ppca.ca_id = cap.ca_id
+            LEFT JOIN (SELECT pp_id, pp FROM {sc_out}.def_plant) AS dfpp ON dfpp.pp_id = cap.pp_id
+            WHERE run_id IN {in_run_id}
+        )
+        INSERT INTO {sc_out}.analysis_cost_disaggregation_lin (pp_id, ca_id, run_id, value, type)
+        SELECT pp_id, ca_id, run_id, value, 'fc_om'::VARCHAR AS type
+        FROM tb_final;
+        '''.format(**self.format_kw)
+        aql.exec_sql(exec_strg, db=self.db)
+        print('done.')
+
+
+        print('Inserting vc_ramp ... ', end='')
+        exec_strg = '''
+        DELETE FROM {sc_out}.analysis_cost_disaggregation_lin
+        WHERE type = 'vc_ramp';
+
+        INSERT INTO {sc_out}.analysis_cost_disaggregation_lin (pp_id, ca_id, run_id, value, type)
+        SELECT pp_id, ca_id, run_id, value, 'vc_ramp'::VARCHAR AS type
+        FROM {sc_out}.var_yr_vc_ramp_yr
+        WHERE pp_id IN (SELECT pp_id FROM {sc_out}.def_plant
+                        WHERE set_def_pp = 1  OR set_def_ror = 1 OR set_def_hyrs = 1)
+            AND run_id IN {in_run_id}
+        ;
+        '''.format(**self.format_kw)
+        aql.exec_sql(exec_strg, db=self.db)
+        print('done.')
+
+        print('Inserting total_total ... ', end='')
+        exec_strg = '''
+        DELETE FROM {sc_out}.analysis_cost_disaggregation_lin
+        WHERE type = 'total_total';
+
+        INSERT INTO {sc_out}.analysis_cost_disaggregation_lin (pp_id, ca_id, run_id, value, type)
+        SELECT -1 AS pp_id, -1 AS ca_id, run_id, SUM(COALESCE(value, 0)), 'total_total'::VARCHAR AS type
+        FROM {sc_out}.analysis_cost_disaggregation_lin
+        WHERE type IN ('fc_om', 'vc_co2_lin', 'vc_fl',
+                       'vc_fl_lin', 'vc_om', 'vc_ramp')
+        AND run_id IN {in_run_id}
+        GROUP BY run_id;
+        '''.format(**self.format_kw)
+        aql.exec_sql(exec_strg, db=self.db)
+        print('done.')
+
+
+        print('Inserting objective ... ', end='')
+        exec_strg = '''
+        DELETE FROM {sc_out}.analysis_cost_disaggregation_lin
+        WHERE type = 'objective';
+
+        INSERT INTO {sc_out}.analysis_cost_disaggregation_lin (pp_id, ca_id, run_id, value, type)
+        SELECT 0 AS pp_id, 0 AS ca_id, run_id, objective AS value, 'objective'::VARCHAR AS type
+        FROM {sc_out}.def_loop
+        WHERE run_id IN {in_run_id};
+        '''.format(**self.format_kw)
+        aql.exec_sql(exec_strg, db=self.db)
+        print('done.')
+
+
+
+
 
     # %% COST DISAGGREGATION
     def cost_disaggregation(self):
