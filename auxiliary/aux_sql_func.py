@@ -1097,9 +1097,36 @@ if __name__ == '__main__':
 
 import subprocess
 from os import walk
+from sh import pg_dump
+import os
 
-dbname = 'postgresql://postgres:postgres@localhost:5432/{db}'
 
+
+def dump_by_table_sh(sc, db, target_dir):
+
+    if __name__ == '__main__':
+        sc='out_replace_basesmall'
+        db='storage2'
+        source_base='/run/user/1000/gvfs/dav:host=drive.switch.ch,ssl=true,prefix=%2Fremote.php%2Fwebdav/'
+        source_dir='SQL_DUMPS/out_replace_basesmall/'
+        target_dir=os.path.join(source_base, source_dir)
+
+
+    db_format = dict(user=config.PSQL_USER,
+                     pw=config.PSQL_PASSWORD,
+                     host=config.PSQL_HOST,
+                     port=config.PSQL_PORT,
+                     db=db)
+    dbname = 'postgresql://{user}:{pw}@{host}:{port}/{db}'.format(**db_format)
+
+
+
+    for itb in get_sql_tables(sc, db=db):
+        print('Dumping table ', itb)
+        tb = sc + '.' + itb
+        fn = os.path.join(target_dir, itb + '.sql')
+        with open(fn, 'w+') as f:
+            pg_dump('--dbname', dbname, '--table', tb, _out=f)
 
 def dump_by_table(sc, db, target_dir='C:\\Users\\ashreeta\\Documents\\Martin\\SWITCHdrive\\SQL_DUMPS\\out_disagg_new\\'):
 
@@ -1112,7 +1139,7 @@ def dump_by_table(sc, db, target_dir='C:\\Users\\ashreeta\\Documents\\Martin\\SW
 
 
     for itb in get_sql_tables(sc, db=db):
-        print('Now dumping table ', itb)
+        print('Dumping table ', itb)
         tb = sc + '.' + itb
         fn = target_dir + tb + '.sql'
         run_str = ('{exe} --table {tb} --dbname={dbname} > {fn}'
@@ -1147,5 +1174,29 @@ def read_by_table(db,
 if __name__ == '__main__':
     pass
 #    dump_by_table('out_marg_store', 'storage2', target_dir='C:\\Users\\ashreeta\\Documents\\Martin\\SWITCHdrive\\SQL_DUMPS\\out_marg_store_new\\')
+
+# %%
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
