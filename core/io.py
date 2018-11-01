@@ -102,7 +102,7 @@ class IO():
         ('vc_ramp', ('pp_id', 'ca_id')),
         ('st_lss_hr', ('pp_id', 'ca_id')),
         ('st_lss_rt', ('pp_id', 'ca_id')),
-        ('hyd_erg_bc', ('sy', 'pp_id')),
+#        ('hyd_erg_bc', ('sy', 'pp_id')), # this gets extremely large
         ('hyd_erg_min', ('pp_id',)),
         ('inflowprof', ('sy', 'pp_id', 'ca_id')),
         ('chpprof', ('sy', 'nd_id', 'ca_id')),
