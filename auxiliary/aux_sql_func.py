@@ -9,6 +9,16 @@ import pandas as pd
 from sqlalchemy import create_engine
 import sqlalchemy
 
+
+import subprocess
+from os import walk
+try:
+    # Linux only
+    from sh import pg_dump
+except:
+    pass
+import os
+
 import string
 import random
 
