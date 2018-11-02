@@ -1122,6 +1122,9 @@ def dump_by_table_sh(sc, db, target_dir):
         target_dir=os.path.join(source_base, source_dir)
 
 
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
+
     db_format = dict(user=config.PSQL_USER,
                      pw=config.PSQL_PASSWORD,
                      host=config.PSQL_HOST,
