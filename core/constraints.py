@@ -32,7 +32,6 @@ class Constraints:
                           in set_to_list(self.ndcnn, [nd, None, ca]))
                    )
             dmnd = (self.dmnd[sy, nd, ca]
-                    # wasted
                     + sum(self.trm_sd[sy, nd, nd_2, ca] for (nd, nd_2, ca)
                           in set_to_list(self.ndcnn, [nd, None, ca]))
                     + sum(self.pwr_st_ch[sy, st, ca] for (st, nd, ca)
