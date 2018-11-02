@@ -1117,7 +1117,7 @@ def dump_by_table_sh(sc, db, target_dir):
     if __name__ == '__main__':
         sc='out_replace_basesmall'
         db='storage2'
-        source_base='/run/user/1000/gvfs/dav:host=drive.switch.ch,ssl=true,prefix=%2Fremote.php%2Fwebdav/'
+        source_base='/run/user/1000/gvfs/dav:host=drive.switch.ch,ssl=true,prefix=%2Fremote.php%2Fdav/files/martin.soini@unige.ch'
         source_dir='SQL_DUMPS/out_replace_basesmall/'
         target_dir=os.path.join(source_base, source_dir)
 
@@ -1161,14 +1161,15 @@ def dump_by_table(sc, db, target_dir='C:\\Users\\ashreeta\\Documents\\Martin\\SW
         subprocess.run(run_str, shell=True, check=True)
 
 
-def read_by_table(db,
-                  source_base='/run/user/1000/gvfs/dav:host=drive.switch.ch,ssl=true,prefix=%2Fremote.php%2Fwebdav/',
+def read_by_table(db, sc,
+                  source_base='/run/user/1000/gvfs/dav:host=drive.switch.ch,ssl=true,prefix=%2Fremote.php%2Fdav/files/martin.soini@unige.ch',
                   source_dir=''):
 
     if __name__ == '__main__':
-        db='storage1'
-        source_base='/run/user/1000/gvfs/dav:host=drive.switch.ch,ssl=true,prefix=%2Fremote.php%2Fwebdav/'
-        source_dir='SQL_DUMPS/out_nucspreadvr_ext_it/'
+        db='storage2'
+        source_base='/run/user/1000/gvfs/dav:host=drive.switch.ch,ssl=true,prefix=%2Fremote.php%2Fdav/files/martin.soini@unige.ch'
+        source_dir='SQL_DUMPS/out_replace_vreseries/'
+
 
     f = []
     for (dirpath, dirnames, filenames) in walk(source_base + source_dir):
