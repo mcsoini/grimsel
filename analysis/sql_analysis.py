@@ -1142,26 +1142,31 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
                     /* GRID LOSSES */
                     INSERT INTO {sc_out}.analysis_plant_run_tot_balance
                     SELECT
-                        run_id, True AS bool_out,
-                        - SUM({erg_col} * grid_losses) AS {erg_col},
+                        prt.run_id, True AS bool_out,
+                        - SUM(pp_sign * {erg_col} * grid_losses) AS erg_yr_sy,
                         'GRIDLOSSES' AS pp_broad_cat,
                         'GRDLSS' AS pt, 'gridlosses' AS fl,
-                        dfnd.nd, ndca.nd_id, prt.ca_id,
+                        dfnd.nd, grdlss.nd_id, prt.ca_id,
                         prt.nd::VARCHAR || '_GRIDLSS' AS pp
                     FROM {sc_out}.{tb_base} AS prt
-                    LEFT JOIN (SELECT nd_id, ca_id, grid_losses
-                               FROM {sc_out}.node_encar) AS ndca
-                        ON ndca.nd_id = prt.nd_id AND ndca.ca_id = prt.ca_id
+                    LEFT JOIN (SELECT nd_id, ca_id, run_id,
+                                      value AS grid_losses
+                               FROM {sc_out}.par_grid_losses) AS grdlss
+                        ON grdlss.nd_id = prt.nd_id
+                        AND grdlss.ca_id = prt.ca_id
+                        AND grdlss.run_id = prt.run_id
                     LEFT JOIN (SELECT nd_id, nd
                                FROM {sc_out}.def_node) AS dfnd
                         ON dfnd.nd_id = prt.nd_id
+                    LEFT JOIN (SELECT pp, CASE WHEN set_def_curt = 1 OR set_def_sll = 1 THEN -1 ELSE 1 END AS pp_sign
+                               FROM out_replace_test_balance.def_plant) AS map_sign ON map_sign.pp = prt.pp
                     WHERE
                         pp_broad_cat IN ('HYDRO', 'CHP', 'CONVDISP',
                                          'VARIABLE', 'RENDISP',
-                                         'HYDROSTORAGE', 'NEWSTORAGE',
-                                         'TRANSMISSION')
-                        AND prt.bool_out = False
-                    GROUP BY run_id, prt.bool_out, prt.nd, ndca.nd_id, dfnd.nd, prt.ca_id
+                                         'HYDROSTORAGE', 'NEW_STORAGE',
+                                         'TRNS_RV')
+                        AND prt.bool_out = False OR (prt.bool_out = True AND pp_broad_cat = 'DMND_FLEX')
+                    GROUP BY prt.run_id, prt.bool_out, prt.nd, grdlss.nd_id, dfnd.nd, prt.ca_id
                     ORDER BY run_id;
                     ''').format(**self.format_kw, erg_col=erg_col, tb_base=tb_base)
         aql.exec_sql(exec_str, db=self.db)
