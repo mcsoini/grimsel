@@ -385,7 +385,7 @@ class Constraints:
             else:
                 return po.Constraint.Skip
         self.hy_reservoir_boundary_conditions = (
-                po.Constraint(self.hyrs_ca, self.sy,
+                po.Constraint(self.hyrs_ca, self.sy_hydbc,
                               rule = hy_reservoir_boundary_conditions_rule))
 
         print('Hydro minimum monthly generation as fraction of maximum monthly inflow')

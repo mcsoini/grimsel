@@ -91,6 +91,8 @@ class Sets:
         ''' SPECIAL SETS '''
         # temporal
         self.sy = po.Set(initialize=list(self.df_tm_soy['sy']), ordered=True)
+        self.sy_hydbc = po.Set(within=self.sy,
+                               initialize=self.df_plant_month.sy.tolist())
 
         self.mt = (po.Set(initialize=list(self.df_def_month['mt_id']))
                    if not self.df_def_month is None else None)

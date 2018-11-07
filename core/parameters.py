@@ -102,7 +102,7 @@ class Parameters:
         self.padd('st_lss_rt', (self.st, self.ca), _df, **mut)
 
         print('Defining hy parameters')
-        self.padd('hyd_erg_bc', (self.sy, self.hyrs), self.df_plant_month)
+        self.padd('hyd_erg_bc', (self.sy_hydbc, self.hyrs), self.df_plant_month)
 
         print('Defining st + hyrs parameters')
         _df = self.df_plant_encar
@@ -185,7 +185,8 @@ class Parameters:
 #            return None
 
         # dictionary sets -> column names
-        dict_ind = {'sy': 'sy', 'nd': 'nd_id', 'ca': 'ca_id', 'pr': 'pp_id',
+        dict_ind = {'sy': 'sy', 'sy_hydbc': 'sy', 'nd': 'nd_id', 'ca': 'ca_id',
+                    'pr': 'pp_id',
                     'ror': 'pp_id', 'pp': 'pp_id', 'add': 'pp_id', 'fl': 'fl_id',
                     'ppall': 'pp_id', 'hyrs': 'pp_id', 'wk': 'wk_id',
                     'mt': 'mt_id',
