@@ -32,7 +32,7 @@ class Parameters:
         self.padd('chpprof', (self.sy, self.nd, self.ca), 'df_profchp_soy', 'value', **mut) # Relative heat demand profile.
         self.padd('supprof', (self.sy, self.pr, self.ca), 'df_profsupply_soy', 'value', **mut) # Supply from variable generators.
         self.padd('inflowprof', (self.sy, self.hyrs | self.ror, self.ca), 'df_profinflow_soy', 'value', **mut) # Hydro inflow profiles.
-        self.padd('priceprof', (self.sy, self.nd, self.fl_prof), 'df_profprice_soy', 'value', **mut) # Relative heat demand profile.
+        self.padd('priceprof', (self.sy, self.ndfl_prof), 'df_profprice_soy', 'value', **mut) # Relative heat demand profile.
 
         print('Hydro parameters')
         self.padd('min_erg_mt_out_share', (self.hyrs,), 'df_hydro') # minimum monthly production as share of max_erg_mt_in_share.
