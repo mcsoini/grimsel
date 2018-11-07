@@ -387,25 +387,13 @@ class Constraints:
         self.hy_reservoir_boundary_conditions = (
                 po.Constraint(self.hyrs_ca, self.sy,
                               rule = hy_reservoir_boundary_conditions_rule))
-#
-
-        exclude_hyd = [self.mps.dict_pp_id[pp] for pp in [
-#                                                          'DE_HYD_RES',
-#                                                          'AT_HYD_RES',
-#                                                          'CH_HYD_RES',
-#                                                          'IT_HYD_RES',
-#                                                          'FR_HYD_RES',
-                                                          ]]
 
         print('Hydro minimum monthly generation as fraction of maximum monthly inflow')
         def hy_month_min_rule(self, mt, pp, nd, ca, fl):
-            if pp in exclude_hyd:
-                return po.Constraint.Skip
-            else:
-                return (self.erg_mt[mt, pp, ca]
-                        >= self.max_erg_mt_in_share[pp]
-                         * self.min_erg_mt_out_share[pp]
-                         * self.erg_inp[nd, ca, fl])
+            return (self.erg_mt[mt, pp, ca]
+                    >= self.max_erg_mt_in_share[pp]
+                     * self.min_erg_mt_out_share[pp]
+                     * self.erg_inp[nd, ca, fl])
         self.hy_month_min = po.Constraint(self.mt, self.hyrs_ndcafl,
                                           rule=hy_month_min_rule)
         #### MINIMUM RESERVOIR LEVEL HYDRO
