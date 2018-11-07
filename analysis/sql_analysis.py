@@ -728,6 +728,28 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
         if self.bool_run:
             aql.exec_sql(exec_str, db=self.db, ret_res=False)
 
+        exec_strg = '''
+        DROP VIEW IF EXISTS plant_run_quick_0d CASCADE;
+        CREATE VIEW plant_run_quick_0d AS
+        WITH tb_dmnd_0 AS (
+            SELECT nd_id, ca_id, SUM(value) AS erg_yr_yr
+            FROM {sc_out}.profdmnd
+            GROUP BY nd_id, ca_id
+        ), tb_dmnd AS (
+            SELECT * FROM tb_dmnd_0
+            FULL OUTER JOIN (SELECT run_id FROM {sc_out}.def_loop) AS dflp ON 1 = 1
+        )
+        SELECT run_id, True::BOOLEAN AS bool_out, ca_id, pp_id,
+                nd_id, 0::SMALLINT AS set_def_st, pt_id, erg_yr_yr,
+                NULL::DOUBLE PRECISION AS co2_el, 1 AS count_check FROM tb_dmnd
+        NATURAL LEFT JOIN (SELECT nd_id, pp_id, pt_id
+                           FROM {sc_out}.def_plant
+                           WHERE pp LIKE '%DMND') AS dfpp;
+        '''.format(**self.format_kw)
+        if self.bool_run:
+            aql.exec_sql(exec_strg, db=self.db, ret_res=False)
+
+
 
         exec_str = ('''
                     /* ADD DERIVED COLUMNS */
