@@ -700,13 +700,13 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
         variables. Hence no alternative time aggregations (obviously).
         '''
 
-        exec_str = ('''
+        exec_str = '''
                     DROP VIEW IF EXISTS plant_run_quick_0 CASCADE;
                     CREATE VIEW plant_run_quick_0 AS
                     SELECT
                         erg.run_id, erg.bool_out, erg.ca_id, erg.pp_id,
                         dfplt.nd_id, dfplt.set_def_st, dfplt.pt_id,
-                        SUM((CASE WHEN erg.bool_out = True THEN -1 ELSE 1 END) * erg.value) AS erg_yr_yr,
+                        SUM(ABS(erg.value)) AS erg_yr_yr,
                         SUM(co2_int / NULLIF(eff.value * erg.value, 0)) AS co2_el,
                         COUNT(erg.run_id) AS count_check
                     FROM (SELECT * FROM {sc_out}.var_yr_erg_yr
@@ -724,7 +724,7 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
                     GROUP BY erg.run_id, erg.ca_id, dfplt.pt_id,
                              dfplt.fl_id, erg.pp_id, dfplt.nd_id,
                              erg.bool_out, dfplt.set_def_st;
-                    ''').format(**self.format_kw)
+                    '''.format(**self.format_kw)
         if self.bool_run:
             aql.exec_sql(exec_str, db=self.db, ret_res=False)
 
