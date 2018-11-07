@@ -1134,7 +1134,7 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
                         {sc_out}.analysis_plant_run_tot_balance CASCADE;
                     SELECT
                         run_id, bool_out,
-                        (CASE WHEN bool_out = False THEN 1 ELSE -1 END ) * {erg_col} AS {erg_col}_posneg,
+                        (CASE WHEN bool_out = False THEN 1 ELSE -1 END ) * ABS({erg_col}) AS {erg_col}_posneg,
                         pp_broad_cat, pt, fl, nd, nd_id, ca_id, pp
                     INTO {sc_out}.analysis_plant_run_tot_balance
                     FROM {sc_out}.{tb_base};
