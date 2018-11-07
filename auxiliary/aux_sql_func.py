@@ -1154,9 +1154,9 @@ def dump_by_table(sc, db, target_dir='C:\\Users\\ashreeta\\Documents\\Martin\\SW
 
 
     for itb in get_sql_tables(sc, db=db):
-        print('Dumping table ', itb)
         tb = sc + '.' + itb
-        fn = target_dir + tb + '.sql'
+        fn = os.path.join(target_dir, tb + '.sql')
+        print('Dumping table ', itb, ' to ', fn)
         run_str = ('{exe} --table {tb} --dbname={dbname} > {fn}'
                        .format(exe=exe, tb=tb, dbname=dbname.format(db=db), fn=fn))
 
