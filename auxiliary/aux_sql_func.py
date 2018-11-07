@@ -1135,9 +1135,9 @@ def dump_by_table_sh(sc, db, target_dir):
 
 
     for itb in get_sql_tables(sc, db=db):
-        print('Dumping table ', itb)
         tb = sc + '.' + itb
         fn = os.path.join(target_dir, itb + '.sql')
+        print('Dumping table ', itb, ' to file ', fn)
         with open(fn, 'w+') as f:
             pg_dump('--dbname', dbname, '--table', tb, _out=f)
 
