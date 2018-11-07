@@ -1141,6 +1141,8 @@ def dump_by_table_sh(sc, db, target_dir):
         with open(fn, 'w+') as f:
             pg_dump('--dbname', dbname, '--table', tb, _out=f)
 
+dbname = 'postgresql://postgres:postgres@localhost:5432/{db}'
+
 def dump_by_table(sc, db, target_dir='C:\\Users\\ashreeta\\Documents\\Martin\\SWITCHdrive\\SQL_DUMPS\\out_disagg_new\\'):
 
 #    if __name__ == '__main__':
@@ -1163,7 +1165,7 @@ def dump_by_table(sc, db, target_dir='C:\\Users\\ashreeta\\Documents\\Martin\\SW
 
 def read_by_table(db, sc,
                   source_base='/run/user/1000/gvfs/dav:host=drive.switch.ch,ssl=true,prefix=%2Fremote.php%2Fdav/files/martin.soini@unige.ch',
-                  source_dir=''):
+                  source_dir='', warn_reset_schema=True):
 
     if __name__ == '__main__':
         db='storage2'
@@ -1171,16 +1173,31 @@ def read_by_table(db, sc,
         source_dir='SQL_DUMPS/out_replace_vreseries/'
 
 
+    source_dir = os.path.join(source_base, source_dir)
+
+
     f = []
-    for (dirpath, dirnames, filenames) in walk(source_base + source_dir):
+    for (dirpath, dirnames, filenames) in walk(source_dir):
         f.extend(filenames)
         break
 
+
+    print('Reading from %s, %d files found.' % (source_dir, len(f)))
+
     exe = 'psql'
 
+    reset_schema(sc, db, warn=warn_reset_schema)
+
+    db_format = dict(user=config.PSQL_USER,
+                     pw=config.PSQL_PASSWORD,
+                     host=config.PSQL_HOST,
+                     port=config.PSQL_PORT,
+                     db=db)
+    dbname = 'postgresql://{user}:{pw}@{host}:{port}/{db}'.format(**db_format)
+
     for file in f:
-        print('Now reading file ', file)
-        fn = source_base + source_dir + file
+        print('Reading file ', file)
+        fn = source_dir + file
 
         run_str = '{exe} --dbname={dbname} < {fn}'.format(exe=exe, dbname=dbname, fn=fn)
         subprocess.run(run_str, shell=True, check=True)
