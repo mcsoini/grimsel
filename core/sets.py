@@ -160,6 +160,8 @@ class Sets:
         # fuels with cost profiles
         df = self.df_fuel_node_encar.loc[self.df_fuel_node_encar.has_profile == 1,
                                    ['nd_id', 'fl_id']]
+        self.ndfl_prof = po.Set(within=self.fl, initialize=get_ilst(df),
+                                ordered=True)
         df = pd.merge(df, self.df_def_plant[['pp_id', 'fl_id', 'nd_id']])
         df = pd.merge(df, self.df_plant_encar[['pp_id', 'ca_id']])
         lst = [tuple(c) for c in df[slct_cols_ppndcafl].values]
