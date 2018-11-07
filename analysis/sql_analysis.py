@@ -756,14 +756,14 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
                     DROP VIEW IF EXISTS plant_run_quick_01 CASCADE;
                     CREATE VIEW plant_run_quick_01 AS
                     WITH totdmnd AS (
-                        SELECT nd_id, run_id, SUM(value) AS sum_dmnd
-                        FROM {sc_out}.par_dmnd AS dmnd
-                        GROUP BY nd_id, run_id
-                        ORDER BY nd_id, run_id
+                        SELECT nd_id, run_id, erg_yr_yr AS sum_dmnd
+                        FROM plant_run_quick_0d
                     )
                     SELECT pr0.*,
                         pr0.erg_yr_yr / sum_dmnd AS erg_yr_yr_share_dmnd
-                    FROM plant_run_quick_0 AS pr0
+                    FROM (SELECT * FROM plant_run_quick_0
+                          UNION ALL
+                          SELECT * FROM plant_run_quick_0d) AS pr0
                     LEFT JOIN totdmnd
                         ON totdmnd.run_id = pr0.run_id
                         AND totdmnd.nd_id = pr0.nd_id;
