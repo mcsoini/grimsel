@@ -555,10 +555,20 @@ def init_table(tb_name, cols, schema='public', ref_schema=None,
 
 
     def warn_exists():
+
         if warn_if_exists:
-            exec_count = 'SELECT COUNT(*) FROM %s.%s'%(schema, tb_name)
-            len_tb = exec_sql(exec_count, db=db)[0][0]
-            input(
+
+            tb_exists = len(exec_sql('''
+                            SELECT table_name
+                            FROM information_schema.tables
+                            WHERE table_schema = \'{sc}\'
+                            AND table_name = \'{tb}\';
+                            '''.format(sc=schema, tb=tb_name), db=db)) > 0
+
+            if tb_exists:
+                exec_count = 'SELECT COUNT(*) FROM %s.%s'%(schema, tb_name)
+                len_tb = exec_sql(exec_count, db=db)[0][0]
+                input(
 '''
 ~~~~~~~~~~~~~~~   WARNING:  ~~~~~~~~~~~~~~~~
 You are about to delete existing table %s.%s.
