@@ -1105,13 +1105,6 @@ if __name__ == '__main__':
 
 # %%
 
-import subprocess
-from os import walk
-from sh import pg_dump
-import os
-
-
-
 def dump_by_table_sh(sc, db, target_dir):
 
     if __name__ == '__main__':
