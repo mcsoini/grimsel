@@ -1159,7 +1159,7 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
                                FROM {sc_out}.def_node) AS dfnd
                         ON dfnd.nd_id = prt.nd_id
                     LEFT JOIN (SELECT pp, CASE WHEN set_def_curt = 1 OR set_def_sll = 1 THEN -1 ELSE 1 END AS pp_sign
-                               FROM out_replace_test_balance.def_plant) AS map_sign ON map_sign.pp = prt.pp
+                               FROM {sc_out}.def_plant) AS map_sign ON map_sign.pp = prt.pp
                     WHERE
                         pp_broad_cat IN ('HYDRO', 'CHP', 'CONVDISP',
                                          'VARIABLE', 'RENDISP',
