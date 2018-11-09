@@ -531,7 +531,7 @@ def get_coldict(sc, db, fk_include_missing=False):
 def init_table(tb_name, cols, schema='public', ref_schema=None,
                pk=[], unique=[], appendix='', bool_auto_fk=False,
                bool_return=False, db=None, con_cur=None,
-               skip_if_exists=False):
+               skip_if_exists=False, warn_if_exists=False):
     '''
     Drop and re-initialize indexed table.
     Keyword arguments:
@@ -553,10 +553,29 @@ def init_table(tb_name, cols, schema='public', ref_schema=None,
                       and tb_name in get_sql_tables('log', 'fnnc'))
                  else False)
 
+
+    def warn_exists():
+        if warn_if_exists:
+            exec_count = 'SELECT COUNT(*) FROM %s.%s'%(schema, tb_name)
+            len_tb = exec_sql(exec_count, db=db)[0][0]
+            input(
+'''
+~~~~~~~~~~~~~~~   WARNING:  ~~~~~~~~~~~~~~~~
+You are about to delete existing table %s.%s.
+The length is %d.
+
+Hit enter to proceed.
+'''%(schema, tb_name, len_tb))
+
+
+
+
     if _skip:
         print('Table {} in schema {} exists: skipping init.'.format(tb_name,
                                                                     schema))
     else:
+
+        warn_exists()
 
         # apply default data type and foreign key to the columns if not provided
         _coldict = get_coldict(ref_schema, db)
