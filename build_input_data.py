@@ -523,8 +523,6 @@ df_imex_comp, _ = translate_id(df_imex_comp, df_def_node, ['nd', 'nd_2'])
 '''
 add various set definition columns to df_def_plant
 '''
-df_def_plant['set_def_peak'] = 0
-df_def_plant.loc[df_def_plant['pp'].apply(lambda x: str.find(x, 'PEAK')) > -1, 'set_def_peak'] = 1
 
 mask_ws = (df_def_plant['pp'].apply(lambda x: str.find(x, 'WIN') > 0)
          | df_def_plant['pp'].apply(lambda x: str.find(x, 'SOL') > 0))
