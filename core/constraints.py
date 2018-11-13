@@ -573,7 +573,8 @@ class Constraints:
         sum(sum(self.pwr[sy, lin, ca] * self.weight[sy]
                 * self.vc_fl[self.dict_soy_month[sy], fl, nd]
                 * (self.factor_vc_fl_lin_0[lin, ca]
-                   + 0.5 * self.pwr[sy, lin, ca] * self.factor_vc_fl_lin_1[lin, ca])
+                   + 0.5 * self.pwr[sy, lin, ca]
+                         * self.factor_vc_fl_lin_1[lin, ca])
                 for sy in self.sy)
             for (lin, nd, ca, fl) in set_to_list(self.lin_ndcafl, nnnn))
 

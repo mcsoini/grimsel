@@ -62,7 +62,7 @@ nsteps_default = [
                  ]
 
 mlkwargs = {#'sc_inp': 'lp_input_calibration_years_linonly',
-            'sc_out': 'out_test_avail',
+            'sc_out': 'out_cal',
             'db': db,
             'nsteps': nsteps_default,
             'sql_connector': sqlc,
@@ -122,7 +122,7 @@ for irow in list(range(irow_0, len(ml.df_def_loop))):
 
     #########################################
     ############### RUN MODEL ###############
-    ml.m.fill_peaker_plants(demand_factor=2)
+#    ml.m.fill_peaker_plants(demand_factor=2)
 
     ml.m._limit_prof_to_cap()
 
