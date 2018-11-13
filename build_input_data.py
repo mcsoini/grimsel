@@ -268,7 +268,7 @@ cols = ([('set_1_name', 'VARCHAR'), # from {'nd_id', 'fl_id', 'pp_id'}
          ('mt_id',' SMALLINT', sc + '.def_month(mt_id)'),
 #         ('ca_id', 'SMALLINT', sc + '.def_encar(ca_id)'),
          ('parameter', 'VARCHAR') # the parameter this applies to
-         ] + yr_getter('mt_fact', 'DOUBLE PRECISION', [2015]))
+         ] + yr_getter('mt_fact', 'NUMERIC(10,9)', [2015]))
 pk = ['parameter', 'set_1_id', 'set_2_id', 'mt_id']
 unique = []
 aql.init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
@@ -733,6 +733,8 @@ for idf in write_dfs:
 # %%
 ######## PROFSUPPLY FROM PROFILES_RAW.NINJA DATA STRAIGHT TO LP_INPUT #########
 
+cf_data_type = 'NUMERIC(9,8)'
+
 # Copy capacity scale adjusted base year profiles to profsupply table
 exec_strg = '''
             DROP TABLE IF EXISTS {sc}.profsupply CASCADE;
@@ -740,7 +742,10 @@ exec_strg = '''
             INTO {sc}.profsupply
             FROM profiles_raw.ninja_mod
             WHERE year = 2015;
-            '''.format(sc=sc)
+            
+            ALTER TABLE {sc}.profsupply
+                ALTER value TYPE {cf_data_type}
+            '''.format(sc=sc, cf_data_type=cf_data_type)
 aql.exec_sql(exec_strg, db=db)
 
 
