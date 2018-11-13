@@ -210,7 +210,7 @@ aql.init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
 tb_name = 'profdmnd'
 cols = [('nd_id', 'SMALLINT', sc + '.def_node(nd_id)'),
         ('ca_id', 'SMALLINT', sc + '.def_encar(ca_id)'),
-        ('hy', 'SMALLINT')] + yr_getter('value', 'DOUBLE PRECISION', [2015])
+        ('hy', 'SMALLINT')] + yr_getter('value', 'NUMERIC(18,9)', [2015])
 pk = ['hy', 'ca_id', 'nd_id']
 unique = []
 aql.init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
@@ -697,8 +697,6 @@ dmnd_scale = {dict_node_id[kk]: vv for kk, vv in dmnd_scale.items()}
 df_profdmnd['scale'] = df_profdmnd.nd_id.replace(dmnd_scale)
 df_profdmnd['value'] *= df_profdmnd.scale
 df_profdmnd = df_profdmnd.drop('scale', axis=1)
-
-df_profdmnd['value'] = df_profdmnd.value.apply(lambda x: int(x * 100000) / 100000)
 
 '''
 Comparison price profiles
