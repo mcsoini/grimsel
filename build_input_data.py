@@ -698,6 +698,8 @@ df_profdmnd['scale'] = df_profdmnd.nd_id.replace(dmnd_scale)
 df_profdmnd['value'] *= df_profdmnd.scale
 df_profdmnd = df_profdmnd.drop('scale', axis=1)
 
+df_profdmnd['value'] = df_profdmnd.value.apply(lambda x: int(x * 100000) / 100000)
+
 '''
 Comparison price profiles
 '''
