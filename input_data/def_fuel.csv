@@ -17,4 +17,4 @@ fl_id,fl,co2_int,is_ca,is_constrained,color
 15,bio_all,0.0,0,0,#3B662E
 16,ca_electricity,0.0,0,0,None
 17,electricity,0.0,0,0,None
-18,value_lost_load,0.0,0,0,#5C0063
+18,lost_load,0.0,0,0,#5C0063
