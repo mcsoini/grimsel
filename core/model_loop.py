@@ -55,11 +55,11 @@ class ModelLoop(parameter_changes.ParameterChanges):
           ]
     @property
     def df_def_loop(self):
-        return self.__df_def_loop
+        return self._df_def_loop
 
     @df_def_loop.setter
     def df_def_loop(self, df_def_loop):
-        self.__df_def_loop = df_def_loop
+        self._df_def_loop = df_def_loop
         self.restore_run_id()
 
     def init_output_schema(self):
@@ -153,10 +153,10 @@ class ModelLoop(parameter_changes.ParameterChanges):
         self.cols_val = [c + '_vl' for c in self.cols_step]
         self.cols_all = self.cols_id + self.cols_step + self.cols_val
 
-        self.__df_def_loop = pd.DataFrame(full_all, columns=self.cols_all)
-        self.__df_def_loop = self.__df_def_loop.reset_index()
+        self._df_def_loop = pd.DataFrame(full_all, columns=self.cols_all)
+        self._df_def_loop = self._df_def_loop.reset_index()
         col_dict = {'index': 'run_id'}
-        self.__df_def_loop = self.__df_def_loop.rename(columns=col_dict)
+        self._df_def_loop = self._df_def_loop.rename(columns=col_dict)
 
         if not self.io.resume_loop:
             self.init_loop_table()
@@ -268,12 +268,12 @@ class ModelLoop(parameter_changes.ParameterChanges):
         Reset run_id index after external manipulation of the df_def_loop
         '''
 
-        cols_not_run_id = [c for c in self.__df_def_loop.columns
+        cols_not_run_id = [c for c in self._df_def_loop.columns
                            if not c == 'run_id']
-        self.__df_def_loop = self.__df_def_loop[cols_not_run_id]
-        self.__df_def_loop = self.__df_def_loop.reset_index(drop=True)
-        self.__df_def_loop = self.__df_def_loop.reset_index()
-        self.__df_def_loop = self.__df_def_loop.rename(columns={'index':
+        self._df_def_loop = self._df_def_loop[cols_not_run_id]
+        self._df_def_loop = self._df_def_loop.reset_index(drop=True)
+        self._df_def_loop = self._df_def_loop.reset_index()
+        self._df_def_loop = self._df_def_loop.rename(columns={'index':
                                                                 'run_id'})
 
     def perform_model_run(self, zero_run=False, warmstart=True):
