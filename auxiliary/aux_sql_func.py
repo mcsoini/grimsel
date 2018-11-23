@@ -356,6 +356,91 @@ def copy_table_structure(sc, tb, sc0, db, verbose=False):
 
 # %%
 
+# OBSOLETE? read_sql with intermediate temporary table
+
+#def read_sql(db, sc, tb, filt=False, filt_func=False, drop=False, keep=False,
+#             copy=False, tweezer=False, distinct=False, verbose=False):
+#    '''
+#    Keyword arguments:
+#    tweezer -- list; filter (exclude or include) single combinations of values
+#                tweezer = [' AND ', ({'nd': 'IT0', 'bool_out': True}, ' NOT '),
+#                                    ({'nd': 'FR0', 'bool_out': False}, ' NOT ')]
+#    '''
+#
+#    sqlc = sql_connector(db)
+#    engine = sqlc.get_sqlalchemy_engine()
+#
+#    if verbose:
+#        print('Reading ' + sc + '.' + tb +  ' from database ' + db)
+#        print('filt=', filt)
+#    tweez_str = ''
+#    if tweezer:
+#        if type(tweezer[0]) is tuple:
+#            tweezer.insert(0, ' AND ')
+#
+#        tweez_str = ' %s (' %tweezer[0]
+#        tweez_str += ' AND '.join([tw[1] + '(' + ' AND '.join([str(kk) + ' = ' + '\'' + str(vv) + '\'' for kk, vv in tw[0].items()]) + ')' for tw in tweezer[1:]])
+#        tweez_str += ')'
+#        if verbose:
+#            print('tweez_str', tweez_str)
+#
+#    # filtering through sql
+#    if filt:
+#
+#        temp_tb = ('temp_read_sql_filtered_'
+#                   + ''.join(random.choice(string.ascii_lowercase)
+#                             for _ in range(10)))
+#        if not filt_func:
+#            filt_func = {}
+#
+#        distinct_str = 'DISTINCT ' if distinct else ''
+#        keep_str = ', '.join(keep) if keep else '*'
+#        filt_str = assemble_filt_sql(filt, filt_func)
+#        exec_str = ('''
+#                    DROP TABLE IF EXISTS {temp_tb} CASCADE;
+#                    SELECT {distinct_str} {keep_str}
+#                    INTO {temp_tb}
+#                    FROM {sc}.{tb}
+#                    WHERE {filt_str}
+#                          {tweez_str};
+#                    ''').format(keep_str=keep_str, sc=sc, tb=tb,
+#                                filt_str=filt_str, tweez_str=tweez_str,
+#                                distinct_str=distinct_str, temp_tb=temp_tb)
+#        if verbose:
+#            print(exec_str)
+#        exec_sql(exec_str, db=db)
+#        df = pd.read_sql_table(temp_tb, engine, schema='public')
+#
+#        exec_sql('DROP TABLE {};'.format(temp_tb), db=db)
+#
+#    else:
+#        df = pd.read_sql_table(tb, engine, schema=sc)
+#        if keep:
+#            df = df.loc[:, keep]
+#
+#        if distinct:
+#            df = df.drop_duplicates()
+#
+#    if copy:
+#        copy_table_structure(sc=copy, tb=tb, sc0=sc, db=db, verbose=verbose)
+##        exec_str = ('''
+##                    DROP TABLE IF EXISTS {sc}.{tb} CASCADE;
+##                    CREATE TABLE {sc}.{tb} (LIKE {sc0}.{tb} INCLUDING ALL);
+##                    ''').format(sc=copy, tb=tb, sc0=sc)
+##        if verbose:
+##            print(exec_str)
+##        exec_sql(exec_str, db=db)
+#        write_sql(df, db, copy, tb, 'append')
+#
+#    if drop:
+#        df = df.drop(drop, axis=1)
+#
+#    engine.dispose()
+#
+#    return df
+
+
+
 def read_sql(db, sc, tb, filt=False, filt_func=False, drop=False, keep=False,
              copy=False, tweezer=False, distinct=False, verbose=False):
     '''
