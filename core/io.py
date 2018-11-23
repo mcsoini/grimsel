@@ -400,8 +400,6 @@ class IO():
             df = getattr(self.model, 'df_' + itb)
             if df is not None:
                 print('Writing table {} to output schema.'.format(itb))
-#                aql.copy_table_structure(sc=self.sc_out, tb=itb,
-#                                         sc0=self.sc_inp, db=self.db)
                 aql.write_sql(df, self.db, self.sc_out, itb,
                               if_exists='replace')
 
