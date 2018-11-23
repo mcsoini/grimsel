@@ -470,9 +470,6 @@ def read_sql(db, sc, tb, filt=False, filt_func=False, drop=False, keep=False,
     # filtering through sql
     if filt:
 
-        temp_tb = ('temp_read_sql_filtered_'
-                   + ''.join(random.choice(string.ascii_lowercase)
-                             for _ in range(10)))
         if not filt_func:
             filt_func = {}
 
@@ -480,21 +477,19 @@ def read_sql(db, sc, tb, filt=False, filt_func=False, drop=False, keep=False,
         keep_str = ', '.join(keep) if keep else '*'
         filt_str = assemble_filt_sql(filt, filt_func)
         exec_str = ('''
-                    DROP TABLE IF EXISTS {temp_tb} CASCADE;
                     SELECT {distinct_str} {keep_str}
-                    INTO {temp_tb}
                     FROM {sc}.{tb}
                     WHERE {filt_str}
                           {tweez_str};
                     ''').format(keep_str=keep_str, sc=sc, tb=tb,
                                 filt_str=filt_str, tweez_str=tweez_str,
-                                distinct_str=distinct_str, temp_tb=temp_tb)
+                                distinct_str=distinct_str)
         if verbose:
             print(exec_str)
-        exec_sql(exec_str, db=db)
-        df = pd.read_sql_table(temp_tb, engine, schema='public')
 
-        exec_sql('DROP TABLE {};'.format(temp_tb), db=db)
+        cols = keep if keep else get_sql_cols(tb, sc, db)
+
+        df = pd.DataFrame(exec_sql(exec_str, db=db), columns=cols)
 
     else:
         df = pd.read_sql_table(tb, engine, schema=sc)
