@@ -170,8 +170,8 @@ class IO():
 
         print('Output schema: ', self.sc_out,
               '; resume loop=', self.resume_loop)
-        if not self.resume_loop:
-            aql.reset_schema(self.sc_out, self.db, not self.dev_mode)
+        self.reset_schema()
+
 
         # copying since we need to modify
         self._coldict = aql.get_coldict(self.sc_out, self.db)
@@ -220,6 +220,11 @@ class IO():
 
             _obj = [c for c in self.par if 'objective' in c][0]
             self.par.remove(_obj)
+
+    @skip_if_resume_loop
+    def reset_schema(self):
+
+        aql.reset_schema(self.sc_out, self.db, not self.dev_mode)
 
 
     def sanitize_component_lists(self):
