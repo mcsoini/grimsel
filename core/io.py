@@ -827,9 +827,17 @@ class IO():
             _df = pd.DataFrame(dat, columns=idu[1] + ('value',))
             self._finalize(_df, write_slct + '_' + idu[0])
 
-    def delete_run_id(self, _run_id=False):
+    def delete_run_id(self, run_id=False, operator='>='):
         '''
-        In output tables delete all rows with run_id >= the selected value.
+        In output tables delete all rows with run_id >=/== the selected value.
+
+        Used in :
+            1. in ModelLoop.perform_model_run if replace_runs_if_exist == True
+                with operator '=' to remove current run_id
+                from all tables prior to writing
+            2. in
+
+        TODO: The SQL part would be better fit with the aux_sql_func module.
         '''
         # Get overview of all tables
         list_all_tb_0 = [list(itb_list + '_' + itb[0] for itb
@@ -839,18 +847,18 @@ class IO():
         self.list_all_tb = list(itertools.chain(*list_all_tb_0))
         self.list_all_tb += ['def_loop']
 
-        if _run_id:
+        if run_id:
             for itb in self.list_all_tb:
 
-                print('Deleting from ', self.sc_out + '.' + itb
-                      + ' where run_id >= ' + str(_run_id))
-                exec_str = ('''
+                print('Deleting from ' + self.sc_out + '.' + itb
+                      + ' where run_id %s %s'%(operator, str(run_id)))
+                exec_strg = '''
                             DELETE FROM {sc_out}.{tb}
-                            WHERE run_id >= {run_id};
-                            ''').format(sc_out=self.sc_out, tb=itb,
-                                        run_id=_run_id)
+                            WHERE run_id {op} {run_id};
+                            '''.format(sc_out=self.sc_out, tb=itb,
+                                       run_id=run_id, op=operator)
                 try:
-                    aql.exec_sql(exec_str, db=self.db)
+                    aql.exec_sql(exec_strg, db=self.db)
                 except pg.ProgrammingError as e:
                     print(e)
                     sys.exit()
