@@ -304,6 +304,11 @@ class ModelLoop(parameter_changes.ParameterChanges):
                 self.append_row(zero_row=True, tdiff_solve=tdiff_solve,
                                 tdiff_write=tdiff_write, info=stat)
         else:
+
+            if self.io.replace_runs_if_exist and self.io.resume_loop:
+
+                self.io.delete_run_id(self.run_id, operator='=')
+
             # append to output tables
             t = time.time()
             self.io.write_run(run_id=self.run_id)
