@@ -238,8 +238,14 @@ class IO():
     @skip_if_no_output
     def init_output_tables(self):
         '''
-        Call initialization method in output writing class.
-        This is done here to avoid resume_loop in the latter.
+        Call initialization method.
+
+        If a value is provided for resume_loop, all run_ids greater equal
+        are deleted.
+
+        If replace_runs_if_exist is set to True, nothing is changed. Tables
+        stay as they are, run ids are overwritten whenever the corresponding
+        model run is performed.
         '''
         if not self.resume_loop:
             self.init_output_database()
