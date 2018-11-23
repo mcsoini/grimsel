@@ -527,10 +527,11 @@ class SqlAnalysisHourly(DecoratorsSqlAnalysis):
         '''
 
         list_sw_not_st = [c for c in self.sw_columns if not c == 'swst_vl']
-        sw_not_st = ', '.join(list_sw_not_st) + (', ' if len(list_sw_not_st) > 0 else '')
+        sw_not_st = (', '.join(list_sw_not_st)
+                     + (', ' if len(list_sw_not_st) > 0 else ''))
 
         join_ref = ' AND ' + '\nAND '.join(['tbrel.{} = tbrf.{}'.format(c, c)
-                                           for c in list_sw_not_st])
+                                            for c in list_sw_not_st])
 
         slct_pp_id_st = aql.read_sql(self.db, self.sc_out, 'def_plant',
                                filt=[('pp', ['%STO%'], ' LIKE '),
