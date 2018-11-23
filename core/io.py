@@ -386,9 +386,9 @@ class IO():
                             + list(dict_tb_0.keys())+ list(dict_tb_3.keys()))
 
 
-        if not self.resume_loop:
-            self.write_input_tables_to_output_schema(input_table_list)
+        self.write_input_tables_to_output_schema(input_table_list)
 
+    @skip_if_resume_loop
     def write_input_tables_to_output_schema(self, tb_list):
         '''
         TODO: Input tables in output schema are required even if no_output.
