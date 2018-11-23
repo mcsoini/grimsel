@@ -188,7 +188,11 @@ class IO():
                          'dmnd': True,
                          'var_sy_dmnd_flex': True}
 
-        # List of all tables; generated in method delete_run_id
+        # List of all tables; generated in method delete_run_id --> no!
+        # TODO: Define method get_all_tables which constructs this list;
+        #       call in the setter method of var/par lists for update upon
+        #       change. Also: var/par
+        #       lists should better be stored in some json file.
         self.list_all_tb = []
 
         # SOME SPECIAL TREATMENT FOR CROSS-BORDER TRANSMISSION AND DEMAND
