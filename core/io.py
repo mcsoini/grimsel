@@ -382,6 +382,10 @@ class IO():
             self.write_input_tables_to_output_schema(input_table_list)
 
     def write_input_tables_to_output_schema(self, tb_list):
+        '''
+        TODO: Input tables in output schema are required even if no_output.
+            Check why + fix.
+        '''
 
         for itb in tb_list:
 
