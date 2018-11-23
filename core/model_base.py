@@ -821,9 +821,8 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
         self.run(warmstart=False)
 
-        self.capchnge_max = float('inf')
-
-
+        # retirements or investments parameter back to inf
+        self.capchnge_max = float('Inf')
 
     def activation(self, bool_act=False, constraint_list=False,
                    subset=False, verbose=False):
