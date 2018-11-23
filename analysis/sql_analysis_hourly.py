@@ -521,6 +521,11 @@ class SqlAnalysisHourly(DecoratorsSqlAnalysis):
     @DecoratorsSqlAnalysis.append_fl_id_columns('analysis_agg_filtdiff')
     @DecoratorsSqlAnalysis.append_pp_id_columns('analysis_agg_filtdiff')
     @DecoratorsSqlAnalysis.append_sw_columns('analysis_agg_filtdiff')
+    @DecoratorsSqlAnalysis.append_nd_id_columns('analysis_agg_filtdiff_agg')
+    @DecoratorsSqlAnalysis.append_pt_id_columns('analysis_agg_filtdiff_agg')
+    @DecoratorsSqlAnalysis.append_fl_id_columns('analysis_agg_filtdiff_agg')
+    @DecoratorsSqlAnalysis.append_pp_id_columns('analysis_agg_filtdiff_agg')
+    @DecoratorsSqlAnalysis.append_sw_columns('analysis_agg_filtdiff_agg')
     def analysis_agg_filtdiff(self):
         '''
         New style.
@@ -647,24 +652,48 @@ class SqlAnalysisHourly(DecoratorsSqlAnalysis):
         '''.format(**self.format_kw, cols=cols)
         aql.exec_sql(exec_strg, db=self.db)
 
-
-        aql.joinon(self.db,
-                   {'pp': 'pp_st', 'pt_id': 'pt_id_st'},
-                   {'pp_id': 'pp_id_st'},
-                   [self.sc_out, 'analysis_agg_filtdiff'],
-                   [self.sc_out, 'def_plant'])
-
-        aql.joinon(self.db,
-                   {'pt': 'pt_st'},
-                   {'pt_id': 'pt_id_st'},
-                   [self.sc_out, 'analysis_agg_filtdiff'],
-                   [self.sc_out, 'def_pp_type'])
-
-
         aql.joinon(self.db, ['mt_id', 'season'], ['sy'],
-                   [self.sc_out, 'analysis_agg_filtdiff'],
+                   [self.sc_out, 'analysis_agg_filtdiff_agg'],
                    [self.sc_out, 'tm_soy_full'])
 
+        # aggregated table
+        cols = aql.init_table('analysis_agg_filtdiff_agg',
+               [
+                ('pp_id', 'SMALLINT'),
+                ('bool_out', 'BOOLEAN'),
+                ('run_id', 'SMALLINT'),
+                ('run_id_rf', 'SMALLINT'),
+                ('pp_id_st', 'SMALLINT'),
+                ('bool_out_st', 'BOOLEAN'),
+                ('value_diff_agg', 'DOUBLE PRECISION'),
+               ],
+               schema=self.sc_out,
+               ref_schema=self.sc_out,
+               pk=['pp_id', 'bool_out', 'run_id', 'run_id_rf',
+                   'pp_id_st', 'bool_out_st'],
+               db=self.db)
+
+        exec_strg = '''
+        INSERT INTO {sc_out}.analysis_agg_filtdiff_agg ({cols})
+        SELECT pp_id, bool_out, run_id, run_id_rf, pp_id_st, bool_out_st,
+        SUM(value_diff) AS value_diff_agg
+        FROM {sc_out}.analysis_agg_filtdiff
+        GROUP BY pp_id, bool_out, run_id, run_id_rf, pp_id_st, bool_out_st
+        '''.format(**self.format_kw, cols=cols)
+        aql.exec_sql(exec_strg, db=self.db)
+
+        for tb in ['analysis_agg_filtdiff_agg',
+                   'analysis_agg_filtdiff']:
+
+            aql.joinon(self.db,
+                       {'pp': 'pp_st', 'pt_id': 'pt_id_st'},
+                       {'pp_id': 'pp_id_st'},
+                       [self.sc_out, tb], [self.sc_out, 'def_plant'])
+
+            aql.joinon(self.db,
+                       {'pt': 'pt_st'},
+                       {'pt_id': 'pt_id_st'},
+                       [self.sc_out, tb], [self.sc_out, 'def_pp_type'])
 
 
     def generate_analysis_time_series_diff(self):
