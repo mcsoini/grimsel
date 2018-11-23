@@ -146,6 +146,7 @@ class IO():
         # define instance attributes and update with kwargs
         defaults = {'sc_warmstart': False,
                     'resume_loop': False,
+                    'replace_runs_if_exist': False,
                     'model': None,
                     'autocomplete_curtailment': False,
                     'sql_connector': None,
@@ -242,7 +243,8 @@ class IO():
         '''
         if not self.resume_loop:
             self.init_output_database()
-        else:
+
+        elif not self.replace_runs_if_exist:
             # delete run_ids equal or greater the resume_loop run_id
             self.delete_run_id(self.resume_loop)
 
