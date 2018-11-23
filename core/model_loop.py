@@ -81,7 +81,6 @@ class ModelLoop(parameter_changes.ParameterChanges):
         # define instance attributes and update with kwargs
         defaults = {
                     'nsteps': ModelLoop.nsteps_default,
-#                    'ModelLoopModifier': model_loop_modifier.ModelLoopModifier,
                     'dev_mode': False,
                     'mkwargs': None,
                     'iokwargs': None,
@@ -118,7 +117,6 @@ class ModelLoop(parameter_changes.ParameterChanges):
 
         print(self.sc_out, self.db)
 
-
         self.m.map_to_time_res()
 
         # Write tables which are generated in dependence on the time
@@ -132,7 +130,6 @@ class ModelLoop(parameter_changes.ParameterChanges):
         self.m.build_model()
 
         self.io.init_output_tables()
-
 
         _nsteps = [list(ist) + ([0, 1] if ist[-1] == np.linspace else [])
                   for ist in self.nsteps]
@@ -278,6 +275,8 @@ class ModelLoop(parameter_changes.ParameterChanges):
 
     def perform_model_run(self, zero_run=False, warmstart=True):
         """
+        TODO: This is a mess.
+
         Calls model_base run methods, io writing methods, and appends to
         def_loop. Also takes care of time measurement for reporting in
         the corresponding def_loop columns.
@@ -288,6 +287,7 @@ class ModelLoop(parameter_changes.ParameterChanges):
         """
 
         t = time.time()
+
         if zero_run:
             self.m.do_zero_run() # zero run method in model_base
         else:
@@ -297,6 +297,7 @@ class ModelLoop(parameter_changes.ParameterChanges):
         stat = ('Solver: ' + str(self.m.results.Solver[0]['Termination condition']))
 
         if zero_run:
+
             if not self.io.resume_loop:
                 self.io.write_run(run_id=-1)
                 tdiff_write = time.time() - t
@@ -308,11 +309,10 @@ class ModelLoop(parameter_changes.ParameterChanges):
             self.io.write_run(run_id=self.run_id)
             tdiff_write = time.time() - t
 
+            # append to def_loop table
             self.append_row(False, info=stat,
                             tdiff_solve=tdiff_solve, tdiff_write=tdiff_write)
 
-        # retirements or investments parameter back to inf
-        self.capchnge_max = float('Inf')
 
 
 
