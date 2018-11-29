@@ -38,7 +38,7 @@ class Maps:
             self.c3 = '#d3bca0' # light brown
             self.c4 = '#484823' # dark olive green
             self.c5 = '#a2b3ac' # dark sea green
-            self.c6 = 'k'
+            self.c6 = '#49524E'
             self.c7 = 'k'
             self.c8 = 'k'
             self.c9 = 'k'
@@ -67,12 +67,12 @@ class Maps:
 #                                 }
             self.dict_pt_name = {'LIO_STO': 'Battery-type storage',
                                  'CAS_STO': 'Long-term storage',
-                                 'HYD_STO': 'Pumped-hydro storage',
-                                 'HYD40_STO': 'Pumped-hydro storage',
-                                 'HYD6_STO': 'Pumped-hydro storage',
-                                 'HYD20_STO': 'Pumped-hydro storage',
-                                 'HYD2_STO': 'Pumped-hydro storage',
-                                 'HYD10_STO': 'Pumped-hydro storage',
+                                 'HYD_STO': 'PHS',
+                                 'HYD40_STO': 'PHS',
+                                 'HYD6_STO': 'PHS',
+                                 'HYD20_STO': 'PHS',
+                                 'HYD2_STO': 'PHS',
+                                 'HYD10_STO': 'PHS',
                                  }
 
 
@@ -107,8 +107,8 @@ class Maps:
 
 
              '(0,16]': (0.988, 0.553, 0.384, 1.0),
-             '(0,10]': self.c3,
-             '(10,120]': self.c6,
+             '(0,10]': self.c8,
+             '(10,120]': self.c1,
              '(0,120]': self.c6,
              '(120,10000]': (0.702, 0.702, 0.702, 1.0),
              '(16,48]': (0.553, 0.627, 0.796, 1.0),
@@ -393,7 +393,7 @@ class Maps:
 
     def get_color_dict(self, iind):
         dict_name = 'color_' + iind
-        if dict_name in self.__dict__.keys():
+        if hasattr(self, dict_name):
             color_dict = getattr(self, 'color_' + iind)
             color_dict.update({itot: 'black' for itot in
                                ['total', 'all', 'totals', 'Total', 'TOTAL']})
