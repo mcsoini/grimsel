@@ -1319,6 +1319,83 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
         return(exec_str)
 
 
+    # %% total CO2 emissions from linear factors
+    @DecoratorsSqlAnalysis.append_nd_id_columns('analysis_emissions_lin')
+    @DecoratorsSqlAnalysis.append_pt_id_columns('analysis_emissions_lin')
+    @DecoratorsSqlAnalysis.append_fl_id_columns('analysis_emissions_lin')
+    @DecoratorsSqlAnalysis.append_pp_id_columns('analysis_emissions_lin')
+    @DecoratorsSqlAnalysis.append_sw_columns('analysis_emissions_lin')
+
+    def analysis_emissions_lin(self):
+
+
+        tb_name = 'analysis_emissions_lin'
+        cols = [('pp_id', 'SMALLINT'),
+                ('ca_id', 'SMALLINT'),
+                ('run_id', 'SMALLINT'),
+                ('emissions', 'DOUBLE PRECISION'),
+                ('emissions_cost', 'DOUBLE PRECISION'),
+               ]
+        pk = ['pp_id', 'ca_id', 'run_id']
+        cols = aql.init_table(tb_name=tb_name, cols=cols, schema=self.sc_out,
+                              pk=pk, db=self.db)
+
+
+        exec_strg = '''
+        WITH tb_final AS (
+            SELECT pwr.pp_id, pwr.ca_id, pwr.run_id,
+            SUM(pwr.value * weight
+                * (factor_vc_co2_lin_0
+                   + 0.5 * pwr.value * factor_vc_co2_lin_1)) AS emissions,
+            SUM(pwr.value * weight * price_co2
+                * (factor_vc_co2_lin_0
+                   + 0.5 * pwr.value * factor_vc_co2_lin_1)) AS emissions_cost
+            FROM {sc_out}.var_sy_pwr AS pwr
+
+            /* factor 0 */
+            LEFT JOIN (SELECT pp_id, ca_id, run_id,
+                       value AS factor_vc_co2_lin_0
+                       FROM {sc_out}.par_factor_vc_co2_lin_0) AS parco0
+            ON parco0.pp_id = pwr.pp_id AND parco0.ca_id = pwr.ca_id
+                AND parco0.run_id = pwr.run_id
+
+            /* factor 1 */
+            LEFT JOIN (SELECT pp_id, ca_id, run_id,
+                       value AS factor_vc_co2_lin_1
+                       FROM {sc_out}.par_factor_vc_co2_lin_1) AS parco1
+            ON parco1.pp_id = pwr.pp_id AND parco1.ca_id = pwr.ca_id
+                AND parco1.run_id = pwr.run_id
+
+            /* def_plant*/
+            LEFT JOIN (SELECT fl_id, nd_id, pp_id
+                       FROM {sc_out}.def_plant) AS dfpp
+            ON dfpp.pp_id = pwr.pp_id
+
+            /* tm soy/ weight*/
+            LEFT JOIN (SELECT sy, weight, mt_id
+                       FROM {sc_out}.tm_soy) AS tm
+            ON pwr.sy = tm.sy
+
+            /* CO2 price  */
+            LEFT JOIN (SELECT mt_id, nd_id, run_id, value AS price_co2
+            FROM {sc_out}.par_price_co2) AS parprco
+            ON parprco.nd_id = dfpp.nd_id AND parprco.mt_id = tm.mt_id
+                AND parprco.run_id = pwr.run_id
+
+            WHERE pwr.pp_id IN (SELECT pp_id
+                                FROM {sc_out}.def_plant
+                                WHERE set_def_lin = 1)
+            AND pwr.run_id IN (-1, 0)
+            GROUP BY pwr.pp_id, pwr.ca_id, pwr.run_id
+        )
+        INSERT INTO {sc_out}.analysis_emissions_lin ({cols})
+        SELECT {cols} FROM tb_final;
+        '''.format(**self.format_kw, cols=cols)
+
+        aql.exec_sql(exec_strg, db=self.db)
+
+
+
     # %% COST DISAGGREGATION NEW
 
     @DecoratorsSqlAnalysis.append_nd_id_columns('analysis_cost_disaggregation_lin')
@@ -1328,7 +1405,6 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
     @DecoratorsSqlAnalysis.append_sw_columns('analysis_cost_disaggregation_lin')
     def analysis_cost_disaggregation_lin(self):
 
-        #%%
         tb_name = 'analysis_cost_disaggregation_lin'
         cols = [('pp_id', 'SMALLINT'),
                 ('ca_id', 'SMALLINT'),
@@ -1516,10 +1592,6 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
         '''.format(**self.format_kw)
         aql.exec_sql(exec_strg, db=self.db)
         print('done.')
-
-
-
-
 
     # %% COST DISAGGREGATION
     def cost_disaggregation(self):
