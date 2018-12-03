@@ -1385,7 +1385,6 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
             WHERE pwr.pp_id IN (SELECT pp_id
                                 FROM {sc_out}.def_plant
                                 WHERE set_def_lin = 1)
-            AND pwr.run_id IN (-1, 0)
             GROUP BY pwr.pp_id, pwr.ca_id, pwr.run_id
         )
         INSERT INTO {sc_out}.analysis_emissions_lin ({cols})
