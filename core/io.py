@@ -80,7 +80,7 @@ class IO():
         ('cap_pwr_leg', ('pp_id', 'ca_id')),
         ('cap_avlb', ('pp_id', 'ca_id')),
         ('cap_trm_leg', ('mt_id', 'nd_id', 'nd_2_id', 'ca_id')),
-        ('weight', ('sy',)),
+#        ('weight', ('sy',)),
         ('cf_max', ('pp_id', 'ca_id')),
         ('grid_losses', ('nd_id', 'ca_id')),
         ('erg_max', ('nd_id', 'ca_id', 'fl_id')),
