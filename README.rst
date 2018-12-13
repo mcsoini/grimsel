@@ -1,4 +1,4 @@
 
 
 TODO:
-* names tuples for pseudo result
+* named tuples for pseudo result
