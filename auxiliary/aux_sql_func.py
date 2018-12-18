@@ -8,6 +8,7 @@ import time
 import pandas as pd
 from sqlalchemy import create_engine
 import sqlalchemy
+from collections import OrderedDict
 
 
 import subprocess
@@ -156,8 +157,8 @@ def get_sql_cols(tb, sc='public', db=None):
                 AND table_name = \'{tb}\'
                 '''.format(sc=sc, tb=tb)
 
-    lst_col = exec_sql(exec_str, db=db)
-    return {kk: vv for kk, vv in lst_col}
+    dict_col = OrderedDict(exec_sql(exec_str, db=db))
+    return dict_col
 
 
 # %%
