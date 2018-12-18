@@ -39,7 +39,7 @@ class Maps:
             self.c4 = '#484823' # dark olive green
             self.c5 = '#a2b3ac' # dark sea green
             self.c6 = '#49524E'
-            self.c7 = 'k'
+            self.c7 = '#141716'
             self.c8 = 'k'
             self.c9 = 'k'
 
@@ -60,20 +60,32 @@ class Maps:
             self.c8 = '#B6C8D6'
             self.c9 = '#93AFCD'
 
-#            self.dict_pt_name = {'LIO_STO': 'RT_eff=0.9/dd = 4 hours',
-#                                 'CAS_STO': 'RT_eff=0.75/dd = 80 hours',
-#                                 'HYD_STO': 'RT_eff=0.75/dd = 40 hours',
-#                                 'HYD2_STO': 'RT_eff=0.9/dd = 40 hours',
-#                                 }
-            self.dict_pt_name = {'LIO_STO': 'Battery-type storage',
-                                 'CAS_STO': 'Long-term storage',
-                                 'HYD_STO': 'PHS',
-                                 'HYD40_STO': 'PHS',
-                                 'HYD6_STO': 'PHS',
-                                 'HYD20_STO': 'PHS',
-                                 'HYD2_STO': 'PHS',
-                                 'HYD10_STO': 'PHS',
-                                 }
+        if color_style == 'p22':
+
+
+            self.c1 = '#1B9E77'
+            self.c2 = '#D95F02'
+            self.c3 = '#7570B3'
+            self.c4 = '#66A61E'
+            self.c5 = '#E6AB02'
+            self.c6 = '#A6761D'
+            self.c7 = '#666666'
+            self.c8 = '#EEEEEE'
+            self.c9 = '#E7298A'
+
+
+
+
+
+        self.dict_pt_name = {'LIO_STO': 'Battery-type storage',
+                             'CAS_STO': 'Long-term storage',
+                             'HYD_STO': 'PHS',
+                             'HYD40_STO': 'PHS',
+                             'HYD6_STO': 'PHS',
+                             'HYD20_STO': 'PHS',
+                             'HYD2_STO': 'PHS',
+                             'HYD10_STO': 'PHS',
+                             }
 
 
         self.color_swtc_vl = {'CAS': self.c4, 'LIO': self.c3}
