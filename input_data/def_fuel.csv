@@ -18,3 +18,4 @@ fl_id,fl,co2_int,is_ca,is_constrained,color
 16,ca_electricity,0.0,0,0,None
 17,electricity,0.0,0,0,None
 18,lost_load,0.0,0,0,#5C0063
+19,new_storage,0.0,0,0,#5C0064
