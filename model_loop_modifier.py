@@ -33,6 +33,248 @@ class ModelLoopModifier():
         self.ml = ml
 
 
+    def set_ramping_cost(self):
+        
+        dict_rc = {0: 1,
+                   1: 0.1,
+                   2: 0.5,
+                   3: 1.2,
+                   4: 1.5,
+                   5: 1.8,
+                   6: 2,
+                   7: 2.5,
+                   }
+
+        slct_rc = dict_rc[self.ml.dct_step['swrc']]
+        
+        # reset ramping costs
+        dict_vc_ramp = self.ml.m.df_plant_encar.set_index(['pp_id', 'ca_id'])['vc_ramp'].to_dict()
+        
+        for key in self.ml.m.vc_ramp:
+            
+            self.ml.m.vc_ramp[key] = dict_vc_ramp[key] * slct_rc
+        
+        
+
+        self.ml.dct_vl['swrc_vl'] = 'x%03.1f'%slct_rc
+
+
+
+    def set_trm_cap_onoff(self):
+        
+        dict_trm = {0: 'on',
+                    1: 'off'}
+
+        slct_trm = dict_trm[self.ml.dct_step['swtr']]
+        
+        if slct_trm == 'on':
+            # reset
+            dict_trm = self.ml.m.df_node_connect.set_index(['mt_id', 'nd_id', 'nd_2_id',
+                                                 'ca_id'])['cap_trm_leg'].to_dict()
+        
+            for key, val in dict_trm.items():
+                self.ml.m.cap_trm_leg[key] = val
+        elif slct_trm == 'off':
+            
+            for key in self.ml.m.cap_trm_leg:
+                self.ml.m.cap_trm_leg[key] = 0
+            
+            
+        self.ml.dct_vl['swtr_vl'] = slct_trm
+
+
+    def set_co2_price(self):
+
+        dict_co = {0: 40,
+                   1: 5,
+                   2: 80}
+
+        slct_co = dict_co[self.ml.dct_step['swco']]
+        str_co = '%2dEUR/tCO2'%slct_co
+
+        for key in self.ml.m.price_co2:
+            self.ml.m.price_co2[key].value = slct_co
+
+        self.ml.dct_vl['swco_vl'] = str_co
+
+    def set_winsol_year(self):
+
+        dict_yr = {0: 2015,
+                   1: 2014,
+                   2: 2013,
+                   3: 2012,
+                   4: 2011,
+                   5: 2010,
+                   6: 2016}
+
+        slct_yr = dict_yr[self.ml.dct_step['swyr']]
+        str_yr = str(slct_yr)
+
+        mask_winsol = self.ml.m.df_def_plant.pp.str.contains('WIN|SOL')
+        list_pp_id = self.ml.m.df_def_plant.loc[mask_winsol, 'pp_id'].tolist()
+
+        mask_winsol = self.ml.m.df_profsupply_soy.pp_id.isin(list_pp_id)
+        df_prf = self.ml.m.df_profsupply_soy.loc[mask_winsol].copy()
+        df_prf = df_prf.set_index(['sy', 'pp_id', 'ca_id'])
+        df_prf = df_prf['value' if slct_yr == 2015
+                        else 'value_yr%s'%slct_yr]
+        dict_prf = (df_prf.to_dict())
+
+        for key, val in dict_prf.items():
+            self.ml.m.supprof[key] = val
+
+
+        self.ml.dct_vl['swyr_vl'] = str_yr
+
+    def select_storage_tech(self):
+
+        dict_sto = {0: dict(name='CAS_STO', st_lss_rt=0.25, discharge_duration=20),
+                   1: dict(name='LIO_STO', st_lss_rt=0.10, discharge_duration=4),
+                   2: dict(name='REF_STO', st_lss_rt=0.00, discharge_duration=20)}
+
+        dict_sto_slct = dict_sto[self.ml.dct_step['swtc']]
+
+        slct_pp = self.ml.m.df_def_plant.loc[self.ml.m.df_def_plant.pp.str.contains('NEW_STO'), 'pp_id'].tolist()
+
+        import itertools
+
+        for par, pp in itertools.product(['st_lss_rt', 'discharge_duration'], slct_pp):
+
+            getattr(self.ml.m, par)[(pp, 0)].value = dict_sto_slct[par]
+
+
+        self.ml.dct_vl['swtc_vl'] = dict_sto_slct['name']
+
+
+    def set_storage_cap(self, dict_st):
+
+        ''''''
+
+#        share_st = max_share_storage * self.ml.dct_step['swst']
+
+        share_st = dict_st[self.ml.dct_step['swst']]
+
+
+        df_dmnd = IO.param_to_df(self.ml.m.dmnd, ('sy', 'nd_id', 'ca_id'))
+        df_dmnd = df_dmnd.pivot_table(index='nd_id', values='value',
+                                      aggfunc=np.mean)['value'].reset_index()
+
+        pp_mask = self.ml.m.df_def_plant.pp.str.contains('NEW_STO')
+        df_dmnd = df_dmnd.join(self.ml.m.df_def_plant.loc[pp_mask]
+                                        .set_index('nd_id')['pp_id'],
+                               on='nd_id')
+
+        cap_st = df_dmnd.set_index('pp_id')['value'] * share_st
+
+        for pp_id, val in cap_st.to_dict().items():
+            self.ml.m.cap_pwr_leg[(pp_id, 0)].value = val
+
+        self.ml.dct_vl['swst_vl'] = '%.2f'%(share_st * 100) + '%'
+
+
+    def select_vre_pp_types(self):
+        '''
+        Returns list of pp
+        '''
+
+        dict_pt = {0: 'WIN_ONS|WIN_OFF|SOL_PHO',
+                   1: 'SOL_PHO',
+                   2: 'WIN_ONS|WIN_OFF'}
+
+        slct_pt = dict_pt[self.ml.dct_step['swpt']]
+
+        slct_pp = self.ml.m.df_def_plant.pp.loc[self.ml.m.df_def_plant.pp.str.contains(slct_pt)]
+
+        self.ml.dct_vl['swpt_vl'] = slct_pt
+
+        return slct_pp, slct_pt
+
+
+    def scale_vre(self, slct_pt, dict_vre):
+        '''
+        Sets power capacity for selected plants
+        '''
+
+        slct_vre = dict_vre[self.ml.dct_step['swvr']]
+
+        share_vre = slct_vre if not slct_vre == 'default' else 0
+
+        df_vre = self.ml.m.df_def_node[['nd', 'nd_id', 'vre_share_wind',
+                                        'wind_share_offshore']].copy()
+        df_vre['share_vre'] = share_vre
+
+        if 'WIN_ONS' in slct_pt and 'SOL_PHO' in slct_pt:
+            df_vre['WIN_TOT'] = df_vre.share_vre * df_vre.vre_share_wind
+            df_vre['SOL_PHO'] = df_vre['share_vre'] - df_vre['WIN_TOT']
+        elif not 'SOL_PHO' in slct_pt:
+            df_vre['WIN_TOT'] = df_vre.share_vre
+            df_vre['SOL_PHO'] = 0
+        elif not 'WIN_ONS' in slct_pt:
+            df_vre['WIN_TOT'] = 0
+            df_vre['SOL_PHO'] = df_vre.share_vre
+
+        df_vre['WIN_ONS'] = df_vre.WIN_TOT * (1 - df_vre.wind_share_offshore)
+        df_vre['WIN_OFF'] = df_vre.WIN_TOT * df_vre.wind_share_offshore
+
+        df_dmnd = IO.param_to_df(self.ml.m.dmnd, ('sy', 'nd_id', 'ca_id'))
+        df_dmnd = df_dmnd.join(self.ml.m.df_tm_soy.set_index('sy')['weight'], on='sy')
+        df_dmnd['value'] *= df_dmnd.weight
+        df_dmnd = df_dmnd.pivot_table(index='nd_id', values='value',
+                                      aggfunc=sum)['value'].rename('dmnd_sum')
+
+        df_vre = df_vre.join(df_dmnd, on=df_dmnd.index.names)
+
+        list_pt = ['WIN_ONS', 'WIN_OFF', 'SOL_PHO']
+        for pt in list_pt:
+            df_vre[pt] *= df_vre.dmnd_sum
+
+        df_vre = df_vre.set_index('nd')[[pt for pt in list_pt]].stack().reset_index()
+        df_vre['pp'] = df_vre.nd.apply(lambda x: x.replace('0', '_')) + df_vre.level_1
+        df_vre = df_vre.loc[df_vre.pp.isin(self.ml.m.mps.dict_pp.values())]
+        df_vre['pp_id'] = df_vre.pp.replace(self.ml.m.mps.dict_pp_id)
+        df_vre = df_vre.set_index(['pp_id'])[0].rename('vre_erg')
+
+        df_sup = IO.param_to_df(self.ml.m.supprof, ('sy', 'pp_id', 'ca_id'))
+        df_sup = df_sup.loc[df_sup.pp_id.isin(df_vre.index.get_level_values('pp_id'))]
+        df_sup = df_sup.join(self.ml.m.df_tm_soy.set_index('sy')['weight'], on='sy')
+        df_sup['value'] *= df_sup.weight
+        df_sup = df_sup.pivot_table(index='pp_id', aggfunc=np.sum,
+                                    values=['value'])['value'].rename('erg_to_cap')
+
+        df_vre = df_vre.reset_index().join(df_sup, on=df_sup.index.names)
+
+        df_vre['vre_cap'] = df_vre.vre_erg / df_vre.erg_to_cap
+
+
+
+        mask_pp = self.ml.m.df_def_plant.pp_id.isin(df_vre.pp_id)
+
+        df_vre = \
+        df_vre.join(self.ml.m.df_def_plant.loc[mask_pp]
+                             .join(self.ml.m.df_fuel_node_encar
+                                       .set_index(['fl_id', 'nd_id'])['erg_inp'],
+                                   on=['fl_id', 'nd_id'])
+                             .set_index(['pp_id'])['erg_inp']
+                             .rename('erg_default'), on=['pp_id'])
+
+        df_vre['cap_default'] = df_vre.erg_default / df_vre.erg_to_cap
+
+
+        # generate dict depending on whether default or not
+
+        if slct_vre == 'default':
+            col = 'cap_default'
+        else:
+            col = 'vre_cap'
+
+        dict_cap = df_vre.set_index('pp_id')[col].to_dict()
+
+
+        for ind, val in dict_cap.items():
+            self.ml.m.cap_pwr_leg[(ind, 0)].value = val
+
+        self.ml.dct_vl['swvr_vl'] = ('%.2f'%(slct_vre*100) + '%') if isinstance(slct_vre, float) else slct_vre
+
     def availability_cf_cap(self):
         '''
         Switch between availability constraints
@@ -165,33 +407,6 @@ class ModelLoopModifier():
         self.ml.dct_vl['swcadj_vl'] = str_cadj
 
 
-    def scale_vre_de(self):
-
-        dict_vre = {0: 1,
-                    1: 1.25,
-                    2: 1.5,
-                    3: 1.75,
-                    4: 2,
-                    5: 2.25,
-                    6: 2.5,
-                    7: 2.75,
-                    8: 3}
-        slct_vre = self.ml.dct_step['swvre']
-
-        str_vre = dict_vre[slct_vre]
-
-        # reset
-        df = self.ml.m.df_plant_encar.copy()
-        df = df.loc[df.pp_id.isin([self.ml.m.mps.dict_pp_id[pp] for pp in
-                                   ['DE_SOL_PHO', 'DE_WIN_ONS', 'DE_WIN_OFF']])]
-        dict_cap = df.set_index(['pp_id', 'ca_id'])['cap_pwr_leg'].to_dict()
-
-
-        for ind, val in dict_cap.items():
-            self.ml.m.cap_pwr_leg[ind].value = val * str_vre
-
-        self.ml.dct_vl['swvre_vl'] = 'x%.2f'%str_vre
-
 
     def deactivate_swiss_reservoir_constraint(self):
 
@@ -278,35 +493,35 @@ class ModelLoopModifier():
         self.ml.dct_vl['swfh_vl'] = str_fh
 
 
-    def set_ramping_cost(self, slct_pp):
-
-        dict_rc = {0: 1,
-                   1: 1.1,
-                   2: 1.2,
-                   3: 1.3,
-                   4: 1.4,
-                   5: 1.5,
-                   6: 1.6,
-                   7: 1.7,
-                   8: 1.8
-                   }
-
-        slct_rc = self.ml.dct_step['swrc']
-        str_rc = dict_rc[slct_rc]
-
-        slct_pp_id = [self.ml.m.mps.dict_pp_id[pp] for pp in slct_pp]
-        dict_rc = (self.ml.m.df_plant_encar
-                            .loc[self.ml.m.df_plant_encar.pp_id
-                                                         .isin(slct_pp_id)]
-                            .set_index(['pp_id', 'ca_id'])['vc_ramp']
-                            .to_dict())
-
-
-        for kk, vv in dict_rc.items():
-            self.ml.m.vc_ramp[kk].value = vv * slct_rc
-
-
-        self.ml.dct_vl['swrc_vl'] = 'x%d'%str_rc
+#    def set_ramping_cost(self, slct_pp):
+#
+#        dict_rc = {0: 1,
+#                   1: 1.1,
+#                   2: 1.2,
+#                   3: 1.3,
+#                   4: 1.4,
+#                   5: 1.5,
+#                   6: 1.6,
+#                   7: 1.7,
+#                   8: 1.8
+#                   }
+#
+#        slct_rc = self.ml.dct_step['swrc']
+#        str_rc = dict_rc[slct_rc]
+#
+#        slct_pp_id = [self.ml.m.mps.dict_pp_id[pp] for pp in slct_pp]
+#        dict_rc = (self.ml.m.df_plant_encar
+#                            .loc[self.ml.m.df_plant_encar.pp_id
+#                                                         .isin(slct_pp_id)]
+#                            .set_index(['pp_id', 'ca_id'])['vc_ramp']
+#                            .to_dict())
+#
+#
+#        for kk, vv in dict_rc.items():
+#            self.ml.m.vc_ramp[kk].value = vv * slct_rc
+#
+#
+#        self.ml.dct_vl['swrc_vl'] = 'x%d'%str_rc
 
 
     def set_calibration_variations(self, dict_cl=None):
