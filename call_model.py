@@ -37,7 +37,7 @@ mkwargs = {
            'slct_encar': ['EL'],
            'slct_node': ['AT0', 'IT0', 'DE0', 'CH0', 'FR0'],
            'nhours': 168*2,
-           'verbose_solver': True,
+           'verbose_solver': False,
            'constraint_groups': MB.get_constraint_groups(excl=['chp', 'ror'])
            }
 
