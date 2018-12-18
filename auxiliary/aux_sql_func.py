@@ -1311,14 +1311,15 @@ def read_by_table(db, sc,
 
 if __name__ == '__main__':
     pass
+
+#    source_dir = 'SQL_DUMPS/out_replace_emission/'
+#    sc = 'out_replace_emission'
+#    read_by_table(db, sc, source_dir=source_dir, warn_reset_schema=False,
+#                  patterns_only=['analysis_', 'def_', 'encar'])
+
 #    dump_by_table('out_marg_store', 'storage2', target_dir='C:\\Users\\ashreeta\\Documents\\Martin\\SWITCHdrive\\SQL_DUMPS\\out_marg_store_new\\')
 
 # %%
-
-
-
-
-
 
 
 
