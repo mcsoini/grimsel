@@ -1267,12 +1267,14 @@ def dump_by_table(sc, db, target_dir='C:\\Users\\ashreeta\\Documents\\Martin\\SW
 
 def read_by_table(db, sc,
                   source_base='/run/user/1000/gvfs/dav:host=drive.switch.ch,ssl=true,prefix=%2Fremote.php%2Fdav/files/martin.soini@unige.ch',
-                  source_dir='', warn_reset_schema=True):
+                  source_dir='', warn_reset_schema=True,
+                  patterns_only=False):
 
-    if __name__ == '__main__':
-        db='storage2'
-        source_base='/run/user/1000/gvfs/dav:host=drive.switch.ch,ssl=true,prefix=%2Fremote.php%2Fdav/files/martin.soini@unige.ch'
-        source_dir='SQL_DUMPS/out_replace_vreseries/'
+#    if __name__ == '__main__':
+#        print('main')
+#        db='storage2'
+#        source_base='/run/user/1000/gvfs/dav:host=drive.switch.ch,ssl=true,prefix=%2Fremote.php%2Fdav/files/martin.soini@unige.ch'
+#        source_dir='SQL_DUMPS/out_replace_vreseries/'
 
 
     source_dir = os.path.join(source_base, source_dir)
@@ -1282,6 +1284,9 @@ def read_by_table(db, sc,
     for (dirpath, dirnames, filenames) in walk(source_dir):
         f.extend(filenames)
         break
+
+    if patterns_only:
+        f = [fn for fn in f if any(pat in fn for pat in patterns_only)]
 
 
     print('Reading from %s, %d files found.' % (source_dir, len(f)))
