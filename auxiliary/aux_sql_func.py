@@ -1223,7 +1223,6 @@ def dump_by_table_sh(sc, db, target_dir):
         source_dir='SQL_DUMPS/out_replace_basesmall/'
         target_dir=os.path.join(source_base, source_dir)
 
-
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
 
@@ -1253,7 +1252,6 @@ def dump_by_table(sc, db, target_dir='C:\\Users\\ashreeta\\Documents\\Martin\\SW
 #        target_dir='C:\\Users\\ashreeta\\Documents\\Martin\\SWITCHdrive\\SQL_DUMPS\\out_nucspreadvr_ext_it\\'
 
     exe = '\"C:\\Program Files\\PostgreSQL\\9.6\\bin\\pg_dump.exe\"'
-
 
     for itb in get_sql_tables(sc, db=db):
         tb = sc + '.' + itb
