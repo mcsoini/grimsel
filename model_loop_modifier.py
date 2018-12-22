@@ -34,8 +34,9 @@ class ModelLoopModifier():
 
 
     def set_ramping_cost(self):
-        
-        dict_rc = {0: 0.0,
+
+        dict_rc = {0: 1.0,
+                   10: 0.0,
                    1: 0.1,
                    2: 0.2,
                    3: 0.3,
@@ -45,7 +46,6 @@ class ModelLoopModifier():
                    7: 0.7,
                    8: 0.8,
                    9: 0.9,
-                   10: 1.0,
                    11: 1.1,
                    12: 1.2,
                    13: 1.3,
