@@ -90,6 +90,7 @@ class Sets:
 
         ''' SPECIAL SETS '''
         # temporal
+        print(self.df_plant_month.sy.tolist())
         self.sy = po.Set(initialize=list(self.df_tm_soy['sy']), ordered=True)
         self.sy_hydbc = po.Set(within=self.sy,
                                initialize=self.df_plant_month.sy.tolist())
