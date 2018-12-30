@@ -2,7 +2,7 @@ import pyomo.environ as po
 import pandas as pd
 import numpy as np
 
-from grimsel.auxiliary.aux_m_func import get_ilst
+from grimsel.auxiliary.aux_m_func import cols2tuplelist
 
 class Sets:
     '''
@@ -27,9 +27,12 @@ class Sets:
 
         slct_cols = ['pp_id', 'ca_id']
         slct_sets = ['ppall', 'pp', 'st', 'pr', 'ror', 'lin',
-                     'hyrs', 'chp', 'add', 'rem', 'winsol', 'scen', 'curt', 'sll']
+                     'hyrs', 'chp', 'add', 'rem', 'winsol', 'scen',
+                     'curt', 'sll']
 
         for iset in slct_sets:
+
+            print(iset, self.setlst[iset])
 
             ''' SUB SETS PP'''
             setattr(self, iset,
@@ -43,14 +46,14 @@ class Sets:
             _df = _df.loc[_df['pp_id'].isin(getattr(self, iset))]
             setattr(self, iset + '_ca',
                     po.Set(within=getattr(self, iset) * self.ca,
-                           initialize=get_ilst(_df, slct_cols)))
+                           initialize=cols2tuplelist(_df[slct_cols])))
 
             ''' SETS PP x ND x ENCAR '''
             _df = df_ndca.copy()
             _df = _df.loc[df_ndca['pp_id'].isin(self.setlst[iset] if iset in self.setlst.keys() else [])]
             setattr(self, iset + '_ndca',
                     po.Set(within=getattr(self, iset) * self.nd * self.ca,
-                           initialize=get_ilst(_df)))
+                           initialize=cols2tuplelist(_df)))
 
 
         # no scf fuels in the _cafl and _ndcafl
@@ -62,8 +65,8 @@ class Sets:
         df_0 = df_0.loc[df_0.fl_id.isin(self.setlst['fl'])]
 
         list_sets = ['ppall', 'hyrs', 'pp', 'chp', 'ror', 'st', 'lin']
-        list_sets = [st for st in list_sets if st in self.setlst.keys()]    
-    
+        list_sets = [st for st in list_sets if st in self.setlst.keys()]
+
         for iset in list_sets:
 
             cols_ppcafl = ['pp_id', 'ca_id', 'fl_id']
@@ -71,7 +74,7 @@ class Sets:
 
             setattr(self, iset + '_cafl',
                     po.Set(within=getattr(self, iset) * self.ca * self.fl,
-                           initialize=get_ilst(df)))
+                           initialize=cols2tuplelist(df)))
 
             slct_cols_ppndcafl = ['pp_id', 'nd_id', 'ca_id', 'fl_id']
             df = df_0.loc[df_0.pp_id.isin(self.setlst[iset]),
@@ -80,13 +83,13 @@ class Sets:
             setattr(self, iset + '_ndcafl',
                     po.Set(within=(getattr(self, iset) * self.nd
                                  * self.ca * self.fl),
-                           initialize=get_ilst(df)))
+                           initialize=cols2tuplelist(df)))
 
         # plants selling fuels ... only ppall, therefore outside the loop
         setattr(self, 'pp' + '_ndcafl_sll',
                 po.Set(within=self.pp_ndcafl,
                        initialize=
-                       get_ilst(df.loc[df.pp_id.isin(self.setlst['sll'])])))
+                       cols2tuplelist(df.loc[df.pp_id.isin(self.setlst['sll'])])))
 
         ''' SPECIAL SETS '''
         # temporal
@@ -101,8 +104,8 @@ class Sets:
 
         # only constructed if self.mt exists
         self.sy_mt = (po.Set(within=self.sy * self.mt,
-                            initialize=get_ilst(self.df_tm_soy_full,
-                                                ['sy', 'mt_id']))
+                            initialize=cols2tuplelist(
+                                    self.df_tm_soy_full[['sy', 'mt_id']]))
                       if not self.mt is None else None)
 
 
@@ -116,13 +119,13 @@ class Sets:
                   & -df.ca_id.isnull(), ['pp_id', 'nd_id', 'ca_id',
                                          'ca_fl_id']]
         self.pp_ndcaca = po.Set(within=self.pp_ndca * self.ca,
-                                  initialize=get_ilst(df))
+                                  initialize=cols2tuplelist(df))
 
         # inter-node connections
         if not self.df_node_connect is None:
             df = self.df_node_connect[['nd_id', 'nd_2_id', 'ca_id']]
             self.ndcnn = po.Set(within=self.nd * self.nd * self.ca,
-                             initialize=get_ilst(df), ordered=True)
+                             initialize=cols2tuplelist(df), ordered=True)
         else:
             self.ndcnn = po.Set(within=self.nd * self.nd * self.ca)
 
@@ -133,18 +136,18 @@ class Sets:
                                   * self.mps.dict_ca_id['EL'],
                                   name='ca_id')], axis=1)
         self.ndca_EL = po.Set(within=self.nd * self.ca,
-                              initialize=get_ilst(df), ordered=True)
+                              initialize=cols2tuplelist(df), ordered=True)
 
         # general ndca
         df = self.df_node_encar[['nd_id', 'ca_id']].drop_duplicates()
         self.ndca = po.Set(within=self.nd * self.ca,
-                           initialize=get_ilst(df), ordered=True)
+                           initialize=cols2tuplelist(df), ordered=True)
 
         # general ndcafl
         if not self.df_fuel_node_encar is None:
             df = self.df_fuel_node_encar[['nd_id', 'ca_id', 'fl_id']]
             self.ndcafl = po.Set(within=self.nd * self.ca * self.fl,
-                              initialize=get_ilst(df), ordered=True)
+                              initialize=cols2tuplelist(df), ordered=True)
         else:
             self.ndcafl = None
 
@@ -161,8 +164,8 @@ class Sets:
         df = self.df_fuel_node_encar.loc[self.df_fuel_node_encar.has_profile == 1,
                                    ['nd_id', 'fl_id']]
 
-        self.fl_prof = po.Set(within=self.fl, initialize=get_ilst(df.fl_id),
-                              ordered=True)
+        self.fl_prof = po.Set(within=self.fl, ordered=True,
+                              initialize=cols2tuplelist(df.fl_id))
         df = pd.merge(df, self.df_def_plant[['pp_id', 'fl_id', 'nd_id']])
         df = pd.merge(df, self.df_plant_encar[['pp_id', 'ca_id']])
         lst = [tuple(c) for c in df[slct_cols_ppndcafl].values]
