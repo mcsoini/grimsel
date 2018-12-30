@@ -398,7 +398,7 @@ class IO():
         for itb in tb_list:
 
             df = getattr(self.model, 'df_' + itb)
-            if df is not None:
+            if df is not None and not ((not 'def_' in itb) and self.no_output):
                 print('Writing table {} to output schema.'.format(itb))
                 aql.write_sql(df, self.db, self.sc_out, itb,
                               if_exists='replace')
