@@ -113,6 +113,8 @@ class ModelLoop(parameter_changes.ParameterChanges):
 
         self.io = io.IO(**self.iokwargs)
 
+#        return
+
         self.io.read_model_data()
 
         print(self.sc_out, self.db)
@@ -126,7 +128,6 @@ class ModelLoop(parameter_changes.ParameterChanges):
 
         self.m.mps = maps.Maps(self.sc_out, db=self.db)
 
-        # Call method build_model (requires data read by io);
         self.m.build_model()
 
         self.io.init_output_tables()
@@ -136,6 +137,7 @@ class ModelLoop(parameter_changes.ParameterChanges):
 
         list_steps = [list(istep[2](*istep[3:], istep[1]))
                       for istep in _nsteps]
+
         list_steps = [list(map(lambda x: float(x), lst))
                       for lst in list_steps]
         full_steps = np.array([tuple(reversed(lst)) for lst in
