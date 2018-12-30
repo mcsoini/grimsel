@@ -421,6 +421,10 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
             _df = _df.set_index('month_min_hoy')
             self.df_plant_month = self.df_plant_month.join(_df, on=_df.index.names)
 
+        sy_null = self.df_plant_month.sy.isnull()
+        self.df_plant_month = self.df_plant_month.loc[-sy_null]
+
+
         # Map profiles and bc to soy
         for itb, idx in [
                          ('dmnd', ['nd_id', 'ca_id', 'sy']),
