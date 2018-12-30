@@ -261,6 +261,7 @@ class IO():
             tb_exists = table in aql.get_sql_tables(self.sc_inp, self.db)
             if tb_exists:
                 df = aql.read_sql(self.db, self.sc_inp, table, filt)
+            source = '%s %s.%s'%(self.db, self.sc_inp, table)
         else:
             if self.data_path:
                 path = self.data_path
@@ -268,6 +269,7 @@ class IO():
                 path = os.path.join(grimsel.__path__[0], 'input_data')
             fn = os.path.join(path, '%s.csv'%table)
 
+            source = fn
             tb_exists = os.path.exists(fn)
 
             if tb_exists:
@@ -277,7 +279,8 @@ class IO():
 
                     df = df.loc[df[col].isin(vals)]
 
-        return (df if tb_exists else None), tb_exists
+        return (df if tb_exists else None), tb_exists, (' from %s'%source
+                                                        if source else '')
 
 
     def read_model_data(self):
@@ -292,7 +295,7 @@ class IO():
 
             for kk, vv in dct.items():
 
-                df, tb_exists = self.get_input_table(kk, vv)
+                df, tb_exists, source_str = self.get_input_table(kk, vv)
 
                 setattr(self.model, 'df_' + kk, df)
 
@@ -304,8 +307,9 @@ class IO():
                     filt = ('filtered by ' if len(vv) > 0 else '') +\
                        ', '.join([vvv[0] + ' in ' + str(vvv[1]) for vvv in vv
                                   if not len(vvv[1]) is 0])
-                    print('Reading input table {tb} {flt}'.format(tb=kk,
-                                                                  flt=filt))
+                    print(('Reading input table {tb} {flt} from '
+                           '{source_str}').format(tb=kk, flt=filt,
+                                                  source_str=source_str))
 
 
         # unfiltered input
