@@ -80,8 +80,7 @@ class Parameters:
         print('Defining parameters for all generators')
         _df = self.df_plant_encar.copy()
         _df = _df.loc[_df['pp_id'].isin(self.setlst['ppall'])]
-        sets = (self.pp | self.pr | self.ror | self.st | self.hyrs |
-                self.curt | self.lin, self.ca)
+        sets = (self.pp | self.pr | self.ror | self.st | self.hyrs | self.curt | self.lin, self.ca)
         self.padd('cap_pwr_leg', sets, _df, **mut) # .
         self.padd('vc_om', sets, _df, **mut) # .
         self.padd('fc_om', sets, _df, **mut, default=0) # .
