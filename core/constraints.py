@@ -100,13 +100,6 @@ class Constraints:
         self.yrstcg = po.Constraint(self.st_ca, rule=yearly_chg_rule)
         self.yrstcg.doc = 'Yearly storage charging energy.'
 
-    def add_transmission_rules(self):
-        print('Symmetry of transmission rule')
-        def trm_symm_rule(self, sy, nd1, nd2, ca):
-            return (self.trm_sd[sy, nd1, nd2, ca]
-                    == self.trm_rv[sy, nd2, nd1, ca])
-        self.trm_symm = po.Constraint(self.sy, self.ndcnn, rule=trm_symm_rule)
-
     def add_capacity_rules(self):
 
         print('Calculate total capacity')
