@@ -47,7 +47,8 @@ class Parameters:
         self.padd('vc_dmnd_flex', (self.nd, self.ca), self.df_node_encar) # VC of flexible demand.
 
         self.padd('chp_cap_pwr_leg', (self.nd,), self.df_def_node, **mut) # .
-        self.padd('cap_trm_leg', (self.mt, self.ndcnn,), 'df_node_connect', **mut) # Cross-node transmission capacity.
+        self.padd('cap_trme_leg', (self.mt, self.ndcnn,), 'df_node_connect', **mut) # Cross-node transmission capacity.
+        self.padd('cap_trmi_leg', (self.mt, self.ndcnn,), 'df_node_connect', **mut) # Cross-node transmission capacity.
 
         print('Defining ramping parameters')
         _df = self.df_plant_encar.copy()
