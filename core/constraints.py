@@ -75,14 +75,6 @@ class Constraints:
         self.YearlyEnergy = po.Constraint(self.ppall_ca,
                                           rule=YearlyEnergy_rule)
 
-#        print('Yearly flexible demand calculation rule')
-#        def yearly_flex_dmnd_rule(self, nd, ca):
-#            ''' Yearly amount of flexible demand (curtailment). '''
-#            return (self.dmnd_flex_yr[nd, ca]
-#                    == sum(self.dmnd_flex[sy, nd, ca] * self.weight[sy]
-#                           for sy in self.sy))
-#        self.yrfxdd = po.Constraint(self.ndca_EL, rule=yearly_flex_dmnd_rule)
-
         print('Yearly ramping calculation rule')
         def yearly_ramp_rule(self, pp, ca):
             ''' Yearly ramping in MW/yr. Up and down aggregated. '''
