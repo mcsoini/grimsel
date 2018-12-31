@@ -43,7 +43,7 @@ sqlc = aql.sql_connector(**dict(db=db,
 
 
 slct_pt = pd.read_csv(os.path.join(config.PATH_CSV, 'def_pp_type.csv'))
-slct_pt = slct_pt.loc[-slct_pt.pt.str.contains('|'.join(['SOL', 'LOL', 'WIN', 'NUC', 'HCO', 'HYD', 'LIG', 'GEO', 'WAS', 'BAL', 'OIL']))]
+slct_pt = slct_pt.loc[-slct_pt.pt.str.contains('|'.join(['SOL', 'WIN', 'HYD', 'LIG', 'GEO', 'WAS', 'BAL', 'OIL']))]
 slct_pt = slct_pt.pt.tolist()
 
 
@@ -64,7 +64,7 @@ mkwargs = {
 # additional kwargs for the i/o
 iokwargs = {'sc_warmstart': False,
             'resume_loop': False,
-            'no_output': True,
+#            'no_output': True,
 #            'autocomplete_curtailment': True
            }
 
@@ -231,9 +231,9 @@ df_tot.loc[df_tot.bool_out, 'value'] *= -1
 series_order = ['IT0_FR0', 'FR0_DE0', 'FR0_IT0', 'DE0_FR0',
                 'NUC_ELC', 'HCO_LIN', 'WIN_ONS', ]
 
-df_tot = df_tot.loc[-df_tot.pt.str.contains('NUC|HCO|LOL|GAS|DMND')]
+#df_tot = df_tot.loc[-df_tot.pt.str.contains('NUC|HCO|LOL|GAS|DMND')]
 
-do = pltpg.PlotPageData.from_df(df_tot, [], [],
+do = pltpg.PlotPageData.from_df(df_tot, ['nd'], [],
                            ['sy'], ['value'], ['bool_out', 'pt'],
                            series_order=series_order, harmonize=False,
                            totals={'total': ['all']})
