@@ -156,7 +156,6 @@ for irow in list(range(irow_0, len(ml.df_def_loop))):
     #########################################
     ############### RUN MODEL ###############
 
-    ml.m.setlst['peak'] = ml.m.setlst['pp']
     ml.m.fill_peaker_plants(demand_factor=20)
 
     ml.m._limit_prof_to_cap()
