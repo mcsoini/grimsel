@@ -385,12 +385,54 @@ class IO():
         # autocomplete input tables
         self.data_autocompletion()
 
+        self.fix_df_node_connect()
+
+
 
         input_table_list = (list(dict_tb_1.keys()) + list(dict_tb_2.keys())
                             + list(dict_tb_0.keys())+ list(dict_tb_3.keys()))
 
 
         self.write_input_tables_to_output_schema(input_table_list)
+
+
+
+    def fix_df_node_connect(self):
+        '''
+        Makes sure the table df_node_connect corresponds to the new style.
+
+        New style: The transmission capacities are expressed as
+        * cap_trme_leg for exports and
+        * cap_trmi_leg for imports
+        for single directions, i.e. non-redundant. The input table has columns
+        (nd_id, nd_2_id, ca_id, mt_id, cap_trme_leg, cap_trmi_leg).
+
+        Old style: Single transmission capacity for both directions; columns:
+        (nd_id, nd_2_id, ca_id, mt_id, eff, cap_trm_leg)
+        '''
+
+        if 'cap_trm_leg' in self.model.df_node_connect.columns:
+
+            df = self.model.df_node_connect
+
+            df['dir'] = df.nd_id < df.nd_2_id
+
+            df_e = df.loc[df.dir].assign(nd_id = df.nd_2_id,
+                                         nd_2_id = df.nd_id,
+                                         cap_trmi_leg = df.cap_trm_leg)
+            df = df.loc[-df.dir].assign(cap_trme_leg = df.cap_trm_leg)
+            dfn = pd.concat([df_e, df], sort=False)
+            dfn = dfn.drop('cap_trm_leg', axis=1).fillna(0)
+            idx = ['nd_id', 'nd_2_id', 'ca_id', 'mt_id']
+            print('Aggregation count in fix_df_node_connect:\n',
+                  dfn.pivot_table(index=idx, aggfunc=[min, max, len],
+                                  values=['cap_trme_leg', 'cap_trmi_leg']))
+            dfn = dfn.pivot_table(index=idx, aggfunc=sum,
+                                  values=['cap_trme_leg', 'cap_trmi_leg'])
+
+
+            self.model.df_node_connect = dfn.reset_index()
+
 
     @skip_if_resume_loop
     def write_input_tables_to_output_schema(self, tb_list):
