@@ -14,6 +14,18 @@ class Constraints:
     '''
     Mixin class containing all constraints.
     '''
+
+
+    def add_transmission_bounds_rules(self):
+
+        for sy, nd1, nd2, ca in self.trm:
+
+            mt = self.dict_soy_month[sy]
+            ub = self.cap_trme_leg[mt, nd1, nd2, ca]
+            lb = - self.cap_trmi_leg[mt, nd1, nd2, ca]
+            self.trm[(sy, nd1, nd2, ca)].setub(ub)
+            self.trm[(sy, nd1, nd2, ca)].setlb(lb)
+
     def add_supply_rules(self):
 
         print('Supply rule')
