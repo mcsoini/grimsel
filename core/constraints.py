@@ -100,14 +100,6 @@ class Constraints:
         self.yrstcg = po.Constraint(self.st_ca, rule=yearly_chg_rule)
         self.yrstcg.doc = 'Yearly storage charging energy.'
 
-        print('Yearly transmission receive rule')
-        def yearly_trm_rv_rule(self, nd, nd_2, ca):
-            return (self.erg_trm_rv_yr[nd, nd_2, ca]
-                    == sum(self.trm_rv[sy, nd, nd_2, ca]
-                       * self.weight[sy] for sy in self.sy))
-        self.yrtrrv = po.Constraint(self.ndcnn, rule=yearly_trm_rv_rule)
-        self.yrtrrv.doc = 'Yearly cross border exchanged energy (receive).'
-
     def add_transmission_rules(self):
         print('Symmetry of transmission rule')
         def trm_symm_rule(self, sy, nd1, nd2, ca):
