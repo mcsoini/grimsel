@@ -40,11 +40,11 @@ class Constraints:
                         in set_to_list(self.ppall_ndca,
                                        [None, nd, ca]))
                     # incoming inter-node transmission
-                    + sum(self.trm_rv[sy, nd, nd_2, ca] for (nd, nd_2, ca)
-                          in set_to_list(self.ndcnn, [nd, None, ca]))
+                    + sum(self.trm[sy, nd, nd_2, ca] for (nd, nd_2, ca)
+                          in set_to_list(self.ndcnn, [None, nd, ca]))
                    )
             dmnd = (self.dmnd[sy, nd, ca]
-                    + sum(self.trm_sd[sy, nd, nd_2, ca] for (nd, nd_2, ca)
+                    + sum(self.trm[sy, nd, nd_2, ca] for (nd, nd_2, ca)
                           in set_to_list(self.ndcnn, [nd, None, ca]))
                     + sum(self.pwr_st_ch[sy, st, ca] for (st, nd, ca)
                           in set_to_list(self.st_ndca, [None, nd, ca]))
