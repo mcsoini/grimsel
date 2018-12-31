@@ -388,9 +388,10 @@ class IO():
         self.fix_df_node_connect()
 
 
+        input_table_list = (list(dict_tb_1) + list(dict_tb_2)
+                            + list(dict_tb_0)+ list(dict_tb_3))
 
-        input_table_list = (list(dict_tb_1.keys()) + list(dict_tb_2.keys())
-                            + list(dict_tb_0.keys())+ list(dict_tb_3.keys()))
+
 
 
         self.write_input_tables_to_output_schema(input_table_list)
