@@ -346,8 +346,6 @@ class DmndIO(ParamIO):
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class IO():
-    pass
 
 
 def skip_if_resume_loop(f):
