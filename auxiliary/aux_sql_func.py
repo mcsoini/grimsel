@@ -206,29 +206,43 @@ Hit enter to proceed.
 
 # %%
 
-def write_sql(df, db, sc, tb, if_exists, chunksize=None):
+def write_sql(df, db=None, sc=None, tb=None, if_exists=None,
+              engine=None, chunksize=None, con_cur=None):
 
-    sqlc = sql_connector(db)
-    engine = sqlc.get_sqlalchemy_engine()
+
+    if not engine:
+        sqlc = sql_connector(db)
+        _engine = sqlc.get_sqlalchemy_engine()
+    else:
+        _engine = engine
+
+    if con_cur:
+        exec_sql_kwargs = dict(con_cur=con_cur)
+    else:
+        exec_sql_kwargs = dict(db=db)
+
+
 
     if if_exists == 'replace':
         exec_str = ('''DROP TABLE IF EXISTS {sc}.{tb} CASCADE;
                     ''').format(sc=sc, tb=tb)
-        exec_sql(exec_str, db=db)
+        exec_sql(**dict(exec_str=exec_str, **exec_sql_kwargs))
     else:
         # add columns which exist in the source table but not in
         # the database table;
         # using some internal pandas methods to map the pandas
         # datatypes to SQL datatypes
 
-        pandas_sqltable = pd.io.sql.SQLTable('_', engine, df, schema='_',
+        pandas_sqltable = pd.io.sql.SQLTable('_', _engine, df, schema='_',
                                              index=False)
 
         dtype_mapper = pandas_sqltable._sqlalchemy_type
 
         new_cols = pandas_sqltable._get_column_names_and_types(dtype_mapper)
 
-        old_cols = get_sql_cols(tb, sc, db).keys()
+        old_cols = get_sql_cols(tb, sc,
+                                **({'con_cur': con_cur}
+                                   if con_cur else {'db': db})).keys()
 
         VisitableType = sqlalchemy.sql.visitors.VisitableType
 
@@ -245,11 +259,13 @@ def write_sql(df, db, sc, tb, if_exists, chunksize=None):
                         ALTER TABLE {sc}.{tb}
                         {add_str};
                         '''.format(sc=sc, tb=tb, add_str=add_str)
-            exec_sql(exec_strg, db=db)
+            exec_sql(**dict(exec_str=exec_strg, **exec_sql_kwargs))
 
-    df.to_sql(name=tb, con=engine, schema=sc, if_exists=if_exists,
+    df.to_sql(name=tb, con=_engine, schema=sc, if_exists=if_exists,
               index=False, chunksize=chunksize)
-    engine.dispose()
+
+    if not engine:
+        _engine.dispose()
 
 # %%
 
