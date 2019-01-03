@@ -18,7 +18,7 @@ import grimsel
 import grimsel.core.autocomplete as ac
 
 
-import table_struct
+import grimsel.core.table_struct as table_struct
 
 dict_tables = {lst: {tb[0]: tuple(tbb for tbb in tb[1:])
                      for tb in getattr(table_struct, lst)}
@@ -365,7 +365,7 @@ def skip_if_no_output(f):
     return wrapper
 
 
-class ModelWriter(IO):
+class ModelWriter():
     '''
     The IO singleton class manages the TableIO instances and communicates with
     other classes. Manages database connection.
@@ -662,7 +662,7 @@ class ModelWriter(IO):
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class DataReader(IO):
+class DataReader():
 
     def __init__(self, **kwargs):
 
