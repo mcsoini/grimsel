@@ -61,15 +61,24 @@ class sql_connector():
         self.sqlal_str = ('postgresql://{user}:{password}'
                           '@{host}:{port}/{db}').format(**self.__dict__)
 
-    def get_sqlalchemy_engine(self):
-        return create_engine(self.sqlal_str)
+        self._sqlalchemy_engine = None
+        self._conn = None
+        self._cur = None
 
+    def get_sqlalchemy_engine(self):
+
+        if not self._sqlalchemy_engine:
+            self._sqlalchemy_engine = create_engine(self.sqlal_str)
+
+        return self._sqlalchemy_engine
 
     def get_pg_con_cur(self):
-        conn = pg.connect(self.pg_str)
-        cur = conn.cursor()
 
-        return conn, cur
+        if not self._conn:
+            self._conn = pg.connect(self.pg_str)
+            self._cur = self._conn.cursor()
+
+        return self._conn, self._cur
 
     def __repr__(self):
         strg = '%s\n%s'%(self.pg_str, self.sqlal_str)
