@@ -144,7 +144,7 @@ def get_sql_tables(sc, db=None):
 
 # %%
 
-def get_sql_cols(tb, sc='public', db=None):
+def get_sql_cols(tb, sc='public', db=None, con_cur=None):
     '''
     Returns the names and data types of the selected table as a dictionary
     {'col_name': 'col_type', ...}
@@ -157,7 +157,10 @@ def get_sql_cols(tb, sc='public', db=None):
                 AND table_name = \'{tb}\'
                 '''.format(sc=sc, tb=tb)
 
-    dict_col = OrderedDict(exec_sql(exec_str, db=db))
+    exec_sql_kwargs = {'exec_str': exec_str}
+    exec_sql_kwargs.update({'con_cur': con_cur} if con_cur else {'db': db})
+
+    dict_col = OrderedDict(exec_sql(**exec_sql_kwargs))
     return dict_col
 
 
