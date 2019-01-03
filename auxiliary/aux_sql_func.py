@@ -442,8 +442,9 @@ def copy_table_structure(sc, tb, sc0, db, verbose=False):
 
 
 
-def read_sql(db, sc, tb, filt=False, filt_func=False, drop=False, keep=False,
-             copy=False, tweezer=False, distinct=False, verbose=False):
+def read_sql(db=None, sc=None, tb=None, filt=False, filt_func=False, drop=False, keep=False,
+             copy=False, tweezer=False, distinct=False, verbose=False,
+             engine=None):
     '''
     Keyword arguments:
     tweezer -- list; filter (exclude or include) single combinations of values
@@ -451,8 +452,12 @@ def read_sql(db, sc, tb, filt=False, filt_func=False, drop=False, keep=False,
                                     ({'nd': 'FR0', 'bool_out': False}, ' NOT ')]
     '''
 
-    sqlc = sql_connector(db)
-    engine = sqlc.get_sqlalchemy_engine()
+    if not engine:
+        sqlc = sql_connector(db)
+        _engine = sqlc.get_sqlalchemy_engine()
+    else:
+        _engine = engine
+
 
     if verbose:
         print('Reading ' + sc + '.' + tb +  ' from database ' + db)
@@ -493,7 +498,7 @@ def read_sql(db, sc, tb, filt=False, filt_func=False, drop=False, keep=False,
         df = pd.DataFrame(exec_sql(exec_str, db=db), columns=cols)
 
     else:
-        df = pd.read_sql_table(tb, engine, schema=sc)
+        df = pd.read_sql_table(tb, _engine, schema=sc)
         if keep:
             df = df.loc[:, keep]
 
@@ -514,7 +519,8 @@ def read_sql(db, sc, tb, filt=False, filt_func=False, drop=False, keep=False,
     if drop:
         df = df.drop(drop, axis=1)
 
-    engine.dispose()
+    if not engine:
+        _engine.dispose()
 
     return df
 
