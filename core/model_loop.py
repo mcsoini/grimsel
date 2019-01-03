@@ -236,10 +236,6 @@ class ModelLoop(parameter_changes.ParameterChanges):
         # can't use io method here if we want this to happen when no_output
         aql.write_sql(self.df_add, self.db, self.sc_out, 'def_loop', 'append')
 
-        # write total def_loop to csv file
-        aql.read_sql(self.io.db, self.sc_out, 'def_loop')\
-          .to_csv('def_loop_' + self.sc_out + '.csv')
-
     def print_run_title(self, warmstartfile, solutionfile):
 
         print('*'*60)
