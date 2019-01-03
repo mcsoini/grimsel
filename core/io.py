@@ -1062,6 +1062,8 @@ class IO:
         self.resume_loop = defaults['resume_loop']
         self.sql_connector = defaults['sql_connector']
         self.replace_runs_if_exist = defaults['replace_runs_if_exist']
+        self.db = self.sql_connector.db
+
 
     @classmethod
     def variab_to_df(cls, py_obj, sets):
