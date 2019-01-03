@@ -16,8 +16,6 @@ class Variables:
         self.vadd('pwr_st_ch',       (self.sy, self.st_ca,))               #
         self.vadd('erg_st',          (self.sy, self.st_ca | self.hyrs_ca,)) # Hourly energy stored
 
-        self.vadd('dmnd_flex',       (self.sy, self.nd, self.ca,))         # Flexible demand
-
         self.vadd('erg_mt',          (self.mt, self.hyrs_ca | self.pp_ca,))             #
 
         self.vadd('erg_fl_yr',       (self.ppall_ndcafl,))                 # Yearly energy production in MWh per year
@@ -25,8 +23,6 @@ class Variables:
         self.vadd('dmnd_flex_yr',    (self.ndca,))                         # Yearly amount of flexible loads
         self.vadd('pwr_ramp_yr',     (self.pprp_ca,))                      # Yearly amount of ramping MW/yr
         self.vadd('erg_ch_yr',       (self.st_ca,))                        # Yearly amount of charging energy MWh/yr
-        self.vadd('erg_trm_sd_yr',   (self.ndcnn,))                        # Yearly amount of sent energy MWh/yr
-        self.vadd('erg_trm_rv_yr',   (self.ndcnn,))                        # Yearly amount of received energy MWh/yr
 
         self.vadd('vc_fl_pp_yr',     (self.ppall_cafl - self.lin_cafl,), (None, None))     # Yearly variable cost of fuel
         self.vadd('vc_om_pp_yr',     (self.ppall_ca,))                     # Yearly variable cost of O&M
