@@ -186,7 +186,6 @@ class ModelLoop(parameter_changes.ParameterChanges):
         cols = ([('tdiff_solve', 'DOUBLE PRECISION'),
                  ('tdiff_write', 'DOUBLE PRECISION'),
                  ('run_id', 'SMALLINT'),
-#                 ('run_name', 'VARCHAR(200)')
                  ]
               + [(s, 'SMALLINT') for s in self.cols_id]
               + [(s, 'DOUBLE PRECISION') for s in self.cols_step]
@@ -237,19 +236,9 @@ class ModelLoop(parameter_changes.ParameterChanges):
         # can't use io method here if we want this to happen when no_output
         aql.write_sql(self.df_add, self.db, self.sc_out, 'def_loop', 'append')
 
-
         # write total def_loop to csv file
         aql.read_sql(self.io.db, self.sc_out, 'def_loop')\
           .to_csv('def_loop_' + self.sc_out + '.csv')
-
-#    def add_run_name(self, exclude=['swct_vl']):
-#        df = self.df_add
-#        self.df_add['run_name'] = \
-#           self.df_add[['run_id'] + \
-#           [c for c in df.columns if str.find(c, '_vl') > -1 and not c in exclude]]\
-#              .apply(lambda x:
-#                     '; '.join([str(int(x[0])).zfill(3 if int(x[0]) >= 0 else 4)]
-#                               + [str(s) for s in x]), axis=1)
 
     def print_run_title(self, warmstartfile, solutionfile):
 
