@@ -594,17 +594,22 @@ coldict = {
            'run_id': ('SMALLINT', '{sc}.def_loop(run_id)'),
           }
 
-def get_coldict(sc, db, fk_include_missing=False):
+def get_coldict(sc=None, db=None, fk_include_missing=False):
     ''' Adding SQL schema name to foreign keys in coldict. '''
 
-    _coldict = {}
-    for kk, vv in coldict.items():
-        _val = tuple(ivv.format(sc=sc) for ivv in vv)
-        if len(_val) > 1:
-            if (not _val[1].split('.')[1].split('(')[0]
-                     in get_sql_tables(sc, db)):
-                _val = (_val[0],)
-        _coldict[kk] = [iv.format(sc) for iv in _val]
+
+    if sc:
+        _coldict = {}
+        for kk, vv in coldict.items():
+            _val = tuple(ivv.format(sc=sc) for ivv in vv)
+            if len(_val) > 1:
+                if (not _val[1].split('.')[1].split('(')[0]
+                         in get_sql_tables(sc, db)):
+                    _val = (_val[0],)
+            _coldict[kk] = [iv.format(sc) for iv in _val]
+    else:
+        _coldict = {col: [coltype[0]] for col, coltype in coldict.items()}
+
 
     return _coldict
 
