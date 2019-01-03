@@ -43,7 +43,7 @@ sqlc = aql.sql_connector(**dict(db=db,
 
 
 slct_pt = pd.read_csv(os.path.join(config.PATH_CSV, 'def_pp_type.csv'))
-slct_pt = slct_pt.loc[-slct_pt.pt.str.contains('|'.join(['SOL', 'WIN', 'HYD', 'LIG', 'GEO', 'WAS', 'BAL', 'OIL']))]
+slct_pt = slct_pt.loc[-slct_pt.pt.str.contains('|'.join(['SOL', 'WIN', 'HYD_RES', 'HYD_ROR', 'LIG', 'GEO', 'WAS', 'BAL', 'OIL']))]
 slct_pt = slct_pt.pt.tolist()
 
 
