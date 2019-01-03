@@ -90,7 +90,7 @@ def exec_sql(exec_str, ret_res=True, time_msg=False, db=None, con_cur=None):
 
     ''' Pass sql string to the server. '''
     conn, cur = (sql_connector(db).get_pg_con_cur()
-                 if con_cur is None else con_cur)
+                 if not con_cur else con_cur)
 
     cur.execute(exec_str)
     conn.commit()
@@ -535,13 +535,6 @@ def read_sql(db=None, sc=None, tb=None, filt=False, filt_func=False, drop=False,
 
     if copy:
         copy_table_structure(sc=copy, tb=tb, sc0=sc, db=db, verbose=verbose)
-#        exec_str = ('''
-#                    DROP TABLE IF EXISTS {sc}.{tb} CASCADE;
-#                    CREATE TABLE {sc}.{tb} (LIKE {sc0}.{tb} INCLUDING ALL);
-#                    ''').format(sc=copy, tb=tb, sc0=sc)
-#        if verbose:
-#            print(exec_str)
-#        exec_sql(exec_str, db=db)
         write_sql(df, db, copy, tb, 'append')
 
     if drop:
