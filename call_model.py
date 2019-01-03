@@ -117,7 +117,6 @@ for key in ml.m.grid_losses:
 
 
 
-# %
 
 # init ModelLoopModifier
 mlm = model_loop_modifier.ModelLoopModifier(ml)
@@ -162,7 +161,25 @@ for irow in list(range(irow_0, len(ml.df_def_loop))):
 
     ml.perform_model_run()
 
-# %
+
+
+#dfapp = pd.DataFrame(np.array([ml.m.df_def_pp_type.pt_id.max() + 1, 'TRNS', 'TRNS', 'k']),
+#                     index=ml.m.df_def_pp_type.columns).T
+#
+#ml.m.df_def_pp_type = ml.m.df_def_pp_type.append(dfapp)
+#
+#
+#ml.m.df_def_plant
+#
+#
+#nd_combs = ml.m.df_def_node[['nd', 'nd_id']].copy()
+#nd_combs['dummy'] = 1
+#nd_combs = pd.merge(*(2 * [nd_combs]), on='dummy', how='outer', suffixes=('', '_2'))
+#nd_combs = nd_combs.loc[nd_combs.nd_x]
+#
+
+
+# %%
 
 #df_pwr_ch = ml.io.variab_to_df(ml.m.pwr_st_ch, ('sy', 'pp_id', 'ca_id'))[0]
 #df_pwr_ch = df_pwr_ch.join(ml.m.df_def_plant.set_index('pp_id')[['pp', 'pt_id', 'nd_id', 'fl_id']], 'pp_id')
