@@ -210,8 +210,7 @@ class IO():
                             'trm_rv': 'TRNS_RV',
                             'erg_trm_rv_yr': 'TRNS_RV',
                             'erg_trm_sd_yr': 'TRNS_ST',
-                            'dmnd': 'DMND',
-                            'dmnd_flex': 'DMND_FLEX'}
+                            'dmnd': 'DMND'}
 
         if self.model.skip_runs:
             print('model.skip_runs is True; modifying IO lists.')
@@ -387,12 +386,8 @@ class IO():
 
         self.fix_df_node_connect()
 
-
         input_table_list = (list(dict_tb_1) + list(dict_tb_2)
                             + list(dict_tb_0)+ list(dict_tb_3))
-
-
-
 
         self.write_input_tables_to_output_schema(input_table_list)
 
@@ -1057,10 +1052,8 @@ class IO():
 
 # %%
 if __name__ == '__main__':
-    pass
-#    IO.post_process_index(ml.m.sc_out, ml.io.db)
 
-#    IO.post_process_index('out_1_1823')
+    # dump json of tables
 
 
 
