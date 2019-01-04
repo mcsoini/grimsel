@@ -102,8 +102,6 @@ class ModelLoop(parameter_changes.ParameterChanges):
 
         self.m = model_base.ModelBase(**self.mkwargs)
 
-#        self.mlm = self.ModelLoopModifier(self)
-
         self.iokwargs.update({'model': self.m,
                               'dev_mode': self.dev_mode,
                               'sql_connector': sql_connector,
