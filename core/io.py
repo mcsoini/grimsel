@@ -87,7 +87,6 @@ class CompIO():
 
     def post_processing(self, df):
         ''' Child-specific method called prior to writing. '''
-
         return df
 
     def to_df(self):
@@ -96,7 +95,6 @@ class CompIO():
 
         Is overwritten in DualIO, where _to_df is not used as classmethod.
         '''
-
 
         return self._to_df(self.comp_obj,
                            [c for c in self.index if not c == 'bool_out'])
@@ -114,7 +112,7 @@ class CompIO():
         col_names = self.index + ('value',)
         cols = [(c,) + (self.coldict[c][0],) for c in col_names]
         cols += [('run_id', 'SMALLINT')]
-        pk = [] # pk now added later for writing/appending performance
+        pk = [] # pk added later for writing/appending performance
         unique = []
 
         aql.init_table(tb_name=self.tb, cols=cols,
@@ -291,7 +289,6 @@ class ParamIO(CompIO):
             else:
                 dat = [v[1].extract_values()[None]]
 
-        print(cols)
         return pd.DataFrame(dat, columns=list(cols) + ['value'])
 
 
@@ -474,7 +471,6 @@ class ModelWriter():
                 io_class_args = (DICT_TABLE[comp], self.sc_out, comp_obj,
                                    idx, self.sql_connector)
                 io_class_args += (self.model,)
-
 
                 self.dict_comp_obj[comp] = io_class(*io_class_args)
 
@@ -985,6 +981,8 @@ class IO:
 
     def __init__(self, **kwargs):
 
+
+
         defaults = {'sc_warmstart': False,
                     'resume_loop': False,
                     'replace_runs_if_exist': False,
@@ -1009,7 +1007,6 @@ class IO:
         self.sql_connector = defaults['sql_connector']
         self.replace_runs_if_exist = defaults['replace_runs_if_exist']
         self.db = self.sql_connector.db
-
 
     @classmethod
     def variab_to_df(cls, py_obj, sets):
@@ -1040,8 +1037,10 @@ class IO:
 
         self.modwr.run_id = run_id
         self.modwr.write_all()
-
+# %%
 if __name__ == '__main__':
+
+
 
     import grimsel.config as config
     sc_out = 'test_io_new'
@@ -1067,11 +1066,20 @@ if __name__ == '__main__':
                }
 
 
-    io = IO(**kwargs)
+    ioobj = IO(**kwargs)
 
-    self = io
+    self = ioobj
 
 
 
     self.read_model_data()
     self.write_runtime_tables()
+
+    self.init_output_tables()
+    self.write_run(123)
+
+
+
+
+
+
