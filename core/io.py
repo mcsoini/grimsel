@@ -76,19 +76,17 @@ class CompIO():
         self.sc = sc
         self.comp_obj = comp_obj
         self.connect = connect
-        self.index = idx
         self.model = model
 
-        self.columns = list(self.index + ('value',))
-        self.columns = [c for c in self.columns if not c == 'bool_out']
-
+        self.columns = None # set in index setter
         self.run_id = None  # set in call to self.write_run
+
+        self.index = idx
 
         self.coldict = aql.get_coldict()
 
     def post_processing(self, df):
         ''' Child-specific method called prior to writing. '''
-
 
         return df
 
@@ -158,9 +156,10 @@ class CompIO():
 
     @index.setter
     def index(self, value):
-        ''' Makes sure idx is tuple. '''
+        ''' Makes sure idx is tuple and updates columns attribute. '''
         self._index = (value,) if not isinstance(value, tuple) else value
-
+        self.columns = list(self.index + ('value',))
+        self.columns = [c for c in self.columns if not c == 'bool_out']
 
     def write(self, run_id):
 
