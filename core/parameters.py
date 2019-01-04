@@ -242,15 +242,15 @@ class Parameters:
                                           == param].copy()
 
         # get list of corresponding sets from the IO list
-        sets_io = [par for par in io.IO.par if par[0] == param]
-        if not sets_io:
+        try:
+            sets_io = io.DICT_IDX[param]
+        except:
             raise ValueError(('ModelBase.apply_monthly_factors: '
                               + 'Parameter {} '
                               + 'not included in the IO '
                               + 'parameter list.').format(param))
 
-
-        sets = tuple([st for st in list(sets_io[0][1]) if not st == 'mt_id'])
+        sets = tuple([st for st in sets_io if not st == 'mt_id'])
         sets_new = ('mt_id',) + sets
 
         # get data from component
@@ -259,7 +259,7 @@ class Parameters:
         # expand old index to months
         new_index = list(itertools.product(list_mts,
                                            df0[list(sets)].apply(tuple, axis=1)
-                                                    .tolist()))
+                                                          .tolist()))
         new_index = [(cc[0],) + cc[1] for cc in new_index]
 
         # initialize new dataframe
@@ -315,11 +315,7 @@ class Parameters:
         self.parameter_month_list.append(param)
 
         # modify IO class attribute to get the output table indices right
-        slct_par = [pp for pp in io.IO.par if param in pp][0]
-        # drop
-        io.IO.par.remove(slct_par)
-        # add
-        io.IO.par.append((slct_par[0], sets_new))
+        io.DICT_IDX[param] = sets_new
 
         print('done.')
 
