@@ -27,7 +27,41 @@ dict_tables = {lst: {tb[0]: tuple(tbb for tbb in tb[1:])
 
 chg_dict = table_struct.chg_dict
 
+def get_table_dicts():
+    '''
+    Get the dictionaries describing all tables.
+
+    Also used in post_process_index, therefore classmethod.
+    '''
+
+    # construct table name group name and component name
+    dict_idx = {comp: spec[0]
+                for grp, tbs in dict_tables.items()
+                for comp, spec in tbs.items()}
+    dict_table = {comp: (grp + '_' + spec[1]
+                         if len(spec) > 1
+                         else grp + '_' + comp)
+                  for grp, tbs in dict_tables.items()
+                  for comp, spec in tbs.items()}
+    dict_group = {comp: grp
+                  for grp, tbs in dict_tables.items()
+                  for comp, spec in tbs.items()}
+
+    return dict_idx, dict_table, dict_group
+
+# expose as module variable for easier access
+DICT_IDX, DICT_TABLE, DICT_GROUP = get_table_dicts()
+
+
 # %%
+
+
+if __name__ == '__main__':
+
+    DICT_IDX = io.DICT_IDX
+    DICT_TABLE = io.DICT_TABLE
+    DICT_GROUP = io.DICT_GROUP
+
 
 class CompIO():
     '''
@@ -477,55 +511,29 @@ class ModelWriter():
         elif not self.replace_runs_if_exist:
             # delete run_ids equal or greater the resume_loop run_id
             self.delete_run_id(self.resume_loop)
-
-    @classmethod
-    def get_table_dicts(cls):
-        '''
-        Get the dictionaries describing all tables.
-
-        Also used in post_process_index, therefore classmethod.
-        '''
-
-        # construct table name group name and component name
-        dict_idx = {comp: spec[0]
-                    for grp, tbs in dict_tables.items()
-                    for comp, spec in tbs.items()}
-        dict_table = {comp: (grp + '_' + spec[1]
-                             if len(spec) > 1
-                             else grp + '_' + comp)
-                      for grp, tbs in dict_tables.items()
-                      for comp, spec in tbs.items()}
-        dict_group = {comp: grp
-                      for grp, tbs in dict_tables.items()
-                      for comp, spec in tbs.items()}
-
-        return dict_idx, dict_table, dict_group
-
     @skip_if_no_output
     def init_compio_objs(self):
         '''
         Initialize all output table IO objects.
         '''
 
-        dict_idx, dict_table, dict_group = self.get_table_dicts()
-
-        comp, idx = 'pwr_st_ch', dict_idx['pwr_st_ch']
-        for comp, idx in dict_idx.items():
+        comp, idx = 'pwr_st_ch', DICT_IDX['pwr_st_ch']
+        for comp, idx in DICT_IDX.items():
             if not hasattr(self.model, comp):
                 print('Component ' + comp + ' does not exist... skipping '
                       'init CompIO.')
             else:
                 comp_obj = getattr(self.model, comp)
 
-                grp = dict_group[comp]
-                if dict_table[comp] in self.IO_CLASS_DICT:
-                    io_class = self.IO_CLASS_DICT[dict_table[comp]]
+                grp = DICT_GROUP[comp]
+                if DICT_TABLE[comp] in self.IO_CLASS_DICT:
+                    io_class = self.IO_CLASS_DICT[DICT_TABLE[comp]]
                 elif grp in self.IO_CLASS_DICT:
-                    io_class = self.IO_CLASS_DICT[dict_group[comp]]
+                    io_class = self.IO_CLASS_DICT[DICT_GROUP[comp]]
                 else:
-                    io_class = self.IO_CLASS_DICT[dict_group[comp].split('_')[0]]
+                    io_class = self.IO_CLASS_DICT[DICT_GROUP[comp].split('_')[0]]
 
-                io_class_args = (dict_table[comp], self.sc_out, comp_obj,
+                io_class_args = (DICT_TABLE[comp], self.sc_out, comp_obj,
                                    idx, self.sql_connector)
                 io_class_args += (self.model,)
 
