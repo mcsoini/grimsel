@@ -37,10 +37,10 @@ var_tr = [
     ('erg_trm_sd_yr', ('nd_id', 'nd_2_id', 'ca_id', 'bool_out'))]
 par = [
     ('share_ws_set', ('nd_id',)),
-    ('price_co2', ('mt_id', 'nd_id',)),
+    ('price_co2', ('nd_id',)),
     ('co2_int', ('fl_id',)),
     ('cap_pwr_leg', ('pp_id', 'ca_id')),
-    ('cap_avlb', ('mt_id', 'pp_id', 'ca_id')),
+    ('cap_avlb', ('pp_id', 'ca_id')),
     ('cap_trme_leg', ('mt_id', 'nd_id', 'nd_2_id', 'ca_id')),
     ('cap_trmi_leg', ('mt_id', 'nd_id', 'nd_2_id', 'ca_id')),
     ('cf_max', ('pp_id', 'ca_id')),
@@ -49,7 +49,7 @@ par = [
     ('hyd_pwr_in_mt_max', ('pp_id',)),
     ('hyd_pwr_out_mt_min', ('pp_id',)),
     ('vc_dmnd_flex', ('nd_id', 'ca_id')),
-    ('vc_fl', ('mt_id', 'fl_id', 'nd_id')),
+    ('vc_fl', ('fl_id', 'nd_id')),
     ('factor_vc_fl_lin_0', ('pp_id', 'ca_id')),
     ('factor_vc_fl_lin_1', ('pp_id', 'ca_id')),
     ('factor_vc_co2_lin_0', ('pp_id', 'ca_id')),
