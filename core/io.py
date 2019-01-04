@@ -450,67 +450,6 @@ class ModelWriter():
         aql.exec_sql('CREATE SCHEMA IF NOT EXISTS ' + self.sc_out,
                      db=self.db, )
 
-
-    @skip_if_no_output
-    def init_output_database(self):
-        '''
-        Creation of output schema and initialization of tables.
-        Loops over all entries in the dictionaries defined by list_collect,
-        which again contain all table names for parameters, variables, etc.
-
-        Note: Keys need to be added in post-processing due to table
-        writing performance.
-
-        Makes use of init_table function in aux_sql_func.
-        '''
-
-        conn, cur = self.sql_connector.get_pg_con_cur()
-
-        for ilist in self.list_collect:
-
-            # elements of length 3 don't get their own table as they are
-            # appended to a different one
-            table_list = [tt for tt in getattr(self, ilist)
-                          if not len(tt) == 3]
-
-            for iv in table_list:
-                tb_name = ilist + '_' + iv[0]
-                print('Initializing output table ', tb_name)
-                col_names = [s for s in iv[1]] + ['value']
-                cols = [(c,) + (self._coldict[c][0],) for c in col_names]
-                cols += self.loop_cols
-                # pk now added later for writing/appending performance
-                pk = []#list(iv[1]) + self.loop_pk
-                unique = []
-
-                aql.init_table(tb_name=tb_name, cols=cols,
-                               schema=self.sc_out,
-                               ref_schema=self.sc_out, pk=pk,
-                               unique=unique, bool_auto_fk=False, db=self.db,
-                               con_cur=(conn, cur))
-        aql.close_con(conn)
-
-
-
-
-    @skip_if_no_output
-    def init_output_tables(self):
-        '''
-        Call initialization method.
-
-        If a value is provided for resume_loop, all run_ids greater equal
-        are deleted.
-
-        If replace_runs_if_exist is set to True, nothing is changed. Tables
-        stay as they are, run ids are overwritten whenever the corresponding
-        model run is performed.
-        '''
-        if not self.resume_loop:
-            self.init_output_database()
-
-        elif not self.replace_runs_if_exist:
-            # delete run_ids equal or greater the resume_loop run_id
-            self.delete_run_id(self.resume_loop)
     @skip_if_no_output
     def init_compio_objs(self):
         '''
