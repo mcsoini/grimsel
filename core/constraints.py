@@ -301,8 +301,9 @@ class Constraints:
 
         print('Fuel constraint rule')
         def pp_max_fuel_rule(self, nd, ca, fl):
-            '''Maximum energy produced from a certain fuel in a certain pp.
-               Note: this should be defined in fuels_base, not plant_fuel.'''
+            '''
+            Maximum energy produced from a certain fuel.
+            '''
 
             # making sure we are dealing with a constrained fuel
             is_constr = fl in self.fl_erg
@@ -491,40 +492,8 @@ class Constraints:
         self.calc_vc_om_pp = po.Constraint(self.ppall_ca,
                                            rule=calc_vc_om_pp_rule)
 
-        print('CO2 VC calculation rule --> OBSOLETE: Linear cost included directly in objective!!')
-#        def calc_vc_co2_pp_rule(self, pp, nd, ca, fl):
-#
-#            # Case 1: monthly adjustment factors have been applied to vc_fl
-#            if 'price_co2' in self.parameter_month_list:
-#                sums = sum(self.pwr[sy, pp, ca] # POWER!
-#                           / self.pp_eff[pp, ca] * self.weight[sy]
-#                           * self.price_co2[mt, nd] * self.co2_int[fl]
-#                           for (sy, mt) in set_to_list(self.sy_mt,
-#                                                       [None, None]))
-#            # Case 2: ordinary single CO2 price
-#            else:
-#                sums = (self.erg_fl_yr[pp, nd, ca, fl] # ENERGY!
-#                            / self.pp_eff[pp, ca]
-#                            * self.price_co2[nd] * self.co2_int[fl])
-#
-#            return self.vc_co2_pp_yr[pp, ca] == sums
-#
-#        self.calc_vc_co2_pp = po.Constraint(self.pp_ndcafl - self.lin_ppndcafl,
-#                                            rule=calc_vc_co2_pp_rule)
-#
-#        print('Flexible demand VC calculation rule')
-#        def calc_vc_flex_dmnd_rule(self, nd, ca):
-#            return (self.vc_dmnd_flex_yr[nd, ca]
-#                    == self.dmnd_flex_yr[nd, ca] * self.vc_dmnd_flex[nd, ca])
-#        self.calc_vc_flex_dmnd = po.Constraint(self.ndca,
-#                                               rule=calc_vc_flex_dmnd_rule)
-
         print('Ramp VC calculation rule')
         def calc_vc_ramp_rule(self, pp, ca):
-
-#            if pp == 34:
-#                return po.Constraint.Skip
-#            else:
             return (self.vc_ramp_yr[pp, ca]
                     == self.pwr_ramp_yr[pp, ca] * self.vc_ramp[pp, ca])
         self.calc_vc_ramp = po.Constraint(self.pp_ca
@@ -602,20 +571,15 @@ class Constraints:
                   + self.get_vc_fl()
                     # EMISSION COST LINEAR (NOTE: all fossil plants are linear)
                   + self.get_vc_co()
-#                  + sum(self.vc_co2_pp_yr[pp, ca]
-#                        for (pp, ca) in set_to_list(self.pp_ca, nn))
                   + sum(self.vc_om_pp_yr[pp, ca]
                         for (pp, ca) in set_to_list(self.ppall_ca, nn))
-#                  + sum(self.vc_dmnd_flex_yr[nd, ca]
-#                        for (nd, ca) in set_to_list(self.ndca_EL, nn))
                   + sum(self.vc_ramp_yr[pp, ca]
                         for (pp, ca) in set_to_list(self.pp_ca | self.hyrs_ca
                                                     | self.ror_ca, nn))
                   + sum(self.fc_om_pp_yr[pp, ca]
                         for (pp, ca) in set_to_list(self.ppall_ca, nn))
                   + sum(self.fc_cp_pp_yr[pp, ca]
-                        for (pp, ca) in set_to_list(self.add_ca, nn))
-                )
+                        for (pp, ca) in set_to_list(self.add_ca, nn)))
         self.objective_quad = po.Objective(rule=objective_rule_quad,
                                            sense=po.minimize,
                                            doc='Quadratic objective function')
