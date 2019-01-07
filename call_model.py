@@ -42,19 +42,19 @@ sqlc = aql.sql_connector(**dict(db=db,
                                 host=config.PSQL_HOST))
 
 
-slct_pt = pd.read_csv(os.path.join(config.PATH_CSV, 'def_pp_type.csv'))
-slct_pt = slct_pt.loc[-slct_pt.pt.str.contains('|'.join(['SOL', 'WIN', 'HYD_RES', 'HYD_ROR', 'LIG', 'GEO', 'WAS', 'BAL', 'OIL']))]
-slct_pt = slct_pt.pt.tolist()
+#slct_pt = pd.read_csv(os.path.join(config.PATH_CSV, 'def_pp_type.csv'))
+#slct_pt = slct_pt.loc[-slct_pt.pt.str.contains('|'.join(['SOL', 'WIN', 'HYD_RES', 'HYD_ROR', 'LIG', 'GEO', 'WAS', 'BAL', 'OIL']))]
+#slct_pt = slct_pt.pt.tolist()
 
 
 # additional kwargs for the model
 mkwargs = {
            'slct_encar': ['EL'],
-           'slct_node': ['DE0', 'FR0', 'IT0'],#, 'CH0', 'FR0', 'AT0'],#, 'DE0', 'CH0', 'FR0'],
+           'slct_node': ['DE0', 'FR0', 'IT0', 'CH0', 'FR0', 'AT0'],#, 'DE0', 'CH0', 'FR0'],
            'nhours': 1,
-           'slct_pp_type': slct_pt,
+#           'slct_pp_type': slct_pt,
 #           'skip_runs': True,
-           'tm_filt': [('wk', [20]), ('dow', [4,5,6])],
+#           'tm_filt': [('wk', [20]), ('dow', [4,5,6])],
 #           'verbose_solver': False,
            'constraint_groups': MB.get_constraint_groups(excl=['chp', 'ror',
                                                                'hydro',
@@ -94,24 +94,24 @@ ml = model_loop.ModelLoop(**mlkwargs, mkwargs=mkwargs, iokwargs=iokwargs)
 
 
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ SET MINIMUM DEMAND TO ZERO
-
-df_dmnd = IO.param_to_df(ml.m.dmnd, ('sy', 'nd_id', 'ca_id'))
-
-offs = df_dmnd.groupby('nd_id')['value'].min().rename('value_min')
-df_dmnd = df_dmnd.join(offs, on=offs.index.name)
-df_dmnd = df_dmnd.assign(value=df_dmnd.value - df_dmnd.value_min)
-dict_dmnd = df_dmnd.set_index(['sy', 'nd_id', 'ca_id']).value.to_dict()
-
-for key, val in dict_dmnd.items():
-
-    ml.m.dmnd[key].value = val
-
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ SET GRID LOSSES TO ZERO
-
-for key in ml.m.grid_losses:
-
-    ml.m.grid_losses[key] = 0
+## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ SET MINIMUM DEMAND TO ZERO
+#
+#df_dmnd = IO.param_to_df(ml.m.dmnd, ('sy', 'nd_id', 'ca_id'))
+#
+#offs = df_dmnd.groupby('nd_id')['value'].min().rename('value_min')
+#df_dmnd = df_dmnd.join(offs, on=offs.index.name)
+#df_dmnd = df_dmnd.assign(value=df_dmnd.value - df_dmnd.value_min)
+#dict_dmnd = df_dmnd.set_index(['sy', 'nd_id', 'ca_id']).value.to_dict()
+#
+#for key, val in dict_dmnd.items():
+#
+#    ml.m.dmnd[key].value = val
+#
+## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ SET GRID LOSSES TO ZERO
+#
+#for key in ml.m.grid_losses:
+#
+#    ml.m.grid_losses[key] = 0
 
 
 
@@ -147,7 +147,7 @@ for irow in list(range(irow_0, len(ml.df_def_loop))):
 #    mlm.new_inflow_profile_for_ch()
 
 #    mlm.chp_on_off(['DE0'])
-#
+
 #    mlm.cost_adjustment_literature()
 
 #    mlm.raise_demand(list_raise_dmnd, 'DE0')
@@ -171,12 +171,11 @@ for irow in list(range(irow_0, len(ml.df_def_loop))):
 #
 #ml.m.df_def_plant
 #
-#
 #nd_combs = ml.m.df_def_node[['nd', 'nd_id']].copy()
 #nd_combs['dummy'] = 1
 #nd_combs = pd.merge(*(2 * [nd_combs]), on='dummy', how='outer', suffixes=('', '_2'))
 #nd_combs = nd_combs.loc[nd_combs.nd_x]
-#
+
 
 
 # %%
