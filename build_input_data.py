@@ -18,12 +18,12 @@ from grimsel.auxiliary.aux_general import expand_rows
 from grimsel.auxiliary.aux_general import read_xlsx_table
 from grimsel.auxiliary.aux_general import translate_id
 from grimsel.auxiliary.aux_m_func import cols2tuplelist
-import grimsel.auxiliary.aux_sql_func as aql
+import grimsel.auxiliary.sqlutils.aux_sql_func as aql
 from grimsel.auxiliary.timemap import TimeMap
 import grimsel.config as config
 
 # change to current
-os.chdir(os.path.dirname(__file__))
+#os.chdir(os.path.dirname(__file__))
 
 db = config.DATABASE
 sc = config.SCHEMA
@@ -31,6 +31,14 @@ fn = config.FN_XLSX
 data_path = config.PATH_CSV
 
 wb = open_workbook(fn)
+wb_fy = open_workbook(os.path.join(os.path.dirname(fn), 'future_capacity.xlsx'))
+
+sqlc = aql.sql_connector(db)
+
+
+reload(aql)
+def init_table(*args, **kwargs):
+    return aql.init_table(*args, **kwargs, con_cur=sqlc.get_pg_con_cur())
 
 # %%
 
@@ -40,7 +48,7 @@ exec_str = ('''
             ''').format(sc=sc, )
 aql.exec_sql(exec_str, db=db)
 
-def yr_getter(par, data_type=False, rnge=range(2017, 2005 - 1, -1)):
+def yr_getter(par, data_type=False, rnge=range(2015, 2050 + 1, 5)):
     return [par + i if not data_type else (par + i, data_type)
             for i in [''] + ['_yr' + str(ii) for ii
             in rnge if not ii == 2015]]
@@ -53,7 +61,7 @@ cols = [('pt_id',' SMALLINT'),
         ('color', 'VARCHAR(7)')]
 pk = ['pt_id']
 unique = ['pt']
-aql.init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
+init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
                pk=pk, unique=unique, db=db)
 
 tb_name = 'def_fuel'
@@ -64,19 +72,19 @@ cols = [('fl_id', 'SMALLINT'), ('fl', 'varchar(20)'),
         ('color', 'VARCHAR(7)')]
 pk = ['fl_id']
 unique = ['fl']
-aql.init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
+init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
                pk=pk, unique=unique, db=db)
 
 tb_name = 'def_node'
 cols = [('nd_id', 'SMALLINT'), ('nd', 'VARCHAR(3)'),
-        ('discount_rate', 'DOUBLE PRECISION'),
-        ('charging', 'DOUBLE PRECISION'),
-        ('share_ws_set', 'DOUBLE PRECISION'),
-        ('chp_cap_pwr_leg', 'DOUBLE PRECISION'),
-        ('color', 'VARCHAR(7)')] + yr_getter('price_co2', 'DOUBLE PRECISION', [2015])
+#        ('discount_rate', 'DOUBLE PRECISION'),
+#        ('charging', 'DOUBLE PRECISION'),
+#        ('share_ws_set', 'DOUBLE PRECISION'),
+#        ('chp_cap_pwr_leg', 'DOUBLE PRECISION'),
+        ('color', 'VARCHAR(7)')] + yr_getter('price_co2', 'DOUBLE PRECISION')
 pk = ['nd_id']
 unique = ['nd']
-aql.init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
+init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
                pk=pk, unique=unique, db=db)
 
 tb_name = 'node_encar'
@@ -84,10 +92,10 @@ cols = [('nd_id', 'SMALLINT'),
         ('ca_id', 'SMALLINT'),
         ('grid_losses', 'DOUBLE PRECISION'),
         ('grid_losses_absolute', 'DOUBLE PRECISION'),
-        ('vc_dmnd_flex', 'DOUBLE PRECISION')] + yr_getter('dmnd_sum', 'DOUBLE PRECISION', [2015])
+        ] + yr_getter('dmnd_sum', 'DOUBLE PRECISION')
 pk = ['nd_id', 'ca_id']
 unique = []
-aql.init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
+init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
                pk=pk, unique=unique, db=db)
 
 tb_name = 'def_encar'
@@ -96,7 +104,7 @@ cols = [('ca_id', 'SMALLINT'),
         ('ca', 'VARCHAR(2)')]
 pk = ['ca_id']
 unique = ['ca']
-aql.init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
+init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
                pk=pk, unique=unique, db=db)
 
 tb_name = 'def_month'
@@ -106,7 +114,7 @@ cols = [('mt_id',' SMALLINT'),
         ('mt',' VARCHAR(3)')]
 pk = ['mt_id']
 unique = ['name']
-aql.init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
+init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
                pk=pk, unique=unique, db=db)
 
 tb_name = 'def_week'
@@ -114,15 +122,8 @@ cols = [('wk_id',' SMALLINT'),
         ('wk',' SMALLINT'),
         ('week_weight', 'SMALLINT')]
 pk = ['wk_id']
-aql.init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
+init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
                pk=pk, unique=unique, db=db)
-
-#tb_name = 'def_soy'
-#cols = [('sy',' SMALLINT'), ('weight',' SMALLINT')]
-#pk = ['sy']
-#unique = []
-#aql.init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
-#               pk=pk, unique=unique, db=db)
 
 tb_name = 'def_plant'
 cols = [('pp_id',' SMALLINT'), ('pp',' VARCHAR(20)'),
@@ -146,7 +147,7 @@ cols = [('pp_id',' SMALLINT'), ('pp',' VARCHAR(20)'),
         ('set_def_peak', 'SMALLINT')]
 pk = ['pp_id']
 unique = ['pp']
-aql.init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
+init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
                pk=pk, unique=unique, db=db)
 
 tb_name = 'plant_month'
@@ -154,16 +155,8 @@ cols = [('mt_id',' SMALLINT', sc + '.def_month(mt_id)'),
         ('pp_id',' SMALLINT', sc + '.def_plant(pp_id)'),
         ('hyd_erg_bc','DOUBLE PRECISION')]
 pk = ['mt_id', 'pp_id']
-aql.init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
+init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
                pk=pk, unique=unique, db=db)
-
-#tb_name = 'plant_week'
-#cols = [('wk_id',' SMALLINT', sc + '.def_week(wk_id)'),
-#        ('pp_id',' SMALLINT', sc + '.def_plant(pp_id)'),
-#        ('week_ror_output','DOUBLE PRECISION')]
-#pk = ['wk_id', 'pp_id']
-#aql.init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
-#               pk=pk, unique=unique, db=db)
 
 tb_name = 'plant_encar'
 cols = [('pp_id',' SMALLINT', sc + '.def_plant(pp_id)'),
@@ -173,21 +166,28 @@ cols = [('pp_id',' SMALLINT', sc + '.def_plant(pp_id)'),
         ('discharge_duration','DOUBLE PRECISION'),
         ('st_lss_rt','DOUBLE PRECISION'),
         ('st_lss_hr','DOUBLE PRECISION'),
-        ('factor_vc_fl_lin_0', 'DOUBLE PRECISION'),
-        ('factor_vc_fl_lin_1','DOUBLE PRECISION'),
-        ('factor_vc_co2_lin_0', 'DOUBLE PRECISION'),
-        ('factor_vc_co2_lin_1','DOUBLE PRECISION'),
+        ('factor_lin_0', 'DOUBLE PRECISION'),
+        ('factor_lin_1','DOUBLE PRECISION'),
         ('vc_ramp','DOUBLE PRECISION'),
-        ('vc_ramp_low','DOUBLE PRECISION'),
-        ('vc_ramp_high', 'DOUBLE PRECISION'),
         ('vc_om','DOUBLE PRECISION'),
-       ] + (yr_getter('cap_pwr_leg', 'DOUBLE PRECISION', [2015])
-         + yr_getter('cf_max', 'DOUBLE PRECISION', [2015]))
+       ] + (yr_getter('cap_pwr_leg', 'DOUBLE PRECISION'))
 
 pk = ['pp_id', 'ca_id']
 unique = []
-aql.init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
+init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
                pk=pk, unique=unique, db=db)
+
+tb_name = 'plant_encar_scenarios'
+cols = [('pp_id',' SMALLINT', sc + '.def_plant(pp_id)'),
+        ('ca_id',' SMALLINT', sc + '.def_encar(ca_id)'),
+        ('scenario', 'SMALLINT'),
+       ] + (yr_getter('cap_pwr_leg', 'DOUBLE PRECISION'))
+pk = ['pp_id', 'ca_id']
+unique = []
+init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
+               pk=pk, unique=unique, db=db)
+
+
 
 tb_name = 'imex_comp'
 cols = [('nd_id', 'SMALLINT', sc + '.def_node(nd_id)'),
@@ -195,17 +195,8 @@ cols = [('nd_id', 'SMALLINT', sc + '.def_node(nd_id)'),
         ] + yr_getter('erg_trm', 'DOUBLE PRECISION', [2015])
 pk = ['nd_id', 'nd_2_id']
 unique = []
-aql.init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
+init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
                pk=pk, unique=unique, db=db)
-
-#tb_name = 'erg_yr_comp'
-#cols = [('nd_id', 'SMALLINT', sc + '.def_node(nd_id)'),
-#        ('fl_id', 'SMALLINT', sc + '.def_sub_fuel(fl_id)'),
-#        ('value', 'DOUBLE PRECISION')]
-#pk = ['nd_id', 'fl_id']
-#unique = []
-#aql.init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
-#               pk=pk, unique=unique, db=db)
 
 tb_name = 'profdmnd'
 cols = [('nd_id', 'SMALLINT', sc + '.def_node(nd_id)'),
@@ -213,7 +204,7 @@ cols = [('nd_id', 'SMALLINT', sc + '.def_node(nd_id)'),
         ('hy', 'SMALLINT')] + yr_getter('value', 'NUMERIC(18,9)', [2015])
 pk = ['hy', 'ca_id', 'nd_id']
 unique = []
-aql.init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
+init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
                pk=pk, unique=unique, db=db)
 
 tb_name = 'profchp'
@@ -222,7 +213,7 @@ cols = [('nd_id', 'SMALLINT', sc + '.def_node(nd_id)'),
         ('hy', 'SMALLINT'), ('value', 'DOUBLE PRECISION')]
 pk = ['hy', 'nd_id']
 unique = []
-aql.init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
+init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
                pk=pk, unique=unique, db=db)
 
 tb_name = 'profinflow'
@@ -231,7 +222,7 @@ cols = [('pp_id', 'SMALLINT', sc + '.def_plant(pp_id)'),
         ('hy', 'SMALLINT'), ('value', 'DOUBLE PRECISION')]
 pk = ['hy', 'pp_id']
 unique = []
-aql.init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
+init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
                pk=pk, unique=unique, db=db)
 
 tb_name = 'profprice'
@@ -241,7 +232,7 @@ cols = [('hy', 'SMALLINT'),
        ] + yr_getter('value', 'DOUBLE PRECISION', [2015])
 pk = ['hy', 'nd_id', 'fl_id']
 unique = []
-aql.init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
+init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
                pk=pk, unique=unique, db=db)
 
 #
@@ -251,12 +242,23 @@ cols = ([('fl_id', 'SMALLINT', sc + '.def_fuel(fl_id)'),
          ('ca_id', 'SMALLINT', sc + '.def_encar(ca_id)'),
          ('has_profile', 'SMALLINT'),
          ('is_chp', 'SMALLINT'),
-         ] + yr_getter('erg_inp', 'DOUBLE PRECISION', [2015])
-           + yr_getter('vc_fl', 'DOUBLE PRECISION', [2015])
-           + yr_getter('erg_chp', 'DOUBLE PRECISION', [2015]))
+         ] + yr_getter('erg_inp', 'DOUBLE PRECISION')
+           + yr_getter('vc_fl', 'DOUBLE PRECISION')
+           + yr_getter('erg_chp', 'DOUBLE PRECISION'))
 pk = ['fl_id', 'nd_id']
 unique = []
-aql.init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
+init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
+               pk=pk, unique=unique, db=db)
+
+#
+tb_name = 'fuel_node_encar_scenarios'
+cols = ([('fl_id', 'SMALLINT', sc + '.def_fuel(fl_id)'),
+         ('nd_id', 'SMALLINT', sc + '.def_node(nd_id)'),
+         ('ca_id', 'SMALLINT', sc + '.def_encar(ca_id)'),
+         ] + yr_getter('erg_inp', 'DOUBLE PRECISION'))
+pk = ['fl_id', 'nd_id']
+unique = []
+init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
                pk=pk, unique=unique, db=db)
 
 # table with monthly parameter modifiers
@@ -266,12 +268,11 @@ cols = ([('set_1_name', 'VARCHAR'), # from {'nd_id', 'fl_id', 'pp_id'}
          ('set_1_id', 'SMALLINT'),
          ('set_2_id', 'SMALLINT'),
          ('mt_id',' SMALLINT', sc + '.def_month(mt_id)'),
-#         ('ca_id', 'SMALLINT', sc + '.def_encar(ca_id)'),
          ('parameter', 'VARCHAR') # the parameter this applies to
          ] + yr_getter('mt_fact', 'NUMERIC(10,9)', [2015]))
 pk = ['parameter', 'set_1_id', 'set_2_id', 'mt_id']
 unique = []
-aql.init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
+init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
                pk=pk, unique=unique, db=db)
 
 tb_name = 'node_connect'
@@ -282,7 +283,7 @@ cols = [('nd_id', 'SMALLINT', sc + '.def_node (nd_id)'),
         ('eff', 'DOUBLE PRECISION')] + yr_getter('cap_trm_leg', 'DOUBLE PRECISION', [2015])
 pk = ['nd_id', 'nd_2_id', 'mt_id']
 unique = []
-aql.init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
+init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
                pk=pk, unique=unique, db=db)
 
 
@@ -293,7 +294,7 @@ cols = [('pp_id',' SMALLINT', sc + '.def_plant(pp_id)'),
         ('min_erg_share', 'DOUBLE PRECISION')]
 pk = ['pp_id']
 unique = []
-aql.init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
+init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
                pk=pk, unique=unique, db=db)
 
 # %%
@@ -305,6 +306,20 @@ ppca_cols = ['pp_id', 'ca_id', 'pp_eff', 'discharge_duration',
             ] + yr_getter('cf_max') + yr_getter('cap_pwr_leg')
 df_plant_encar = read_xlsx_table(wb, ['PLANT_ENCAR'], columns=ppca_cols)
 df_plant_encar = df_plant_encar[[c for c in df_plant_encar.columns if not 'yr20' in c]]
+
+
+ppca_cap_cols = ['pp_id', 'cap_pwr_leg', 'cap_pwr_leg_2020', 'cap_pwr_leg_2025',
+                 'cap_pwr_leg_2030', 'cap_pwr_leg_2035', 'cap_pwr_leg_2040',
+                 'cap_pwr_leg_2045', 'cap_pwr_leg_2050']
+df_plant_encar_capacities = read_xlsx_table(wb_fy, ['PLANT_ENCAR_CAP'], columns=ppca_cap_cols)
+df_plant_encar = (df_plant_encar.rename(columns={'cap_pwr_leg': 'cap_pwr_leg_old'})
+                                .join(df_plant_encar_capacities.set_index('pp_id'), on='pp_id')
+                                .fillna(1))
+
+df_plant_encar_scenarios = read_xlsx_table(wb_fy, ['PLANT_ENCAR_CAP'],
+                                           columns=ppca_cap_cols + ['scenario'],
+                                           sub_table='SCENARIOS')
+df_plant_encar_scenarios['ca_id'] = 'EL'
 
 
 lst_set = ['pr', 'cain', 'ror', 'pp', 'st', 'hyrs', 'chp', 'add',
@@ -322,22 +337,32 @@ nd_cols = ['nd_id', 'nd', 'discount_rate', 'charging', 'share_ws_set',
            'chp_cap_pwr_leg', 'color', 'price_co2']
 df_def_node = read_xlsx_table(wb, ['DEF_NODE'], nd_cols)
 
+
+
 ndca_cols = ['nd_id', 'ca_id', 'grid_losses',
              'grid_losses_absolute', 'vc_dmnd_flex'] + yr_getter('dmnd_sum')
 df_node_encar = read_xlsx_table(wb, ['NODE_ENCAR'], ndca_cols)
 df_node_encar = df_node_encar[[c for c in df_node_encar.columns if not 'yr20' in c]]
 
+ndca_dmnd_cols = ['nd_id', 'dmnd', 'dmnd_2020', 'dmnd_2025', 'dmnd_2030',
+                  'dmnd_2035', 'dmnd_2040', 'dmnd_2045', 'dmnd_2050']
+df_node_encar_dmnd = read_xlsx_table(wb_fy, ['NODE_ENCAR_DMND'], ndca_dmnd_cols)
+
+
+
 df_def_fuel = read_xlsx_table(wb, ['DEF_FUEL'],
                                   ['fl_id', 'fl', 'co2_int', 'is_ca',
                                    'is_constrained', 'color'])
-df_fuel_node_encar = read_xlsx_table(wb, ['FUEL_NODE_ENCAR'],
-                                     (['fl_id', 'nd_id', 'ca_id', 'is_chp',
-                                       'has_profile']
+df_fuel_node_encar = read_xlsx_table(wb_fy, ['FUEL_NODE_ENCAR'],
+                                     (['fl_id', 'nd_id', 'ca_id', 'is_chp']
                                       + yr_getter('erg_inp')
                                       + yr_getter('vc_fl')
                                       + yr_getter('erg_chp')))
-df_fuel_node_encar = df_fuel_node_encar[[c for c in df_fuel_node_encar.columns
-                                         if not 'yr20' in c]]
+
+df_fuel_node_encar_scenarios = read_xlsx_table(wb_fy, ['FUEL_NODE_ENCAR'],
+                                     (['fl_id', 'nd_id', 'ca_id']
+                                      + yr_getter('erg_inp') + ['scenario']),
+                                     sub_table='SCENARIOS')
 
 
 ndcn_cols = ['nd_id', 'nd_2_id', 'ca_id', 'mt_id', 'eff'
@@ -358,11 +383,6 @@ df_node_connect = df_node_connect[[c for c in df_node_connect.columns
 # Efficiencies exceptions for specific plants
 #df_eff_plant = read_xlsx_table(wb, ['EFFICIENCY'], eff_cols,
 #                               sub_table='EFF_PLANT')
-
-# for chp profile scaling
-chp_cols = ['nd_id', 'cf_profile_0', 'cap_pwr_leg_chp', 'min_prod',
-            'target_prod', 'profile_scale']
-df_def_chp = read_xlsx_table(wb, ['CHP'], chp_cols)
 
 # specific hydro parameters
 h_c = ['pp_id', 'min_erg_mt_out_share', 'max_erg_mt_in_share', 'min_erg_share']
@@ -463,9 +483,8 @@ df_profinflow.pivot_table(index='hy', columns='pp_id', values='value').plot()
 
 ############## PLANT_MONTH: HYDRO RESERVOIR FILLING LEVEL BCs #################
 
-df_plant_month = (df_plant_month.loc[df_plant_month['parameter']
-                                     =='energy_boundary_condition',
-                                     ['mt_id', 'pp_id', 'value']]
+bc_mask = df_plant_month['parameter'] =='energy_boundary_condition'
+df_plant_month = (df_plant_month.loc[bc_mask, ['mt_id', 'pp_id', 'value']]
                                 .rename(columns={'value':'hyd_erg_bc'}))
 
 ################ NODE_CONNECT #################################################
@@ -488,6 +507,9 @@ df_def_encar, _ = translate_id(df_def_encar, df_def_fuel, 'fl')
 
 df_plant_encar, dict_encar_id = translate_id(df_plant_encar, df_def_encar, 'ca')
 df_plant_encar, dict_plant_id = translate_id(df_plant_encar, df_def_plant, 'pp')
+df_plant_encar_scenarios, _ = translate_id(df_plant_encar_scenarios, df_def_encar, 'ca')
+df_plant_encar_scenarios, _ = translate_id(df_plant_encar_scenarios, df_def_plant, 'pp')
+
 
 df_def_plant, dict_fuel_id = translate_id(df_def_plant, df_def_fuel, 'fl')
 df_def_plant, dict_node_id = translate_id(df_def_plant, df_def_node, 'nd')
@@ -495,6 +517,9 @@ df_def_plant, dict_node_id = translate_id(df_def_plant, df_def_node, 'nd')
 df_fuel_node_encar, _ = translate_id(df_fuel_node_encar, df_def_fuel, 'fl')
 df_fuel_node_encar, _ = translate_id(df_fuel_node_encar, df_def_encar, 'ca')
 df_fuel_node_encar, _ = translate_id(df_fuel_node_encar, df_def_node, 'nd')
+df_fuel_node_encar_scenarios, _ = translate_id(df_fuel_node_encar_scenarios, df_def_fuel, 'fl')
+df_fuel_node_encar_scenarios, _ = translate_id(df_fuel_node_encar_scenarios, df_def_encar, 'ca')
+df_fuel_node_encar_scenarios, _ = translate_id(df_fuel_node_encar_scenarios, df_def_node, 'nd')
 
 df_def_plant, _ = translate_id(df_def_plant, df_def_pp_type, 'pt')
 
@@ -740,7 +765,7 @@ exec_strg = '''
             INTO {sc}.profsupply
             FROM profiles_raw.ninja_mod
             WHERE year = 2015;
-            
+
             ALTER TABLE {sc}.profsupply
                 ALTER value TYPE {cf_data_type}
             '''.format(sc=sc, cf_data_type=cf_data_type)
@@ -763,7 +788,7 @@ aql.exec_sql(exec_strg, db=db)
 #                    AND prf.pp = rw.pp_id;
 #                '''.format(yr=str(iyr), sc=sc, cf_data_type=cf_data_type)
 #    aql.exec_sql(exec_strg, db=db)
-    
+
 exec_strg = '''
             ALTER TABLE {sc}.profsupply
             ADD COLUMN pp_id SMALLINT;
@@ -853,7 +878,7 @@ cols = [('nd_id', 'SMALLINT', sc + '.def_node(nd_id)'),
         ('volume_mwh', 'DOUBLE PRECISION')]
 pk = ['hy', 'nd_id', 'swhy_vl', 'ca_id']
 unique = []
-aql.init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
+init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
                pk=pk, unique=unique, db=db)
 
 
@@ -933,6 +958,10 @@ FULL OUTER JOIN (SELECT nd, fl, pp FROM ppca WHERE fl IN (SELECT fl FROM tb_fina
 df_parmt_cap_avlb = pd.DataFrame(aql.exec_sql(exec_strg, db=db),
                                  columns=['fl_id', 'nd_id', 'pp_id', 'year',
                                           'mt_id', 'ca_id', 'cap_avlb'])
+
+df_check = aql.read_sql('storage2', 'lp_input_calibration_years_linonly', 'parameter_month')
+df_check.loc[df_check.parameter=='cap_avlb'].pivot_table(index='mt_id', columns=['set_1_id'], values='mt_fact').plot()
+
 df_parmt_cap_avlb = df_parmt_cap_avlb.pivot_table(index=['pp_id', 'ca_id', 'mt_id'], values='cap_avlb')
 df_parmt_cap_avlb = df_parmt_cap_avlb.reset_index().rename(columns={'cap_avlb': 'mt_fact',
                                                                     'pp_id': 'set_1_id',
