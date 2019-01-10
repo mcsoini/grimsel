@@ -1,1 +1,2 @@
-call_model.py merge=ours
+build_input_data.py ours
+call_model.py ours
