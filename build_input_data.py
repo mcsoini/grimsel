@@ -22,9 +22,6 @@ import grimsel.auxiliary.sqlutils.aux_sql_func as aql
 from grimsel.auxiliary.timemap import TimeMap
 import grimsel.config as config
 
-# change to current
-#os.chdir(os.path.dirname(__file__))
-
 db = config.DATABASE
 sc = config.SCHEMA
 fn = config.FN_XLSX
@@ -35,10 +32,11 @@ wb_fy = open_workbook(os.path.join(os.path.dirname(fn), 'future_capacity.xlsx'))
 
 sqlc = aql.sql_connector(db)
 
-
 reload(aql)
 def init_table(*args, **kwargs):
     return aql.init_table(*args, **kwargs, con_cur=sqlc.get_pg_con_cur())
+
+sys.exit()
 
 # %%
 
@@ -280,7 +278,9 @@ cols = [('nd_id', 'SMALLINT', sc + '.def_node (nd_id)'),
         ('nd_2_id', 'SMALLINT', sc + '.def_node (nd_id)'),
         ('ca_id', 'SMALLINT', sc + '.def_encar (ca_id)'),
         ('mt_id', 'SMALLINT', sc + '.def_month(mt_id)'),
-        ('eff', 'DOUBLE PRECISION')] + yr_getter('cap_trm_leg', 'DOUBLE PRECISION', [2015])
+        ('cap_trme_leg', 'DOUBLE PRECISION'),
+        ('cap_trmi_leg', 'DOUBLE PRECISION'),
+        ]
 pk = ['nd_id', 'nd_2_id', 'mt_id']
 unique = []
 init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
@@ -300,12 +300,10 @@ init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
 # %%
 
 ppca_cols = ['pp_id', 'ca_id', 'pp_eff', 'discharge_duration',
-             'st_lss_rt',  'st_lss_hr', 'vc_ramp', 'vc_ramp_low',
-             'vc_ramp_high', 'vc_om', 'factor_vc_fl_lin_0', 'factor_vc_fl_lin_1',
-             'factor_vc_co2_lin_0', 'factor_vc_co2_lin_1',
-            ] + yr_getter('cf_max') + yr_getter('cap_pwr_leg')
+             'st_lss_rt', 'vc_ramp', 'vc_om',
+             'factor_lin_0', 'factor_lin_1',
+            ] + ['cap_pwr_leg']
 df_plant_encar = read_xlsx_table(wb, ['PLANT_ENCAR'], columns=ppca_cols)
-df_plant_encar = df_plant_encar[[c for c in df_plant_encar.columns if not 'yr20' in c]]
 
 
 ppca_cap_cols = ['pp_id', 'cap_pwr_leg', 'cap_pwr_leg_2020', 'cap_pwr_leg_2025',
@@ -315,6 +313,8 @@ df_plant_encar_capacities = read_xlsx_table(wb_fy, ['PLANT_ENCAR_CAP'], columns=
 df_plant_encar = (df_plant_encar.rename(columns={'cap_pwr_leg': 'cap_pwr_leg_old'})
                                 .join(df_plant_encar_capacities.set_index('pp_id'), on='pp_id')
                                 .fillna(1))
+
+df_plant_encar.pp_id.tolist()
 
 df_plant_encar_scenarios = read_xlsx_table(wb_fy, ['PLANT_ENCAR_CAP'],
                                            columns=ppca_cap_cols + ['scenario'],
@@ -333,8 +333,7 @@ df_def_encar = read_xlsx_table(wb, ['DEF_ENCAR'], ['ca_id', 'fl_id', 'ca'])
 dfpt_cols = ['pt_id', 'pt', 'pp_broad_cat', 'color']
 df_def_pp_type = read_xlsx_table(wb, ['DEF_PP_TYPE'], dfpt_cols)
 
-nd_cols = ['nd_id', 'nd', 'discount_rate', 'charging', 'share_ws_set',
-           'chp_cap_pwr_leg', 'color', 'price_co2']
+nd_cols = ['nd_id', 'nd', 'color'] + yr_getter('price_co2')
 df_def_node = read_xlsx_table(wb, ['DEF_NODE'], nd_cols)
 
 
@@ -342,9 +341,8 @@ df_def_node = read_xlsx_table(wb, ['DEF_NODE'], nd_cols)
 ndca_cols = ['nd_id', 'ca_id', 'grid_losses',
              'grid_losses_absolute', 'vc_dmnd_flex'] + yr_getter('dmnd_sum')
 df_node_encar = read_xlsx_table(wb, ['NODE_ENCAR'], ndca_cols)
-df_node_encar = df_node_encar[[c for c in df_node_encar.columns if not 'yr20' in c]]
 
-ndca_dmnd_cols = ['nd_id', 'dmnd', 'dmnd_2020', 'dmnd_2025', 'dmnd_2030',
+ndca_dmnd_cols = ['nd_id', 'ca_id', 'dmnd', 'dmnd_2020', 'dmnd_2025', 'dmnd_2030',
                   'dmnd_2035', 'dmnd_2040', 'dmnd_2045', 'dmnd_2050']
 df_node_encar_dmnd = read_xlsx_table(wb_fy, ['NODE_ENCAR_DMND'], ndca_dmnd_cols)
 
@@ -365,11 +363,9 @@ df_fuel_node_encar_scenarios = read_xlsx_table(wb_fy, ['FUEL_NODE_ENCAR'],
                                      sub_table='SCENARIOS')
 
 
-ndcn_cols = ['nd_id', 'nd_2_id', 'ca_id', 'mt_id', 'eff'
-            ] + yr_getter('cap_trm_leg')
+ndcn_cols = ['nd_id', 'nd_2_id', 'ca_id', 'mt_id', 'cap_trme_leg',
+             'cap_trmi_leg']
 df_node_connect = read_xlsx_table(wb, ['NODE_CONNECT'], ndcn_cols)
-df_node_connect = df_node_connect[[c for c in df_node_connect.columns
-                                   if not 'yr20' in c]]
 
 ###############################################################################
 
@@ -377,12 +373,6 @@ df_node_connect = df_node_connect[[c for c in df_node_connect.columns
 ###############################################################################
 
 # For replacement of efficiency in df_plant_encar
-#eff_cols = ['pp_id','year','nd_id','ca_id','pp_eff']
-#df_eff_0 = read_xlsx_table(wb, ['EFFICIENCY'], eff_cols)
-
-# Efficiencies exceptions for specific plants
-#df_eff_plant = read_xlsx_table(wb, ['EFFICIENCY'], eff_cols,
-#                               sub_table='EFF_PLANT')
 
 # specific hydro parameters
 h_c = ['pp_id', 'min_erg_mt_out_share', 'max_erg_mt_in_share', 'min_erg_share']
@@ -423,7 +413,6 @@ df_def_week = (df_def_week.reset_index().rename(columns=new_cols))
 df_tm = df_tm[['hy', 'doy', 'mt']].rename(columns={'mt': 'mt_id'})
 
 # monthly inflow reservoirs
-
 dfres = df_plant_month.loc[df_plant_month['parameter'] == 'monthly_share_inflow']
 dfres = pd.merge(df_tm, dfres, on='mt_id')
 dfres = dfres[['hy', 'pp_id', 'value']]
@@ -548,12 +537,6 @@ df_imex_comp, _ = translate_id(df_imex_comp, df_def_node, ['nd', 'nd_2'])
 '''
 add various set definition columns to df_def_plant
 '''
-
-mask_ws = (df_def_plant['pp'].apply(lambda x: str.find(x, 'WIN') > 0)
-         | df_def_plant['pp'].apply(lambda x: str.find(x, 'SOL') > 0))
-df_def_plant['set_def_winsol'] = 0
-df_def_plant.loc[mask_ws, 'set_def_winsol'] = 1
-
 print('Write all output')
 write_dfs = [
              (df_def_node, 'def_node'),
@@ -721,6 +704,8 @@ df_profdmnd['scale'] = df_profdmnd.nd_id.replace(dmnd_scale)
 df_profdmnd['value'] *= df_profdmnd.scale
 df_profdmnd = df_profdmnd.drop('scale', axis=1)
 
+
+# %%
 '''
 Comparison price profiles
 '''
@@ -771,8 +756,8 @@ exec_strg = '''
             '''.format(sc=sc, cf_data_type=cf_data_type)
 aql.exec_sql(exec_strg, db=db)
 
-
-# only 2015 !!
+#
+## only 2015 !!
 #for iyr in list(set([yr[0] for yr in
 #                aql.exec_sql('SELECT DISTINCT year FROM profiles_raw.ninja_mod;',
 #                db=db) if not 2015 in yr])):
@@ -817,6 +802,10 @@ slct_pp_id = [vv for kk, vv in dict_plant_id.items() if 'FR_WIN_OFF' in kk or 'D
 df_slct = aql.read_sql(db, sc, 'profsupply',
              filt=[('pp_id', slct_pp_id)]).set_index('hy')
 df_slct.sort_index()[[c for c in df_slct.columns if 'value' in c]].plot(marker='.')
+
+df_slct['value'] = df_slct.value.astype(float)
+df_slct.reset_index().pivot_table(index='hy', columns=['pp_id'], values='value').plot()
+
 
 # %% ADDING BIOMASS PRODUCTION PROILE AS VRE
 
@@ -870,9 +859,6 @@ tb_name = 'profprice_comp'
 cols = [('nd_id', 'SMALLINT', sc + '.def_node(nd_id)'),
         ('ca_id', 'SMALLINT', sc + '.def_encar(ca_id)'),
         ('swhy_vl', 'VARCHAR(6)'),
-#        ('month', 'SMALLINT'),
-#        ('day', 'SMALLINT'),
-#        ('hod', 'SMALLINT'),
         ('hy', 'SMALLINT'),
         ('price_eur_mwh', 'DOUBLE PRECISION'),
         ('volume_mwh', 'DOUBLE PRECISION')]
@@ -958,6 +944,8 @@ FULL OUTER JOIN (SELECT nd, fl, pp FROM ppca WHERE fl IN (SELECT fl FROM tb_fina
 df_parmt_cap_avlb = pd.DataFrame(aql.exec_sql(exec_strg, db=db),
                                  columns=['fl_id', 'nd_id', 'pp_id', 'year',
                                           'mt_id', 'ca_id', 'cap_avlb'])
+
+df_parmt_cap_avlb.pivot_table(index='mt_id', columns=['pp_id'], values='cap_avlb').plot(marker='o')
 
 df_check = aql.read_sql('storage2', 'lp_input_calibration_years_linonly', 'parameter_month')
 df_check.loc[df_check.parameter=='cap_avlb'].pivot_table(index='mt_id', columns=['set_1_id'], values='mt_fact').plot()
