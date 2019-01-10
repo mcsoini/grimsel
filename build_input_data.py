@@ -801,9 +801,9 @@ aql.exec_sql(exec_strg, db=db)
 slct_pp_id = [vv for kk, vv in dict_plant_id.items() if 'FR_WIN_OFF' in kk or 'DE_WIN_OFF' in kk]
 df_slct = aql.read_sql(db, sc, 'profsupply',
              filt=[('pp_id', slct_pp_id)]).set_index('hy')
+df_slct['value'] = df_slct.value.astype(float)
 df_slct.sort_index()[[c for c in df_slct.columns if 'value' in c]].plot(marker='.')
 
-df_slct['value'] = df_slct.value.astype(float)
 df_slct.reset_index().pivot_table(index='hy', columns=['pp_id'], values='value').plot()
 
 
