@@ -14,6 +14,18 @@ class Constraints:
     '''
     Mixin class containing all constraints.
     '''
+
+
+    def add_transmission_bounds_rules(self):
+
+        for sy, nd1, nd2, ca in self.trm:
+
+            mt = self.dict_soy_month[sy]
+            ub = self.cap_trme_leg[mt, nd1, nd2, ca]
+            lb = - self.cap_trmi_leg[mt, nd1, nd2, ca]
+            self.trm[(sy, nd1, nd2, ca)].setub(ub)
+            self.trm[(sy, nd1, nd2, ca)].setlb(lb)
+
     def add_supply_rules(self):
 
         print('Supply rule')
@@ -28,11 +40,11 @@ class Constraints:
                         in set_to_list(self.ppall_ndca,
                                        [None, nd, ca]))
                     # incoming inter-node transmission
-                    + sum(self.trm_rv[sy, nd, nd_2, ca] for (nd, nd_2, ca)
-                          in set_to_list(self.ndcnn, [nd, None, ca]))
+                    + sum(self.trm[sy, nd, nd_2, ca] for (nd, nd_2, ca)
+                          in set_to_list(self.ndcnn, [None, nd, ca]))
                    )
             dmnd = (self.dmnd[sy, nd, ca]
-                    + sum(self.trm_sd[sy, nd, nd_2, ca] for (nd, nd_2, ca)
+                    + sum(self.trm[sy, nd, nd_2, ca] for (nd, nd_2, ca)
                           in set_to_list(self.ndcnn, [nd, None, ca]))
                     + sum(self.pwr_st_ch[sy, st, ca] for (st, nd, ca)
                           in set_to_list(self.st_ndca, [None, nd, ca]))
@@ -63,14 +75,6 @@ class Constraints:
         self.YearlyEnergy = po.Constraint(self.ppall_ca,
                                           rule=YearlyEnergy_rule)
 
-#        print('Yearly flexible demand calculation rule')
-#        def yearly_flex_dmnd_rule(self, nd, ca):
-#            ''' Yearly amount of flexible demand (curtailment). '''
-#            return (self.dmnd_flex_yr[nd, ca]
-#                    == sum(self.dmnd_flex[sy, nd, ca] * self.weight[sy]
-#                           for sy in self.sy))
-#        self.yrfxdd = po.Constraint(self.ndca_EL, rule=yearly_flex_dmnd_rule)
-
         print('Yearly ramping calculation rule')
         def yearly_ramp_rule(self, pp, ca):
             ''' Yearly ramping in MW/yr. Up and down aggregated. '''
@@ -96,29 +100,6 @@ class Constraints:
         self.yrstcg = po.Constraint(self.st_ca, rule=yearly_chg_rule)
         self.yrstcg.doc = 'Yearly storage charging energy.'
 
-        print('Yearly transmission send rule')
-        def yearly_trm_sd_rule(self, nd, nd_2, ca):
-            return (self.erg_trm_sd_yr[nd, nd_2, ca]
-                    == sum(self.trm_sd[sy, nd, nd_2, ca]
-                       * self.weight[sy] for sy in self.sy))
-        self.yrtrsd = po.Constraint(self.ndcnn, rule=yearly_trm_sd_rule)
-        self.yrtrsd.doc = 'Yearly cross border exchanged energy (send).'
-
-        print('Yearly transmission receive rule')
-        def yearly_trm_rv_rule(self, nd, nd_2, ca):
-            return (self.erg_trm_rv_yr[nd, nd_2, ca]
-                    == sum(self.trm_rv[sy, nd, nd_2, ca]
-                       * self.weight[sy] for sy in self.sy))
-        self.yrtrrv = po.Constraint(self.ndcnn, rule=yearly_trm_rv_rule)
-        self.yrtrrv.doc = 'Yearly cross border exchanged energy (receive).'
-
-    def add_transmission_rules(self):
-        print('Symmetry of transmission rule')
-        def trm_symm_rule(self, sy, nd1, nd2, ca):
-            return (self.trm_sd[sy, nd1, nd2, ca]
-                    == self.trm_rv[sy, nd2, nd1, ca])
-        self.trm_symm = po.Constraint(self.sy, self.ndcnn, rule=trm_symm_rule)
-
     def add_capacity_rules(self):
 
         print('Calculate total capacity')
@@ -141,16 +122,6 @@ class Constraints:
                                               rule=calc_cap_erg_tot_rule)
 
         print('Capacity constraints rules...')
-        print('- Transmission')
-        def trm_sd_capac_rule(self, sy, nd1, nd2, ca):
-
-            mt = self.dict_soy_month[sy]
-
-            return (self.trm_sd[sy, nd1, nd2, ca]
-                    <= self.cap_trm_leg[mt, nd1, nd2, ca])
-        self.trm_sd_capac_rule = po.Constraint(self.sy, self.ndcnn,
-                                               rule=trm_sd_capac_rule)
-
         print('- Power capacity pps')
         def ppst_capac_rule(self, pp, ca, sy):
             ''' Produced power less than capacity. '''

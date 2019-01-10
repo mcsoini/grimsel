@@ -7,7 +7,7 @@ Created on Thu Nov  2 13:28:17 2017
 
 """
 
-import grimsel.auxiliary.aux_sql_func as aql
+import grimsel.auxiliary.sqlutils.aux_sql_func as aql
 
 from grimsel.analysis.decorators import DecoratorsSqlAnalysis
 

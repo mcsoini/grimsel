@@ -1,259 +1,635 @@
-'''
-Contains the class IO which handles all input/output.
-Note: It would be better if all interaction with SQL where concentrated in
-a dedicated method/class
-'''
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Jan  2 15:03:42 2019
 
-import sys, os
+@author: user
+"""
+import time
+import itertools
+import os
 
 import pandas as pd
-from pandas.io.sql import SQLTable
-import pyomo.environ as po
 from pyomo.core.base.param import _ParamData # required if params are mutable
-import psycopg2 as pg
-from sqlalchemy import create_engine
-import itertools
-from importlib import reload
-import time
 
-import grimsel.auxiliary.aux_sql_func as aql
-from grimsel.auxiliary.aux_general import print_full
-import grimsel.core.autocomplete as ac
+import grimsel.auxiliary.sqlutils.aux_sql_func as aql
 import grimsel
 
+import grimsel.core.autocomplete as ac
 
-reload(ac)
-reload(aql)
 
-#def _execute_insert(self, conn, keys, data_iter):
-##    print("Using monkey-patched _execute_insert")
-#    data = [dict((k, v) for k, v in zip(keys, row)) for row in data_iter]
-#    conn.execute(self.insert_statement().values(data))
-#SQLTable._execute_insert = _execute_insert
+import grimsel.core.table_struct as table_struct
 
-class IO():
+dict_tables = {lst: {tb[0]: tuple(tbb for tbb in tb[1:])
+                     for tb in getattr(table_struct, lst)}
+               for lst in table_struct.list_collect}
+
+
+chg_dict = table_struct.chg_dict
+
+def get_table_dicts():
     '''
-    Input/Output functionalities.
-    An instance of IO is owned by the ModelLoop class.
+    Get the dictionaries describing all tables.
 
-    Note: bool_out columns are added here. Description:
-    True if energy outflow from the node's perspective,
-    i.e. charging, exports, demand etc. False otherwise.
+    Also used in post_process_index, therefore classmethod.
     '''
 
-    # definition of output tables with column names. These mirror
-    # the model components.
-    var_sy = [
-              ('pwr', ('sy', 'pp_id', 'ca_id', 'bool_out')),
-              ('dmnd_flex', ('sy', 'nd_id', 'ca_id', 'bool_out')),
-              ('pwr_st_ch', ('sy', 'pp_id', 'ca_id', 'bool_out'), 'pwr'),
-              ('erg_st', ('sy', 'pp_id', 'ca_id'))
-             ]
-    var_mt = [
-        ('erg_mt', ('mt_id', 'pp_id', 'ca_id'))]
-    var_yr = [
-        ('erg_yr', ('pp_id', 'ca_id', 'bool_out')),
-        ('erg_fl_yr', ('pp_id', 'nd_id', 'ca_id', 'fl_id')),
-        ('pwr_ramp_yr', ('pp_id', 'ca_id')),
-        ('vc_fl_pp_yr', ('pp_id', 'ca_id', 'fl_id')),
-        ('vc_ramp_yr', ('pp_id', 'ca_id')),
-        ('vc_co2_pp_yr', ('pp_id', 'ca_id')),
-        ('vc_om_pp_yr', ('pp_id', 'ca_id')),
-        ('fc_om_pp_yr', ('pp_id', 'ca_id')),
-        ('fc_cp_pp_yr', ('pp_id', 'ca_id')),
-        ('fc_dc_pp_yr', ('pp_id', 'ca_id')),
-        ('vc_dmnd_flex_yr', ('nd_id', 'ca_id')),
-        ('cap_pwr_rem', ('pp_id', 'ca_id')),
-        ('cap_pwr_tot', ('pp_id', 'ca_id')),
-        ('cap_erg_tot', ('pp_id', 'ca_id')),
-        ('cap_pwr_new', ('pp_id', 'ca_id')),
-        ('erg_ch_yr', ('pp_id', 'ca_id', 'bool_out'), 'erg_yr')]
-    var_tr = [
-        ('trm_sd', ('sy', 'nd_id', 'nd_2_id', 'ca_id', 'bool_out')),
-        ('trm_rv', ('sy', 'nd_id', 'nd_2_id', 'ca_id', 'bool_out')),
-        ('erg_trm_rv_yr', ('nd_id', 'nd_2_id', 'ca_id', 'bool_out')),
-        ('erg_trm_sd_yr', ('nd_id', 'nd_2_id', 'ca_id', 'bool_out'))]
-    par = [
-        ('share_ws_set', ('nd_id',)),
-        ('price_co2', ('nd_id',)),
-        ('co2_int', ('fl_id',)),
-        ('cap_pwr_leg', ('pp_id', 'ca_id')),
-        ('cap_avlb', ('pp_id', 'ca_id')),
-        ('cap_trm_leg', ('mt_id', 'nd_id', 'nd_2_id', 'ca_id')),
-#        ('weight', ('sy',)),
-        ('cf_max', ('pp_id', 'ca_id')),
-        ('grid_losses', ('nd_id', 'ca_id')),
-        ('erg_max', ('nd_id', 'ca_id', 'fl_id')),
-        ('hyd_pwr_in_mt_max', ('pp_id',)),
-        ('hyd_pwr_out_mt_min', ('pp_id',)),
-        ('vc_dmnd_flex', ('nd_id', 'ca_id')),
-        ('vc_fl', ('fl_id', 'nd_id')),
-        ('factor_vc_fl_lin_0', ('pp_id', 'ca_id')),
-        ('factor_vc_fl_lin_1', ('pp_id', 'ca_id')),
-        ('factor_vc_co2_lin_0', ('pp_id', 'ca_id')),
-        ('factor_vc_co2_lin_1', ('pp_id', 'ca_id')),
-        ('vc_om', ('pp_id', 'ca_id')),
-        ('fc_om', ('pp_id', 'ca_id')),
-        ('fc_dc', ('pp_id', 'ca_id')),
-        ('fc_cp_ann', ('pp_id', 'ca_id')),
-        ('ca_share_min', ('pp_id', 'ca_id')),
-        ('ca_share_max', ('pp_id', 'ca_id')),
-        ('pp_eff', ('pp_id', 'ca_id')),
-        ('vc_ramp', ('pp_id', 'ca_id')),
-        ('st_lss_hr', ('pp_id', 'ca_id')),
-        ('st_lss_rt', ('pp_id', 'ca_id')),
-#        ('hyd_erg_bc', ('sy', 'pp_id')), # this gets extremely large
-        ('hyd_erg_min', ('pp_id',)),
-        ('inflowprof', ('sy', 'pp_id', 'ca_id')),
-        ('chpprof', ('sy', 'nd_id', 'ca_id')),
-        ('supprof', ('sy', 'pp_id', 'ca_id')),
-        ('priceprof', ('sy', 'nd_id', 'fl_id')),
-        ('week_ror_output', ('wk', 'pp_id')),
-        ('dmnd', ('sy', 'nd_id', 'ca_id')),
-        ('erg_inp', ('nd_id', 'ca_id', 'fl_id')),
-        ('erg_chp', ('nd_id', 'ca_id', 'fl_id')),
-        ('capchnge_max', tuple()),
-#        ('objective', tuple()),
-#        ('objective_lin', tuple()),
-#        ('objective_quad', tuple())
-        ]
-    dual = [('supply', ('sy', 'nd_id', 'ca_id'))]
+    # construct table name group name and component name
+    dict_idx = {comp: spec[0]
+                for grp, tbs in dict_tables.items()
+                for comp, spec in tbs.items()}
+    dict_table = {comp: (grp + '_' + spec[1]
+                         if len(spec) > 1
+                         else grp + '_' + comp)
+                  for grp, tbs in dict_tables.items()
+                  for comp, spec in tbs.items()}
+    dict_group = {comp: grp
+                  for grp, tbs in dict_tables.items()
+                  for comp, spec in tbs.items()}
 
-    list_collect = ['var_sy', 'var_mt', 'var_yr', 'par', 'dual']
+    return dict_idx, dict_table, dict_group
 
-    loop_pk = ['run_id']
+# expose as module variable for easier access
+DICT_IDX, DICT_TABLE, DICT_GROUP = get_table_dicts()
 
-    def skip_if_resume_loop(f):
-        def wrapper(self, *args, **kwargs):
-            if self.resume_loop:
-                pass
+
+# %%
+
+
+if __name__ == '__main__':
+
+    DICT_IDX = io.DICT_IDX
+    DICT_TABLE = io.DICT_TABLE
+    DICT_GROUP = io.DICT_GROUP
+
+
+class CompIO():
+    '''
+    A CompIO instance takes care of extracting a single variable/parameter from
+    the model and of writing a single table to the database.
+    '''
+
+    def __init__(self, tb, sc, comp_obj, idx, connect, model=None,
+                 coldict=None):
+
+        self.tb = tb
+        self.sc = sc
+        self.comp_obj = comp_obj
+        self.connect = connect
+        self.model = model
+
+        self.columns = None # set in index setter
+        self.run_id = None  # set in call to self.write_run
+
+        self.index = idx
+
+        self.coldict = aql.get_coldict()
+
+    def post_processing(self, df):
+        ''' Child-specific method called prior to writing. '''
+        return df
+
+    def to_df(self):
+        '''
+        Calls classmethods _to_df.
+
+        Is overwritten in DualIO, where _to_df is not used as classmethod.
+        '''
+
+        return self._to_df(self.comp_obj,
+                           [c for c in self.index if not c == 'bool_out'])
+
+
+    def init_output_table(self):
+        '''
+        Initialization of output table.
+
+        Note: Keys need to be added in post-processing due to table
+        writing performance.
+        '''
+
+        print('Initializing output table ', self.tb)
+        col_names = self.index + ('value',)
+        cols = [(c,) + (self.coldict[c][0],) for c in col_names]
+        cols += [('run_id', 'SMALLINT')]
+        pk = [] # pk added later for writing/appending performance
+        unique = []
+
+        aql.init_table(tb_name=self.tb, cols=cols,
+                       schema=self.sc,
+                       ref_schema=self.sc, pk=pk,
+                       unique=unique, bool_auto_fk=False, db=self.connect.db,
+                       con_cur=self.connect.get_pg_con_cur())
+
+    def add_bool_out_col(self, df):
+
+        if 'bool_out' in self.index:
+            df['bool_out'] = chg_dict[self.tb]
+
+        return df
+
+    def _finalize(self, df, tb=None):
+        ''' Add run_id column and write to database table '''
+
+        tb = self.tb if not tb else tb
+        print('Writing %s to'%self.comp_obj.name, self.sc + '.' + tb, end='... ')
+
+        # value generally positive, directionalities expressed through bool_out
+        df['value'] = df['value'].abs()
+
+        df['run_id'] = self.run_id
+
+        t = time.time()
+        df.to_sql(tb, self.connect.get_sqlalchemy_engine(),
+                  schema=self.sc, if_exists='append', index=False)
+        print('done in %.3f sec'%(time.time() - t))
+
+        if 'bool_out' in df.columns:
+            print('Unique bool: ', df.bool_out.unique())
+        print(df.head())
+
+    @property
+    def index(self):
+        return self._index
+
+    @index.setter
+    def index(self, value):
+        ''' Makes sure idx is tuple and updates columns attribute. '''
+        self._index = (value,) if not isinstance(value, tuple) else value
+        self.columns = list(self.index + ('value',))
+        self.columns = [c for c in self.columns if not c == 'bool_out']
+
+    def write(self, run_id):
+
+        self.run_id = run_id
+
+        df = self.to_df()
+
+        df = self.post_processing(df)
+
+        self._finalize(df)
+
+    def _node_to_plant(self, pt):
+        '''
+        TODO: THIS SHOULD BE IN MAPS!!!!
+        Method for translation of node_id to respective plant_id
+        in the cases of demand and inter-node transmission. This is used to
+        append demand/inter-nodal transmission to pwr table.
+        Returns a dictionary node -> plant
+        Keyword arguments:
+
+        * pt -- string, selected plant type for translation
+        '''
+        df_np = self.model.df_def_plant[['nd_id', 'pp_id', 'pp', 'pt_id']]
+        df_pt = self.model.df_def_pp_type[['pt_id', 'pt']]
+        mask_pt = df_pt.pt.apply(lambda x: x.replace('_ST', '')) == pt
+        slct_pp_type = df_pt.loc[mask_pt, 'pt_id'].astype(int).iloc[0]
+
+        mask_tech = df_np['pt_id'] == slct_pp_type
+        df_np_slct = df_np.loc[mask_tech]
+        dict_node_plant_slct = df_np_slct.set_index('nd_id')
+        dict_node_plant_slct = dict_node_plant_slct['pp_id'].to_dict()
+        return dict_node_plant_slct
+
+    def __repr__(self):
+
+        return 'Comp_obj: ' + str(self.comp_obj)
+
+class DualIO(CompIO):
+    '''
+    Base class for dual values. Performs the data extraction of constraint
+    shadow prices.
+    '''
+
+    def to_df(self):
+
+        dat = [ico + (self.model.dual[self.comp_obj[ico]],)
+               for ico in self.comp_obj]
+        return pd.DataFrame(dat, columns=self.columns)
+
+
+
+class VariabIO(CompIO):
+    '''
+    Base class for variables. Performs the data extraction of variable
+    objects.
+    Also: Special methods related to the handling of negative plant
+    variables defined by setlst[sll] + setlst[curt]
+    as well as storage charging.
+
+    '''
+
+    @classmethod
+    def _to_df(cls, obj, cols):
+        ''' Converts pyomo variable to DataFrame.'''
+
+        # replace none with zeros
+        for v in obj.iteritems():
+            if v[1].value is None:
+                v[1].value = 0
+
+        dat = [v[0] + (v[1].value,) for v in obj.iteritems()]
+
+        return pd.DataFrame(dat, columns=list(cols) + ['value'])
+
+    def post_processing(self, df):
+        '''
+        Calls _set_bool_out prior to writing.
+        Input arguments:
+        * df -- DataFrame; primary dataframe
+        '''
+
+        return self._set_bool_out(df) if 'bool_out' in self.index else df
+
+    def _set_bool_out(self, df):
+        '''
+        Set the bool_out values according to the pp_id.
+
+        pp_ids corresponding to curtailment, charging, and sales have
+        bool_out=True.
+        * df -- DataFrame; primary dataframe
+        '''
+
+        if self.comp_obj.name in ['pwr_st_ch', 'erg_ch_yr']:
+            df['bool_out'] = True
+        else:
+            df['bool_out'] = False
+
+            pp_true = self.model.setlst['curt'] + self.model.setlst['sll']
+            df.loc[df.pp_id.isin(pp_true), 'bool_out'] = True
+
+        return df
+
+
+class ParamIO(CompIO):
+    '''
+    Base class for parameters. Performs the data extraction of parameter
+    objects.
+    '''
+
+    @classmethod
+    def _to_df(cls, obj, cols):
+        ''' Converts pyomo parameter to DataFrame. '''
+
+        dat = []
+        for v in obj.iteritems():
+            v = list(v)
+            if not v[0] == None:
+                if isinstance(v[1], _ParamData):
+                    # if parameter is mutable v[1] is a _ParamData;
+                    # requires manual extraction of value
+                    v[1] = v[1].value
+                if v[1] == None:
+                    v[1] = 0
+                if not type(v[0]) == tuple:
+                    v_sets = [v[0]]
+                else:
+                    v_sets = [iv for iv in v[0]]
+                dat += [v_sets + [v[1]]]
             else:
-                f(self, *args, **kwargs)
-        return wrapper
+                dat = [v[1].extract_values()[None]]
 
-    def skip_if_no_output(f):
-        def wrapper(self, *args, **kwargs):
-            if self.no_output:
-                pass
-            else:
-                f(self, *args, **kwargs)
-        return wrapper
+        return pd.DataFrame(dat, columns=list(cols) + ['value'])
+
+
+class TransmIO(VariabIO):
+    '''
+    Special methods related to the translation of nodes to plant names and
+    the simplified representation after aggregating secondary nodes.
+    '''
+
+    def post_processing(self, df):
+        ''' Write aggregated transmission table to pwr. '''
+
+
+        dfagg = self.aggregate_nd2(df)
+        self._translate_trm(dfagg)
+
+        self._finalize(dfagg, 'var_sy_pwr')
+
+        return self.add_bool_out_col(df)
+
+    def aggregate_nd2(self, dfall):
+        '''
+        Aggregates trm table over all secondary nodes for simplification and
+        to append to the pwr table.
+        '''
+
+        # mirror table to get both directions
+        dfall = pd.concat([dfall,
+                           dfall.assign(nd_2_id = dfall.nd_id,
+                                        nd_id = dfall.nd_2_id,
+                                        value = -dfall.value)])
+
+        dfexp = dfall.loc[dfall.value < 0]
+        dfexp = dfexp.groupby(['sy', 'nd_id', 'ca_id'])['value'].sum()
+        dfexp = dfexp.reset_index()
+        dfexp['bool_out'] = True
+
+        dfimp = dfall.loc[dfall.value > 0]
+        dfimp = dfimp.groupby(['sy', 'nd_id', 'ca_id'])['value'].sum()
+        dfimp = dfimp.reset_index()
+        dfimp['bool_out'] = False
+
+        dfagg = pd.concat([dfexp, dfimp], axis=0)
+
+
+        return dfagg
+
+    def _translate_trm(self, df):
+
+        df['pp_id'] = df.nd_id.replace(self._node_to_plant('TRNS'))
+        df.drop('nd_id', axis=1, inplace=True)
+
+        return df
+
+    def add_bool_out_col(self, df):
+        ''' The bool out column value depends on the sign of the data. '''
+
+        df['bool_out'] = False
+        df.loc[df.value < 0, 'bool_out'] = True
+
+        return df
+
+
+class DmndIO(ParamIO):
+    ''' Demand is appended to the pwr table after translation '''
+
+    def post_processing(self, df):
+
+        dfpp = self._translate_dmnd(df.copy())
+        dfpp['bool_out'] = True
+
+        self._finalize(dfpp, 'var_sy_pwr')
+
+        return df
+
+    def _translate_dmnd(self, df):
+
+        ''''''
+
+        df['pp_id'] = df.nd_id.replace(self._node_to_plant('DMND'))
+        df.drop('nd_id', axis=1, inplace=True)
+
+        return df
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
+def skip_if_resume_loop(f):
+    def wrapper(self, *args, **kwargs):
+        if self.resume_loop:
+            pass
+        else:
+            f(self, *args, **kwargs)
+    return wrapper
+
+def skip_if_no_output(f):
+    def wrapper(self, *args, **kwargs):
+        if self.no_output:
+            pass
+        else:
+            f(self, *args, **kwargs)
+    return wrapper
+
+
+class ModelWriter():
+    '''
+    The IO singleton class manages the TableIO instances and communicates with
+    other classes. Manages database connection.
+    '''
+
+    IO_CLASS_DICT = {'var': VariabIO,
+                     'var_tr': TransmIO,
+                     'par_dmnd': DmndIO,
+                     'par': ParamIO,
+                     'dual': DualIO}
+
+    _default_init = {'sc_warmstart': False,
+                     'resume_loop': False,
+                     'replace_runs_if_exist': False,
+                     'model': None,
+                     'sql_connector': None,
+                     'no_output': False,
+                     'dev_mode': False,
+                     'sc_out': None,
+                     'db': None}
+
 
     def __init__(self, **kwargs):
 
+        ''''''
+
         self.run_id = None  # set in call to self.write_run
+        self.dict_comp_obj = {}
 
         # define instance attributes and update with kwargs
-        defaults = {'sc_warmstart': False,
-                    'resume_loop': False,
-                    'replace_runs_if_exist': False,
-                    'model': None,
-                    'autocomplete_curtailment': False,
-                    'sql_connector': None,
-                    'autocompletion': True,
-                    'no_output': False,
-                    'dev_mode': False,
-                    'data_path': None,
-                    'sc_inp': None,
-                    'sc_out': None,
-                    'db': None,
-                    }
-        for key, val in defaults.items():
+        for key, val in self._default_init.items():
             setattr(self, key, val)
         self.__dict__.update(kwargs)
 
-        self.loop_cols = [('run_id', 'SMALLINT')]
-
-#        # read database connection params from config file
-        self.conn = pg.connect(self.sql_connector.pg_str)
-        self.engine = create_engine(self.sql_connector.sqlal_str)
-        self.cur = self.conn.cursor()
 
         print('Output schema: ', self.sc_out,
               '; resume loop=', self.resume_loop)
         self.reset_schema()
 
 
-        # copying since we need to modify
-        self._coldict = aql.get_coldict(self.sc_out, self.db)
-
-        # values for chg_bool columns
-        self.chg_dict = {'var_sy_pwr': False,
-                         'var_sy_pwr_st_ch': True,
-                         'var_yr_erg_yr': False,
-                         'var_yr_erg_ch_yr': True,
-                         'var_tr_trm_sd': True,
-                         'var_tr_trm_rv': False,
-                         'var_tr_erg_trm_rv_yr': False,
-                         'var_tr_erg_trm_sd_yr': True,
-                         'dmnd': True,
-                         'var_sy_dmnd_flex': True}
-
-        # List of all tables; generated in method delete_run_id --> no!
-        # TODO: Define method get_all_tables which constructs this list;
-        #       call in the setter method of var/par lists for update upon
-        #       change. Also: var/par
-        #       lists should better be stored in some json file.
-        self.list_all_tb = []
-
-        # SOME SPECIAL TREATMENT FOR CROSS-BORDER TRANSMISSION AND DEMAND
-        self.dict_cross_table = {
-                                 'erg_trm_rv_yr': 'var_yr_erg_yr',
-                                 'erg_trm_sd_yr': 'var_yr_erg_yr',
-                                 'trm_rv': 'var_sy_pwr',
-                                 'trm_sd': 'var_sy_pwr',
-                                 'dmnd': 'var_sy_pwr',
-#                                 'dmnd_flex': 'var_sy_pwr'
-                                 }
-
-        self.dict_tcname = {'trm_sd': 'TRNS_ST',
-                            'trm_rv': 'TRNS_RV',
-                            'erg_trm_rv_yr': 'TRNS_RV',
-                            'erg_trm_sd_yr': 'TRNS_ST',
-                            'dmnd': 'DMND',
-                            'dmnd_flex': 'DMND_FLEX'}
-
-        if self.model.skip_runs:
-            print('model.skip_runs is True; modifying IO lists.')
-            # only write parameter output if the model runs are skipped
-            for lst in [c for c in self.list_collect if not c == 'par']:
-                setattr(self, lst, [])
-
-            _obj = [c for c in self.par if 'objective' in c][0]
-            self.par.remove(_obj)
-
     @skip_if_resume_loop
     def reset_schema(self):
 
-        aql.reset_schema(self.sc_out, self.db, not self.dev_mode)
+        aql.reset_schema(self.sc_out, self.sql_connector.db, not self.dev_mode)
 
+    def init_output_schema(self):
 
-    def sanitize_component_lists(self):
-
-        '''
-        TODO: Make sure the second elements are all tuples.
-        '''
-
+        aql.exec_sql('CREATE SCHEMA IF NOT EXISTS ' + self.sc_out,
+                     db=self.db, )
 
     @skip_if_no_output
-    def init_output_tables(self):
+    def init_compio_objs(self):
         '''
-        Call initialization method.
-
-        If a value is provided for resume_loop, all run_ids greater equal
-        are deleted.
-
-        If replace_runs_if_exist is set to True, nothing is changed. Tables
-        stay as they are, run ids are overwritten whenever the corresponding
-        model run is performed.
+        Initialize all output table IO objects.
         '''
-        if not self.resume_loop:
-            self.init_output_database()
 
-        elif not self.replace_runs_if_exist:
-            # delete run_ids equal or greater the resume_loop run_id
-            self.delete_run_id(self.resume_loop)
+        comp, idx = 'pwr_st_ch', DICT_IDX['pwr_st_ch']
+        for comp, idx in DICT_IDX.items():
+            if not hasattr(self.model, comp):
+                print('Component ' + comp + ' does not exist... skipping '
+                      'init CompIO.')
+            else:
+                comp_obj = getattr(self.model, comp)
 
+                grp = DICT_GROUP[comp]
+                if DICT_TABLE[comp] in self.IO_CLASS_DICT:
+                    io_class = self.IO_CLASS_DICT[DICT_TABLE[comp]]
+                elif grp in self.IO_CLASS_DICT:
+                    io_class = self.IO_CLASS_DICT[DICT_GROUP[comp]]
+                else:
+                    io_class = self.IO_CLASS_DICT[DICT_GROUP[comp].split('_')[0]]
+
+                io_class_args = (DICT_TABLE[comp], self.sc_out, comp_obj,
+                                   idx, self.sql_connector)
+                io_class_args += (self.model,)
+
+                self.dict_comp_obj[comp] = io_class(*io_class_args)
+
+    @skip_if_no_output
+    def write_all(self):
+
+        ''' Calls the write methods of all CompIO objects. '''
+
+        for comp, io_obj in self.dict_comp_obj.items():
+
+            io_obj.write(self.run_id)
+
+    @skip_if_no_output
+    def init_all(self):
+        '''
+        Initializes all SQL tables.
+
+        Calls the init_output_table methods of all CompIO instances.
+        '''
+
+        coldict = aql.get_coldict(self.sc_out, self.sql_connector.db)
+
+        for comp, io_obj in self.dict_comp_obj.items():
+
+            io_obj.coldict = coldict
+            io_obj.init_output_table()
+
+    def delete_run_id(self, run_id=False, operator='>='):
+        '''
+        In output tables delete all rows with run_id >=/== the selected value.
+
+        Used in :
+            1. in ModelLoop.perform_model_run if replace_runs_if_exist == True
+                with operator '=' to remove current run_id
+                from all tables prior to writing
+
+        TODO: The SQL part would be better fit with the aux_sql_func module.
+        '''
+        # Get overview of all tables
+        list_all_tb_0 = [list(itb_list + '_' + itb[0] for itb
+                              in getattr(self, itb_list)
+                              if not len(itb) == 3)
+                         for itb_list in self.list_collect]
+        self.list_all_tb = list(itertools.chain(*list_all_tb_0))
+        self.list_all_tb += ['def_loop']
+
+        if run_id:
+            for itb in self.list_all_tb:
+
+                print('Deleting from ' + self.sc_out + '.' + itb
+                      + ' where run_id %s %s'%(operator, str(run_id)))
+                exec_strg = '''
+                            DELETE FROM {sc_out}.{tb}
+                            WHERE run_id {op} {run_id};
+                            '''.format(sc_out=self.sc_out, tb=itb,
+                                       run_id=run_id, op=operator)
+                try:
+                    aql.exec_sql(exec_strg, db=self.db)
+                except pg.ProgrammingError as e:
+                    print(e)
+                    sys.exit()
+
+
+
+
+    @classmethod
+    def post_process_index(cls, sc, db, drop=False):
+
+        coldict = aql.get_coldict(sc, db)
+
+        dict_idx, dict_table, _ = ModelWriter.get_table_dicts()
+
+        list_tables = aql.get_sql_tables(sc, db)
+
+        for comp, index in dict_idx.items():
+
+            if not dict_table[comp] in list_tables:
+                print('Table ' + comp + ' does not exist... skipping '
+                      'index generation.')
+            else:
+
+                tb_name = dict_table[comp]
+
+                print('tb_name:', tb_name)
+
+                pk_list = index + ('run_id',)
+
+                fk_dict = {}
+                for c in pk_list:
+                    if len(coldict[c]) > 1:
+                        fk_dict[c] = coldict[c][1]
+
+
+                pk_kws = {'pk_list': ', '.join(pk_list),
+                          'tb': tb_name, 'sc_out': sc}
+                exec_str = ('''
+                            ALTER TABLE {sc_out}.{tb}
+                            DROP CONSTRAINT IF EXISTS {tb}_pkey;
+                            ''').format(**pk_kws)
+                if not drop:
+                    exec_str += ('''
+                                 ALTER TABLE {sc_out}.{tb}
+                                 ADD CONSTRAINT {tb}_pkey
+                                 PRIMARY KEY ({pk_list})
+                                 ''').format(**pk_kws)
+                print(exec_str)
+                aql.exec_sql(exec_str, db=db)
+
+                for fk_keys, fk_vals in fk_dict.items():
+                    fk_kws = {'sc_out': sc, 'tb': tb_name,
+                              'fk': fk_keys, 'ref': fk_vals}
+
+                    exec_str = ('''
+                                ALTER TABLE {sc_out}.{tb}
+                                DROP CONSTRAINT IF EXISTS fk_{tb}_{fk};
+                                ''').format(**fk_kws)
+
+                    if not drop:
+                        exec_str += ('''
+                                     ALTER TABLE {sc_out}.{tb}
+                                     ADD CONSTRAINT fk_{tb}_{fk}
+                                     FOREIGN KEY ({fk})
+                                     REFERENCES {ref}
+                                     ''').format(**fk_kws)
+                    print(exec_str)
+                    aql.exec_sql(exec_str, db=db)
+
+
+
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class DataReader():
+
+    def __init__(self, **kwargs):
+
+
+        defaults = {'resume_loop': False,
+                    'replace_runs_if_exist': False,
+                    'model': None,
+                    'autocomplete_curtailment': False,
+                    'autocompletion': True,
+                    'no_output': False,
+                    'dev_mode': False,
+                    'data_path': None,
+                    'sql_connector': None,
+                    'sc_inp': None,
+                    'sc_out': None,
+                    'db': None,
+                    }
+
+        defaults.update(kwargs)
+        for key, val in defaults.items():
+            setattr(self, key, val)
+        self.__dict__.update(kwargs)
+
+
+        self._coldict = aql.get_coldict()
 
     def get_input_table(self, table, filt):
 
@@ -339,9 +715,6 @@ class IO():
         _flt_pt = [('pt_id', self.model.df_def_pp_type.pt_id.tolist())]
 
         # read input data filtered by node, energy carrier, and fuel
-
-
-
         dict_tb_0 = {'def_plant': _flt_nd + _flt_pt,
                      'profdmnd': _flt_nd + _flt_ca,
                      'profchp': _flt_nd,
@@ -375,8 +748,6 @@ class IO():
 
         self.model.df_def_fuel = self.model.df_def_fuel.loc[-mask_del]
 
-
-
         # filter table by special index name/id columns
         self.model.df_parameter_month = self.filter_by_name_id_cols(
                                                 'df_parameter_month',
@@ -385,27 +756,33 @@ class IO():
         # autocomplete input tables
         self.data_autocompletion()
 
+        self.fix_df_node_connect()
 
-        input_table_list = (list(dict_tb_1.keys()) + list(dict_tb_2.keys())
-                            + list(dict_tb_0.keys())+ list(dict_tb_3.keys()))
+
+        input_table_list = (list(dict_tb_1) + list(dict_tb_2)
+                            + list(dict_tb_0)+ list(dict_tb_3))
+
+
 
 
         self.write_input_tables_to_output_schema(input_table_list)
 
-    @skip_if_resume_loop
-    def write_input_tables_to_output_schema(self, tb_list):
-        '''
-        TODO: Input tables in output schema are required even if no_output.
-            Check why + fix.
-        '''
 
-        for itb in tb_list:
+    def data_autocompletion(self):
 
-            df = getattr(self.model, 'df_' + itb)
-            if df is not None and not ((not 'def_' in itb) and self.no_output):
-                print('Writing table {} to output schema.'.format(itb))
-                aql.write_sql(df, self.db, self.sc_out, itb,
-                              if_exists='replace')
+        if self.autocompletion:
+            print('#' * 60)
+
+            ac.AutoCompletePpType(self.model)
+            ac.AutoCompleteFuelTrns(self.model)
+            ac.AutoCompleteFuelDmnd(self.model)
+            ac.AutoCompletePlantTrns(self.model)
+            ac.AutoCompletePlantDmnd(self.model)
+            ac.AutoCompletePlantCons(self.model)
+            if self.autocomplete_curtailment:
+                ac.AutoCompletePpCaFlex(self.model)
+            print('#' * 60)
+
 
     def filter_by_name_id_cols(self, name_df, filt):
         '''
@@ -494,44 +871,62 @@ class IO():
         return df
 
 
-    def data_autocompletion(self):
 
-        if self.autocompletion:
-            print('#' * 60)
 
-            ac.AutoCompletePpType(self.model)
-            ac.AutoCompleteFuelTrns(self.model)
-            ac.AutoCompleteFuelDmnd(self.model)
-            ac.AutoCompletePlantTrns(self.model)
-            ac.AutoCompletePlantDmnd(self.model)
-            ac.AutoCompletePlantCons(self.model)
-            if self.autocomplete_curtailment:
-                ac.AutoCompletePpCaFlex(self.model)
-            print('#' * 60)
-
-    @skip_if_no_output
-    def write_run(self, run_id):
+    def fix_df_node_connect(self):
         '''
-        Main call of methods in output writing class.
+        Makes sure the table df_node_connect corresponds to the new style.
+
+        New style: The transmission capacities are expressed as
+        * cap_trme_leg for exports and
+        * cap_trmi_leg for imports
+        for single directions, i.e. non-redundant. The input table has columns
+        (nd_id, nd_2_id, ca_id, mt_id, cap_trme_leg, cap_trmi_leg).
+
+        Old style: Single transmission capacity for both directions; columns:
+        (nd_id, nd_2_id, ca_id, mt_id, eff, cap_trm_leg)
         '''
 
-        if self.model.skip_runs:
-            # write only parameters
+        if 'cap_trm_leg' in self.model.df_node_connect.columns:
 
-            for write_slct in self.list_collect:
-                for comp in getattr(self, write_slct):
-                    if 'var' in comp[0]:
-                        comp
+            df = self.model.df_node_connect
+
+            df['dir'] = df.nd_id < df.nd_2_id
+
+            df_e = df.loc[df.dir].assign(nd_id = df.nd_2_id,
+                                         nd_2_id = df.nd_id,
+                                         cap_trmi_leg = df.cap_trm_leg)
+            df = df.loc[-df.dir].assign(cap_trme_leg = df.cap_trm_leg)
+            dfn = pd.concat([df_e, df], sort=False)
+            dfn = dfn.drop('cap_trm_leg', axis=1).fillna(0)
+            idx = ['nd_id', 'nd_2_id', 'ca_id', 'mt_id']
+            print('Aggregation count in fix_df_node_connect:\n',
+                  dfn.pivot_table(index=idx, aggfunc=[min, max, len],
+                                  values=['cap_trme_leg', 'cap_trmi_leg']))
+            dfn = dfn.pivot_table(index=idx, aggfunc=sum,
+                                  values=['cap_trme_leg', 'cap_trmi_leg'])
 
 
-        self.run_id = run_id
-        self.write_prim_data('var_sy')
-        self.write_prim_data('var_yr')
-        self.write_prim_data('var_mt')
-        self.write_parameters('par')
-        self.write_duals('dual')
-        if len(self.model.slct_node) > 1: # or better based on pyomo attribute?
-            self.write_prim_data('var_tr')
+            self.model.df_node_connect = dfn.reset_index()
+
+    @skip_if_resume_loop
+    def write_input_tables_to_output_schema(self, tb_list):
+        '''
+        TODO: Input tables in output schema are required even if no_output.
+              Check where + fix. Ideally this would have decorator
+              skip_if_no_output.
+        '''
+
+        for itb in tb_list:
+            df = getattr(self.model, 'df_' + itb)
+            if (df is not None
+                and not ((not 'def_' in itb) and self.no_output)
+                and not 'prof' in itb):
+                print('Writing table {} to output schema.'.format(itb))
+                engine = self.sql_connector.get_sqlalchemy_engine()
+                db = self.sql_connector.db
+                aql.write_sql(df, db, self.sc_out, itb,
+                              if_exists='replace', engine=engine)
 
     @skip_if_resume_loop
     @skip_if_no_output
@@ -544,18 +939,16 @@ class IO():
         skip_fks = [('tm_soy', 'sy'),  # defines sy
                     ('hoy_soy', 'hy')]  # defines hy
 
+        engine = self.sql_connector.get_sqlalchemy_engine()
+        con_cur = self.sql_connector.get_pg_con_cur()
+
         tb_name, pk = ('tm_soy', ['sy'])
         for tb_name, pk in [('tm_soy', ['sy']),
                             ('hoy_soy', ['hy']),
-#                            ('profsupply_soy', ['sy', 'pp_id', 'ca_id']),
-#                            ('profinflow_soy', ['sy', 'pp_id', 'ca_id']),
-#                            ('profchp_soy', ['sy', 'nd_id', 'ca_id']),
-#                            ('profdmnd_soy', ['sy', 'nd_id', 'ca_id']),
-#                            ('profprice_soy', ['sy', 'nd_id', 'fl_id']),
                             ('tm_soy_full', ['sy']),
                             ]:
 
-            if 'df_' + tb_name in self.model.__dict__:
+            if hasattr(self.model, 'df_' + tb_name):
                 df = getattr(self.model, 'df_' + tb_name)
 
                 print('Writing runtime table ' + tb_name)
@@ -573,451 +966,118 @@ class IO():
                                  else list(self._coldict[c][:1]))
                     cols.append(tuple(col_add))
 
-
-
                 aql.init_table(tb_name=tb_name, cols=cols, schema=self.sc_out,
                                ref_schema=self.sc_out, pk=pk, unique=[],
-                               db=self.db)
+                               db=self.sql_connector.db, con_cur=con_cur)
 
-                aql.write_sql(df, self.db, self.sc_out, tb_name, 'append')
+                aql.write_sql(df, sc=self.sc_out, tb=tb_name,
+                              if_exists='append', engine=engine,
+                              con_cur=con_cur)
 
+class IO:
+    '''
 
+    '''
 
-#        # update table in output schema
-#        if 'df_profdmnd_soy' in self.model.__dict__:
-#            aql.add_column(df_src=self.model.df_def_node,
-#                            tb_tgt=[self.model.sc_out, 'def_node'],
-#                            col_new='dmnd_max', on_cols=['nd_id'],
-#                            db=self.db)
-
-    @skip_if_no_output
-    def init_output_database(self):
-        '''
-        Creation of output schema and initialization of tables.
-        Loops over all entries in the dictionaries defined by list_collect,
-        which again contain all table names for parameters, variables, etc.
-
-        Note: Keys need to be added in post-processing due to table
-        writing performance.
-
-        Makes use of init_table function in aux_sql_func.
-        '''
-        aql.exec_sql('CREATE SCHEMA IF NOT EXISTS ' + self.sc_out,
-                     db=self.db)
-
-        conn, cur = self.sql_connector.get_pg_con_cur()
-
-        for ilist in self.list_collect:
-
-            # elements of length 3 don't get their own table as they are
-            # appended to a different one
-            table_list = [tt for tt in getattr(self, ilist)
-                          if not len(tt) == 3]
-
-            for iv in table_list:
-                tb_name = ilist + '_' + iv[0]
-                print('Initializing output table ', tb_name)
-                col_names = [s for s in iv[1]] + ['value']
-                cols = [(c,) + (self._coldict[c][0],) for c in col_names]
-                cols += self.loop_cols
-                # pk now added later for writing/appending performance
-                pk = []#list(iv[1]) + self.loop_pk
-                unique = []
-
-                aql.init_table(tb_name=tb_name, cols=cols,
-                               schema=self.sc_out,
-                               ref_schema=self.sc_out, pk=pk,
-                               unique=unique, bool_auto_fk=False, db=self.db,
-                               con_cur=(conn, cur))
-        aql.close_con(conn)
-
-
-    def _finalize(self, _df, sql_tb):
-        ''' Add run_id column and write to database table '''
-        _df['run_id'] = self.run_id
-        print('Writing to db: ', self.sc_out + '.' + sql_tb, end='... ')
-
-        t = time.time()
-        _df.to_sql(sql_tb, self.engine, schema=self.sc_out,
-                   if_exists='append', index=False)
-        print('done in %.3f sec'%(time.time() - t))
-
-
-#        t = time.time()
-#        db_uri = ('postgresql://postgres:postgres'
-#                   '@localhost:5432/storage2::%s'%sql_tb)
-#        odo.odo(_df, db_uri, schema=self.sc_out)
-#        print(time.time() - t)
-#
+    def __init__(self, **kwargs):
 
 
 
-    def _node_to_plant(self, tbname):
-        '''
-        TODO: THIS SHOULD BE IN MAPS!!!!
-        Method for translation of node_id to respective plant_id
-        in the cases of demand and inter-node transmission. This is used to
-        append demand/inter-nodal transmission to pwr table.
-        Returns a dictionary node -> plant
-        Keyword arguments:
-        tbname -- table name, serves as key to the dict_tcname
-        '''
-        df_np = self.model.df_def_plant[['nd_id', 'pp_id', 'pp', 'pt_id']]
-        df_pt = self.model.df_def_pp_type[['pt_id', 'pt']]
-        slct_pp_type = df_pt.loc[df_pt['pt'] == self.dict_tcname[tbname],
-                                 'pt_id'].iloc[0]
-        mask_tech = df_np['pt_id'] == slct_pp_type
-        df_np_slct = df_np.loc[mask_tech]
-        dict_node_plant_slct = df_np_slct.set_index('nd_id')
-        dict_node_plant_slct = dict_node_plant_slct['pp_id'].to_dict()
-        return dict_node_plant_slct
+        defaults = {'sc_warmstart': False,
+                    'resume_loop': False,
+                    'replace_runs_if_exist': False,
+                    'model': None,
+                    'autocomplete_curtailment': False,
+                    'sql_connector': None,
+                    'autocompletion': True,
+                    'no_output': False,
+                    'dev_mode': False,
+                    'data_path': None,
+                    'sc_inp': None,
+                    'sc_out': None,
+                    'db': None,
+                    }
 
+        defaults.update(kwargs)
+
+        self.datrd = DataReader(**defaults)
+        self.modwr = ModelWriter(**defaults)
+
+        self.resume_loop = defaults['resume_loop']
+        self.sql_connector = defaults['sql_connector']
+        self.replace_runs_if_exist = defaults['replace_runs_if_exist']
+        self.db = self.sql_connector.db
 
     @classmethod
     def variab_to_df(cls, py_obj, sets):
+        ''' Wrapper for backward compatibility. '''
 
-        # replace none with zeros
-        for v in py_obj.iteritems():
-            if v[1].value is None:
-                v[1].value = 0
-
-        dat = [v[0] + (v[1].value,) for v in py_obj.iteritems()]
-
-        # make dataframe
-        cols = list(sets + ('value',))
-        _df = pd.DataFrame(dat, columns=[c for c in cols
-                                         if not c == 'bool_out'])
-
-        return _df, cols
-
-
-    def write_prim_data(self, write_slct='var_tr'):
-        '''
-        Write
-        '''
-
-
-        write_list = getattr(self, write_slct)
-        variabs = ('pwr', ('sy', 'pp_id', 'ca_id', 'bool_out'))
-        for variabs in write_list:
-
-            if not variabs[0] in [c.name for c in self.model.component_objects()]:
-                print('Component ' + variabs[0] + ' does not exist... skipping.')
-            else:
-                py_obj = getattr(self.model, variabs[0])
-
-                _df, cols = self.variab_to_df(py_obj, variabs[1])
-
-                # table name as used in the database
-                tb_name = write_slct + '_' + variabs[0]
-
-                # add bool_out column according to corresponding dictionary
-                if 'bool_out' in cols:
-                    _df['bool_out'] = self.chg_dict[tb_name]
-
-
-                # for plants in sell-set 'sll' input and output are reversed;
-                # therefore, bool_out is True, i.e. encar is consumed and fuel
-                # sold
-                lst_true = (self.model.setlst['sll']
-                            + self.model.setlst['curt'])
-                if (len(lst_true) > 0
-                    and 'pp_id' in _df.columns and 'bool_out' in _df.columns):
-                    _df.loc[_df.pp_id.isin(lst_true), 'bool_out'] = True
-
-                # some variables don't get their own tables; this is defined
-                # through the third element in the variabs tuple
-                # (e.g. pwr_st_ch)
-                if len(variabs) == 3: # third item is target table name
-                    tb_name = write_slct + '_' + variabs[2]
-
-                self._finalize(_df[cols], tb_name)
-
-                # inter-node transmission is aggregated and added to power
-                # production table
-                if variabs[0] in self.dict_cross_table:
-
-                    # aggregate all node_2
-                    idx = [c for c in _df.columns
-                           if not c in ['value', 'nd_2_id']]
-                    _df = _df.pivot_table(values='value', aggfunc=sum, index=idx)
-                    _df = _df.reset_index()
-
-                    dict_node_plant_rvsd = self._node_to_plant(variabs[0])
-
-                    _df['nd_id'] = _df['nd_id'].replace(dict_node_plant_rvsd)
-                    _df = _df.rename(columns={'nd_id': 'pp_id'})
-
-                    # select table
-                    tb_name = self.dict_cross_table[variabs[0]]
-
-                    self._finalize(_df, tb_name)
-
-
+        return VariabIO._to_df(py_obj, sets)
 
     @classmethod
     def param_to_df(cls, py_obj, sets):
+        ''' Wrapper for backward compatibility. '''
 
-        dat = []
-        for v in py_obj.iteritems():
-            v = list(v)
-            if not v[0] == None:
-                if type(v[1]) == _ParamData:
-                    # if parameter is mutable v[1] is a _ParamData;
-                    # requires manual extraction of value
-                    v[1] = v[1].value
-                if v[1] == None:
-                    v[1] = 0
-                if not type(v[0]) == tuple:
-                    v_sets = [v[0]]
-                else:
-                    v_sets = [iv for iv in v[0]]
-                dat += [v_sets + [v[1]]]
-            else:
-#                if type(py_obj) == SimpleObjective:
-#                    # not exactly a parameter but hey, it fits
-#                    objective_value = po.value(py_obj)
-#                    dat = [objective_value]
-#                else:
-                dat = [v[1].extract_values()[None]]
+        return ParamIO._to_df(py_obj, sets)
 
-        return pd.DataFrame(dat, columns=sets + ('value',))
+    def read_model_data(self):
 
+        self.datrd.read_model_data()
 
+    def write_runtime_tables(self):
 
-    def write_parameters(self, write_slct):
-        '''
-        Write all model parameters as defined in the self.par list.
-        '''
-        write_list = getattr(self, write_slct)
-        for variabs in write_list:
+        self.datrd.write_runtime_tables()
 
-            if not variabs[0] in [c.name for c
-                                  in self.model.component_objects()]:
-                print('Component {} does not exist... skipping.'
-                      .format(variabs[0]))
-            else:
-                py_obj = getattr(self.model, variabs[0])
-                _df = self.param_to_df(py_obj, variabs[1])
+    def init_output_tables(self):
 
-                self._finalize(_df, write_slct + '_' + variabs[0])
+        self.modwr.init_compio_objs()
+        self.modwr.init_all()
 
-                # demand data is aggregated and added to power production table
-                if variabs[0] in self.dict_cross_table:
+    def write_run(self, run_id):
 
-                    # add bool_out column
-                    _df['bool_out'] = self.chg_dict[variabs[0]]
-
-                    dict_node_plant_dmnd = self._node_to_plant(variabs[0])
-
-                    _df['nd_id'] = _df['nd_id'].replace(dict_node_plant_dmnd)
-                    _df = _df.rename(columns={'nd_id': 'pp_id'})
-
-                    # select table
-                    tb_name = self.dict_cross_table[variabs[0]]
-
-                    self._finalize(_df, tb_name)
-
-
-    def write_duals(self, write_slct):
-        '''
-        Write dual variable values.
-        '''
-        for idu in self.dual:
-            py_obj = getattr(self.model, idu[0])
-            dat = [ico + (self.model.dual[py_obj[ico]],) for ico in py_obj]
-            _df = pd.DataFrame(dat, columns=idu[1] + ('value',))
-            self._finalize(_df, write_slct + '_' + idu[0])
-
-    def delete_run_id(self, run_id=False, operator='>='):
-        '''
-        In output tables delete all rows with run_id >=/== the selected value.
-
-        Used in :
-            1. in ModelLoop.perform_model_run if replace_runs_if_exist == True
-                with operator '=' to remove current run_id
-                from all tables prior to writing
-            2. in
-
-        TODO: The SQL part would be better fit with the aux_sql_func module.
-        '''
-        # Get overview of all tables
-        list_all_tb_0 = [list(itb_list + '_' + itb[0] for itb
-                              in getattr(self, itb_list)
-                              if not len(itb) == 3)
-                         for itb_list in self.list_collect]
-        self.list_all_tb = list(itertools.chain(*list_all_tb_0))
-        self.list_all_tb += ['def_loop']
-
-        if run_id:
-            for itb in self.list_all_tb:
-
-                print('Deleting from ' + self.sc_out + '.' + itb
-                      + ' where run_id %s %s'%(operator, str(run_id)))
-                exec_strg = '''
-                            DELETE FROM {sc_out}.{tb}
-                            WHERE run_id {op} {run_id};
-                            '''.format(sc_out=self.sc_out, tb=itb,
-                                       run_id=run_id, op=operator)
-                try:
-                    aql.exec_sql(exec_strg, db=self.db)
-                except pg.ProgrammingError as e:
-                    print(e)
-                    sys.exit()
-
-    @skip_if_no_output
-    def write_df_to_sql(self, df, tb, if_exists):
-
-        # write to database
-        aql.write_sql(df, self.db, self.sc_out, tb, if_exists)
-
-
-    @classmethod
-    def post_process_index(cls, sc, db, drop=False):
-        ''' Add indices to all tables defined by the IO class. '''
-
-        print('Adding indices to all output tables. This might take a while.')
-        _coldict = aql.get_coldict(sc, db)
-
-        # add primary and foreign keys to all tables
-        ilist = cls.list_collect[0]
-        for ilist in cls.list_collect:
-            table_list = getattr(cls, ilist)
-
-            iv = table_list[0]
-            for iv in table_list:
-
-                tb_name = ilist + '_' + iv[0]
-
-                print('tb_name:', tb_name)
-
-                pk_list = list(iv[1]) + cls.loop_pk
-
-                fk_dict = {}
-                for c in pk_list:
-                    if len(_coldict[c]) > 1:
-                        fk_dict[c] = _coldict[c][1]
-
-
-                pk_kws = {'pk_list': ', '.join(pk_list),
-                          'tb': tb_name, 'sc_out': sc}
-                exec_str = ('''
-                            ALTER TABLE {sc_out}.{tb}
-                            DROP CONSTRAINT IF EXISTS {tb}_pkey;
-                            ''').format(**pk_kws)
-                if not drop:
-                    exec_str += ('''
-                                 ALTER TABLE {sc_out}.{tb}
-                                 ADD CONSTRAINT {tb}_pkey
-                                 PRIMARY KEY ({pk_list})
-                                 ''').format(**pk_kws)
-                print(exec_str)
-                aql.exec_sql(exec_str, db=db)
-
-                for fk_keys, fk_vals in fk_dict.items():
-                    fk_kws = {'sc_out': sc, 'tb': tb_name,
-                              'fk': fk_keys, 'ref': fk_vals}
-
-                    exec_str = ('''
-                                ALTER TABLE {sc_out}.{tb}
-                                DROP CONSTRAINT IF EXISTS fk_{tb}_{fk};
-                                ''').format(**fk_kws)
-
-                    if not drop:
-                        exec_str += ('''
-                                     ALTER TABLE {sc_out}.{tb}
-                                     ADD CONSTRAINT fk_{tb}_{fk}
-                                     FOREIGN KEY ({fk})
-                                     REFERENCES {ref}
-                                     ''').format(**fk_kws)
-                    print(exec_str)
-                    aql.exec_sql(exec_str, db=db)
-
-
-    @classmethod
-    def post_process_storage_mismatch(cls, sc, drop=False):
-        '''
-        By default the combinations
-        swst_vl=LIO/pt_id=CAS_STO
-        swst_vl=CAS/pt_id=LIO_STO
-        which are always zero by definition are still contained in the tables.
-        Here we loop over all tables, search for column combinations of
-        pp_id and run_id, and delete the corresponding rows by moving them
-        into tables with suffix _del if drop is False.
-        Keyword arguments:
-        drop -- boolean; if True, selected rows get deleted instead of being
-                moved to new tables
-        '''
-
-        # add primary and foreign keys to all tables
-        ilist = cls.list_collect[0]
-        for ilist in cls.list_collect:
-            table_list = getattr(cls, ilist)
-
-            for table in table_list:
-                cols = aql.get_sql_cols(ilist +'_' + table[0], sc=sc)
-
-                format_kw = {'tb': ilist +'_' + table[0],
-                             'sc': sc}
-
-                if 'run_id' in cols and 'pp_id' in cols:
-
-
-                    list_pt = aql.exec_sql('''
-                                           SELECT DISTINCT pt
-                                           FROM {sc}.{tb} AS tb
-                                           LEFT JOIN {sc}.def_plant AS dfpp
-                                               ON dfpp.pp_id = tb.pp_id
-                                           LEFT JOIN {sc}.def_pp_type AS dfpt
-                                               ON dfpt.pt_id = dfpp.pt_id
-                                           ;
-                                           '''.format(**format_kw))
-                    print(list_pt)
-                    if ('CAS_STO', ) in list_pt or ('LIO_STO',) in list_pt:
-
-
-
-                        exec_str = '''
-                                   DELETE FROM {sc}.{tb} AS tb
-                                   USING
-                                       {sc}.def_loop AS dflp,
-                                       {sc}.def_plant AS dfpp,
-                                       {sc}.def_pp_type AS dfpt
-                                   WHERE dflp.run_id = tb.run_id
-                                   AND dfpp.pp_id = tb.pp_id
-                                   AND dfpt.pt_id = dfpp.pt_id
-                                   AND (pt IN ('CAS_STO', 'LIO_STO')
-                                        AND NOT swtc_vl::VARCHAR || '_STO' = pt)
-                                   '''.format(**format_kw)
-
-                        if not drop:
-                            aql.exec_sql('''
-                                         DROP TABLE IF EXISTS
-                                         {sc}.{tb}_del CASCADE;
-                                         '''.format(**format_kw))
-
-                            exec_str = '''
-                                       WITH del_tb AS (
-                                       {exec_str}
-                                       RETURNING tb.*
-                                       )
-                                       SELECT *
-                                       INTO {sc}.{tb}_del
-                                       FROM del_tb;
-                                       '''.format(**format_kw, exec_str=exec_str)
-                        print(exec_str)
-                        aql.exec_sql(exec_str)
-
-
-
-
-
+        self.modwr.run_id = run_id
+        self.modwr.write_all()
 # %%
 if __name__ == '__main__':
-    pass
-#    IO.post_process_index(ml.m.sc_out, ml.io.db)
 
-#    IO.post_process_index('out_1_1823')
+
+
+    import grimsel.config as config
+    sc_out = 'test_io_new'
+
+    db = 'storage2'
+
+    sqlc = aql.sql_connector(**dict(db=db,
+                                    password=config.PSQL_PASSWORD,
+                                    user=config.PSQL_USER,
+                                    port=config.PSQL_PORT,
+                                    host=config.PSQL_HOST))
+
+    kwargs = {'resume_loop': False,
+              'model': ml.m,
+              'autocomplete_curtailment': False,
+              'sql_connector': sqlc,
+              'autocompletion': True,
+              'no_output': False,
+              'dev_mode': True,
+              'data_path': None,
+              'sc_inp': False,
+              'sc_out': sc_out,
+               }
+
+
+    ioobj = IO(**kwargs)
+
+    self = ioobj
+
+
+
+    self.read_model_data()
+    self.write_runtime_tables()
+
+    self.init_output_tables()
+    self.write_run(123)
+
 
 
 

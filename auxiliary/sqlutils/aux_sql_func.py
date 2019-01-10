@@ -61,15 +61,24 @@ class sql_connector():
         self.sqlal_str = ('postgresql://{user}:{password}'
                           '@{host}:{port}/{db}').format(**self.__dict__)
 
-    def get_sqlalchemy_engine(self):
-        return create_engine(self.sqlal_str)
+        self._sqlalchemy_engine = None
+        self._conn = None
+        self._cur = None
 
+    def get_sqlalchemy_engine(self):
+
+        if not self._sqlalchemy_engine:
+            self._sqlalchemy_engine = create_engine(self.sqlal_str)
+
+        return self._sqlalchemy_engine
 
     def get_pg_con_cur(self):
-        conn = pg.connect(self.pg_str)
-        cur = conn.cursor()
 
-        return conn, cur
+        if not self._conn:
+            self._conn = pg.connect(self.pg_str)
+            self._cur = self._conn.cursor()
+
+        return self._conn, self._cur
 
     def __repr__(self):
         strg = '%s\n%s'%(self.pg_str, self.sqlal_str)
@@ -81,7 +90,7 @@ def exec_sql(exec_str, ret_res=True, time_msg=False, db=None, con_cur=None):
 
     ''' Pass sql string to the server. '''
     conn, cur = (sql_connector(db).get_pg_con_cur()
-                 if con_cur is None else con_cur)
+                 if not con_cur else con_cur)
 
     cur.execute(exec_str)
     conn.commit()
@@ -144,7 +153,7 @@ def get_sql_tables(sc, db=None):
 
 # %%
 
-def get_sql_cols(tb, sc='public', db=None):
+def get_sql_cols(tb, sc='public', db=None, con_cur=None):
     '''
     Returns the names and data types of the selected table as a dictionary
     {'col_name': 'col_type', ...}
@@ -157,7 +166,10 @@ def get_sql_cols(tb, sc='public', db=None):
                 AND table_name = \'{tb}\'
                 '''.format(sc=sc, tb=tb)
 
-    dict_col = OrderedDict(exec_sql(exec_str, db=db))
+    exec_sql_kwargs = {'exec_str': exec_str}
+    exec_sql_kwargs.update({'con_cur': con_cur} if con_cur else {'db': db})
+
+    dict_col = OrderedDict(exec_sql(**exec_sql_kwargs))
     return dict_col
 
 
@@ -206,29 +218,43 @@ Hit enter to proceed.
 
 # %%
 
-def write_sql(df, db, sc, tb, if_exists, chunksize=None):
+def write_sql(df, db=None, sc=None, tb=None, if_exists=None,
+              engine=None, chunksize=None, con_cur=None):
 
-    sqlc = sql_connector(db)
-    engine = sqlc.get_sqlalchemy_engine()
+
+    if not engine:
+        sqlc = sql_connector(db)
+        _engine = sqlc.get_sqlalchemy_engine()
+    else:
+        _engine = engine
+
+    if con_cur:
+        exec_sql_kwargs = dict(con_cur=con_cur)
+    else:
+        exec_sql_kwargs = dict(db=db)
+
+
 
     if if_exists == 'replace':
         exec_str = ('''DROP TABLE IF EXISTS {sc}.{tb} CASCADE;
                     ''').format(sc=sc, tb=tb)
-        exec_sql(exec_str, db=db)
+        exec_sql(**dict(exec_str=exec_str, **exec_sql_kwargs))
     else:
         # add columns which exist in the source table but not in
         # the database table;
         # using some internal pandas methods to map the pandas
         # datatypes to SQL datatypes
 
-        pandas_sqltable = pd.io.sql.SQLTable('_', engine, df, schema='_',
+        pandas_sqltable = pd.io.sql.SQLTable('_', _engine, df, schema='_',
                                              index=False)
 
         dtype_mapper = pandas_sqltable._sqlalchemy_type
 
         new_cols = pandas_sqltable._get_column_names_and_types(dtype_mapper)
 
-        old_cols = get_sql_cols(tb, sc, db).keys()
+        old_cols = get_sql_cols(tb, sc,
+                                **({'con_cur': con_cur}
+                                   if con_cur else {'db': db})).keys()
 
         VisitableType = sqlalchemy.sql.visitors.VisitableType
 
@@ -245,11 +271,13 @@ def write_sql(df, db, sc, tb, if_exists, chunksize=None):
                         ALTER TABLE {sc}.{tb}
                         {add_str};
                         '''.format(sc=sc, tb=tb, add_str=add_str)
-            exec_sql(exec_strg, db=db)
+            exec_sql(**dict(exec_str=exec_strg, **exec_sql_kwargs))
 
-    df.to_sql(name=tb, con=engine, schema=sc, if_exists=if_exists,
+    df.to_sql(name=tb, con=_engine, schema=sc, if_exists=if_exists,
               index=False, chunksize=chunksize)
-    engine.dispose()
+
+    if not engine:
+        _engine.dispose()
 
 # %%
 
@@ -442,8 +470,9 @@ def copy_table_structure(sc, tb, sc0, db, verbose=False):
 
 
 
-def read_sql(db, sc, tb, filt=False, filt_func=False, drop=False, keep=False,
-             copy=False, tweezer=False, distinct=False, verbose=False):
+def read_sql(db=None, sc=None, tb=None, filt=False, filt_func=False, drop=False, keep=False,
+             copy=False, tweezer=False, distinct=False, verbose=False,
+             engine=None):
     '''
     Keyword arguments:
     tweezer -- list; filter (exclude or include) single combinations of values
@@ -451,8 +480,12 @@ def read_sql(db, sc, tb, filt=False, filt_func=False, drop=False, keep=False,
                                     ({'nd': 'FR0', 'bool_out': False}, ' NOT ')]
     '''
 
-    sqlc = sql_connector(db)
-    engine = sqlc.get_sqlalchemy_engine()
+    if not engine:
+        sqlc = sql_connector(db)
+        _engine = sqlc.get_sqlalchemy_engine()
+    else:
+        _engine = engine
+
 
     if verbose:
         print('Reading ' + sc + '.' + tb +  ' from database ' + db)
@@ -493,7 +526,7 @@ def read_sql(db, sc, tb, filt=False, filt_func=False, drop=False, keep=False,
         df = pd.DataFrame(exec_sql(exec_str, db=db), columns=cols)
 
     else:
-        df = pd.read_sql_table(tb, engine, schema=sc)
+        df = pd.read_sql_table(tb, _engine, schema=sc)
         if keep:
             df = df.loc[:, keep]
 
@@ -502,19 +535,13 @@ def read_sql(db, sc, tb, filt=False, filt_func=False, drop=False, keep=False,
 
     if copy:
         copy_table_structure(sc=copy, tb=tb, sc0=sc, db=db, verbose=verbose)
-#        exec_str = ('''
-#                    DROP TABLE IF EXISTS {sc}.{tb} CASCADE;
-#                    CREATE TABLE {sc}.{tb} (LIKE {sc0}.{tb} INCLUDING ALL);
-#                    ''').format(sc=copy, tb=tb, sc0=sc)
-#        if verbose:
-#            print(exec_str)
-#        exec_sql(exec_str, db=db)
         write_sql(df, db, copy, tb, 'append')
 
     if drop:
         df = df.drop(drop, axis=1)
 
-    engine.dispose()
+    if not engine:
+        _engine.dispose()
 
     return df
 
@@ -594,17 +621,22 @@ coldict = {
            'run_id': ('SMALLINT', '{sc}.def_loop(run_id)'),
           }
 
-def get_coldict(sc, db, fk_include_missing=False):
+def get_coldict(sc=None, db=None, fk_include_missing=False):
     ''' Adding SQL schema name to foreign keys in coldict. '''
 
-    _coldict = {}
-    for kk, vv in coldict.items():
-        _val = tuple(ivv.format(sc=sc) for ivv in vv)
-        if len(_val) > 1:
-            if (not _val[1].split('.')[1].split('(')[0]
-                     in get_sql_tables(sc, db)):
-                _val = (_val[0],)
-        _coldict[kk] = [iv.format(sc) for iv in _val]
+
+    if sc:
+        _coldict = {}
+        for kk, vv in coldict.items():
+            _val = tuple(ivv.format(sc=sc) for ivv in vv)
+            if len(_val) > 1:
+                if (not _val[1].split('.')[1].split('(')[0]
+                         in get_sql_tables(sc, db)):
+                    _val = (_val[0],)
+            _coldict[kk] = [iv.format(sc) for iv in _val]
+    else:
+        _coldict = {col: [coltype[0]] for col, coltype in coldict.items()}
+
 
     return _coldict
 
@@ -1319,22 +1351,6 @@ if __name__ == '__main__':
 #    dump_by_table('out_marg_store', 'storage2', target_dir='C:\\Users\\ashreeta\\Documents\\Martin\\SWITCHdrive\\SQL_DUMPS\\out_marg_store_new\\')
 
 # %%
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
