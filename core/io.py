@@ -12,7 +12,7 @@ import os
 import pandas as pd
 from pyomo.core.base.param import _ParamData # required if params are mutable
 
-import grimsel.auxiliary.aux_sql_func as aql
+import grimsel.auxiliary.sqlutils.aux_sql_func as aql
 import grimsel
 
 import grimsel.core.autocomplete as ac

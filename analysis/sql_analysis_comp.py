@@ -9,7 +9,7 @@ Created on Fri Sep  7 14:11:09 2018
 #
 import pandas as pd
 import numpy as np
-import grimsel.auxiliary.aux_sql_func as aql
+import grimsel.auxiliary.sqlutils.aux_sql_func as aql
 #
 import grimsel.auxiliary.maps as maps
 

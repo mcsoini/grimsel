@@ -14,7 +14,7 @@ import grimsel.core.io as io
 import grimsel.core.model_loop_modifier as model_loop_modifier
 import grimsel.core.parameter_changes as parameter_changes
 
-import grimsel.auxiliary.aux_sql_func as aql
+import grimsel.auxiliary.sqlutils.aux_sql_func as aql
 import grimsel.auxiliary.maps as maps
 
 reload(model_base)

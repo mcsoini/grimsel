@@ -1,6 +1,6 @@
 import sys
 
-import grimsel.auxiliary.aux_sql_func as aql
+import grimsel.auxiliary.sqlutils.aux_sql_func as aql
 from grimsel.auxiliary.aux_general import get_config
 import numpy as np
 import pandas as pd

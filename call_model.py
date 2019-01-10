@@ -8,9 +8,7 @@ import grimsel.core.model_loop as model_loop
 from grimsel.core.model_base import ModelBase as MB
 from grimsel.core.io import IO as IO
 
-
-
-import grimsel.auxiliary.aux_sql_func as aql
+import grimsel.auxiliary.sqlutils.aux_sql_func as aql
 import grimsel.core.io as io
 import grimsel.analysis.sql_analysis_comp as sql_analysis_comp
 

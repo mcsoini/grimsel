@@ -7,7 +7,7 @@ Created on Thu Nov  2 13:28:17 2017
 
 import warnings
 
-import grimsel.auxiliary.aux_sql_func as aql
+import grimsel.auxiliary.sqlutils.aux_sql_func as aql
 import grimsel.auxiliary.timemap as tm
 
 from grimsel.analysis.sql_analysis_hourly import SqlAnalysisHourly

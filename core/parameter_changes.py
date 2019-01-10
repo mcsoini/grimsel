@@ -8,7 +8,7 @@ Created on Wed Dec 20 10:10:27 2017
 
 import pandas as pd
 
-import grimsel.auxiliary.aux_sql_func as aql
+import grimsel.auxiliary.sqlutils.aux_sql_func as aql
 from grimsel.auxiliary.aux_m_func import pdef
 
 
