@@ -50,10 +50,9 @@ par = [
     ('hyd_pwr_out_mt_min', ('pp_id',)),
     ('vc_dmnd_flex', ('nd_id', 'ca_id')),
     ('vc_fl', ('fl_id', 'nd_id')),
-    ('factor_vc_fl_lin_0', ('pp_id', 'ca_id')),
-    ('factor_vc_fl_lin_1', ('pp_id', 'ca_id')),
-    ('factor_vc_co2_lin_0', ('pp_id', 'ca_id')),
-    ('factor_vc_co2_lin_1', ('pp_id', 'ca_id')),
+    ('co2_int', ('fl_id',)),
+    ('factor_lin_0', ('pp_id', 'ca_id')),
+    ('factor_lin_1', ('pp_id', 'ca_id')),
     ('vc_om', ('pp_id', 'ca_id')),
     ('fc_om', ('pp_id', 'ca_id')),
     ('fc_dc', ('pp_id', 'ca_id')),
@@ -75,9 +74,6 @@ par = [
     ('erg_inp', ('nd_id', 'ca_id', 'fl_id')),
     ('erg_chp', ('nd_id', 'ca_id', 'fl_id')),
     ('capchnge_max', tuple()),
-#        ('objective', tuple()),
-#        ('objective_lin', tuple()),
-#        ('objective_quad', tuple())
     ]
 dual = [('supply', ('sy', 'nd_id', 'ca_id'))]
 

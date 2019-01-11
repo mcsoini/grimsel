@@ -68,14 +68,12 @@ class Parameters:
         self.padd('erg_chp', (self.nd, self.ca, self.fl), 'df_fuel_node_encar', **mut)
         self.padd('vc_fl', (self.fl, self.nd), 'df_fuel_node_encar', default=0, **mut) # EUR/MWh_el
 
-
         _df = self.df_plant_encar.copy()
         _df = _df.loc[_df.pp_id.isin(self.setlst['lin'])]
-        self.padd('factor_vc_fl_lin_0', (self.lin, self.ca), _df, default=0, **mut) # EUR/MWh_el
-        self.padd('factor_vc_fl_lin_1', (self.lin, self.ca), _df, default=0, **mut) # EUR/MWh_el
-        self.padd('factor_vc_co2_lin_0', (self.lin, self.ca), _df, default=0, **mut) # EUR/MWh_el
-        self.padd('factor_vc_co2_lin_1', (self.lin, self.ca), _df, default=0, **mut) # EUR/MWh_el
+        self.padd('factor_lin_0', (self.lin, self.ca), _df, default=0, **mut) # EUR/MWh_el
+        self.padd('factor_lin_1', (self.lin, self.ca), _df, default=0, **mut) # EUR/MWh_el
         self.padd('price_co2', (self.nd,), 'df_def_node', **mut) # EUR/MWh_el
+        self.padd('co2_int', (self.fl,), 'df_def_fuel', **mut) # t/MWh_fl
 
         print('Defining parameters for all generators')
         _df = self.df_plant_encar.copy()
