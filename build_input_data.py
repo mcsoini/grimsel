@@ -28,7 +28,8 @@ fn = config.FN_XLSX
 data_path = config.PATH_CSV
 
 wb = open_workbook(fn)
-wb_fy = open_workbook(os.path.join(os.path.dirname(fn), 'future_capacity.xlsx'))
+wb_fy = open_workbook(os.path.join(os.path.dirname(fn),
+                                   'future_capacity.xlsx'))
 
 sqlc = aql.sql_connector(db)
 
@@ -901,26 +902,26 @@ WITH nhours AS (
     WHERE year = 2015
     GROUP BY mt_id
 ), ppca AS (
-    SELECT nd, fl, pp, cap_pwr_leg FROM lp_input_replace.plant_encar
-    NATURAL LEFT JOIN (SELECT pp, pp_id, fl_id, nd_id FROM lp_input_replace.def_plant) AS dfpp
-    NATURAL LEFT JOIN (SELECT fl, fl_id FROM lp_input_replace.def_fuel) AS dffl
-    NATURAL LEFT JOIN (SELECT nd, nd_id FROM lp_input_replace.def_node) AS dfnd
+    SELECT nd, fl, pp, cap_pwr_leg FROM {sc}.plant_encar
+    NATURAL LEFT JOIN (SELECT pp, pp_id, fl_id, nd_id FROM {sc}.def_plant) AS dfpp
+    NATURAL LEFT JOIN (SELECT fl, fl_id FROM {sc}.def_fuel) AS dffl
+    NATURAL LEFT JOIN (SELECT nd, nd_id FROM {sc}.def_node) AS dfnd
 ), all_cap_fl AS (
     SELECT fl, nd, SUM(cap_pwr_leg) AS cap_pwr_leg FROM ppca
     GROUP BY fl, nd
 ), tb_fr AS (
     SELECT fl_id AS fl, year, nd_id AS nd, mt_id, SUM(value) AS erg FROM profiles_raw.rte_production_eco2mix
-    WHERE fl_id IN ('nuclear_fuel') AND year = 2015
+    WHERE fl_id IN ('nuclear_fuel') --AND year IN (2015,
     GROUP BY fl_id, year, nd_id, mt_id
 ), tb_de AS (
     SELECT fl_id AS fl, year, nd_id AS nd, mt_id, 1000 * SUM(value) AS erg
     FROM (SELECT *, EXTRACT(month FROM "DateTime") - 1 AS mt_id
           FROM profiles_raw.agora_profiles) AS tbag
-    WHERE fl_id IN ('nuclear_fuel', 'lignite') AND year = 2015
+    WHERE fl_id IN ('nuclear_fuel', 'lignite') AND year <> 2013
     GROUP BY fl_id, year, nd_id, mt_id
 ), tb_ch AS (
-    SELECT fl, 2015::SMALLINT AS year, nd, mt_id, erg FROM profiles_raw.monthly_production
-    WHERE fl IN ('nuclear_fuel')
+    SELECT fl, year, nd, mt_id, erg FROM profiles_raw.monthly_production
+    WHERE fl IN ('nuclear_fuel') And nd = 'CH0'
 ), tb_all AS (
     SELECT * FROM tb_fr
     UNION ALL
@@ -939,19 +940,39 @@ FROM tb_final
 /* EXPAND TO PLANTS */
 FULL OUTER JOIN (SELECT nd, fl, pp FROM ppca WHERE fl IN (SELECT fl FROM tb_final)) AS ppca
     ON ppca.fl = tb_final.fl AND ppca.nd = tb_final.nd;
-'''
+'''.format(sc=sc)
 
 df_parmt_cap_avlb = pd.DataFrame(aql.exec_sql(exec_strg, db=db),
                                  columns=['fl_id', 'nd_id', 'pp_id', 'year',
                                           'mt_id', 'ca_id', 'cap_avlb'])
 
-df_parmt_cap_avlb.pivot_table(index='mt_id', columns=['pp_id'], values='cap_avlb').plot(marker='o')
+df_parmt_cap_avlb[['year', 'fl_id', 'nd_id']].drop_duplicates()
 
-df_check = aql.read_sql('storage2', 'lp_input_calibration_years_linonly', 'parameter_month')
-df_check.loc[df_check.parameter=='cap_avlb'].pivot_table(index='mt_id', columns=['set_1_id'], values='mt_fact').plot()
+# keep 2015 and median of all years
+df_2015 = df_parmt_cap_avlb.loc[df_parmt_cap_avlb.year == 2015].assign(year='')
+df_medi = df_parmt_cap_avlb.pivot_table(index=['nd_id', 'ca_id', 'pp_id', 'fl_id', 'mt_id'],
+                                      aggfunc=np.median,
+                                      values='cap_avlb').reset_index().assign(year='median')
+df_parmt_cap_avlb = pd.concat([df_2015, df_medi], axis=0, sort=True)
 
-df_parmt_cap_avlb = df_parmt_cap_avlb.pivot_table(index=['pp_id', 'ca_id', 'mt_id'], values='cap_avlb')
-df_parmt_cap_avlb = df_parmt_cap_avlb.reset_index().rename(columns={'cap_avlb': 'mt_fact',
+
+# %
+df_ch = aql.read_sql('storage2', 'profiles_raw', 'monthly_production', filt=[('year', [2007], ' > ')])
+ax = df_ch.loc[df_ch.fl.isin(['nuclear_fuel']) &
+          df_ch.nd.isin(['CH0'])].pivot_table(index=['mt_id'],
+                                              columns=['year'], values='erg').plot()
+df_ch.loc[df_ch.fl.isin(['nuclear_fuel']) &
+          df_ch.nd.isin(['CH0']) &
+          df_ch.year.isin([2015])].pivot_table(index=['mt_id'],
+                                              columns=['year'], values='erg').plot(marker='o', ax=ax)
+ax.set_ylim(bottom=0)
+
+
+
+
+df_parmt_cap_avlb = df_parmt_cap_avlb.pivot_table(index=['pp_id', 'ca_id', 'mt_id'], columns='year', values='cap_avlb')
+df_parmt_cap_avlb = df_parmt_cap_avlb.reset_index().rename(columns={'': 'mt_fact',
+                                                                    'median': 'mt_fact_others' ,
                                                                     'pp_id': 'set_1_id',
                                                                     'ca_id': 'set_2_id'})
 df_parmt_cap_avlb['set_1_name'] = 'pp_id'
@@ -973,6 +994,7 @@ mask_vc_fl = df_parmt_fl_co2.parameter.isin(['vc_fl'])
 df_parmt_fl_co2 = pd.concat([df_parmt_fl_co2.loc[-mask_vc_fl],
                              expand_rows(df_parmt_fl_co2.loc[mask_vc_fl], ['set_2_id'],
                                   [df_def_node.nd.tolist()])], axis=0)
+df_parmt_fl_co2['mt_fact_others'] = 1
 ###############################################################################
 
 
