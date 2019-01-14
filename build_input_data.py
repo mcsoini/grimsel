@@ -165,8 +165,8 @@ cols = [('pp_id',' SMALLINT', sc + '.def_plant(pp_id)'),
         ('factor_lin_1','DOUBLE PRECISION'),
         ('vc_ramp','DOUBLE PRECISION'),
         ('vc_om','DOUBLE PRECISION'),
-       ] + (yr_getter('cap_pwr_leg', 'DOUBLE PRECISION'))
-
+       ] + (yr_getter('cap_pwr_leg', 'DOUBLE PRECISION')
+         +  yr_getter('erg_chp', 'DOUBLE PRECISION'))
 pk = ['pp_id', 'ca_id']
 unique = []
 init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
@@ -238,8 +238,7 @@ cols = ([('fl_id', 'SMALLINT', sc + '.def_fuel(fl_id)'),
          ('has_profile', 'SMALLINT'),
          ('is_chp', 'SMALLINT'),
          ] + yr_getter('erg_inp', 'DOUBLE PRECISION')
-           + yr_getter('vc_fl', 'DOUBLE PRECISION')
-           + yr_getter('erg_chp', 'DOUBLE PRECISION'))
+           + yr_getter('vc_fl', 'DOUBLE PRECISION'))
 pk = ['fl_id', 'nd_id']
 unique = []
 init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
@@ -303,20 +302,22 @@ ppca_cols = ['pp_id', 'ca_id', 'pp_eff', 'discharge_duration',
              'factor_lin_0', 'factor_lin_1',
             ] + ['cap_pwr_leg']
 df_plant_encar = read_xlsx_table(wb, ['PLANT_ENCAR'], columns=ppca_cols)
+df_plant_encar = df_plant_encar.rename(columns={'cap_pwr_leg': 'cap_pwr_leg_old'})
 
 
-ppca_cap_cols = ['pp_id', 'cap_pwr_leg', 'cap_pwr_leg_2020', 'cap_pwr_leg_2025',
-                 'cap_pwr_leg_2030', 'cap_pwr_leg_2035', 'cap_pwr_leg_2040',
-                 'cap_pwr_leg_2045', 'cap_pwr_leg_2050']
+ppca_cap_cols = ['pp_id'] + yr_getter('cap_pwr_leg') + yr_getter('erg_chp')
 df_plant_encar_capacities = read_xlsx_table(wb_fy, ['PLANT_ENCAR_CAP'], columns=ppca_cap_cols)
-df_plant_encar = (df_plant_encar.rename(columns={'cap_pwr_leg': 'cap_pwr_leg_old'})
-                                .join(df_plant_encar_capacities.set_index('pp_id'), on='pp_id')
+df_plant_encar = (df_plant_encar.join(df_plant_encar_capacities.set_index('pp_id')[yr_getter('cap_pwr_leg')], on='pp_id')
                                 .fillna(1))
+df_plant_encar = (df_plant_encar.join(df_plant_encar_capacities.set_index('pp_id')[yr_getter('erg_chp')], on='pp_id'))
+
+df_plant_encar.erg_chp
+df_plant_encar.set_index('pp_id')[['cap_pwr_leg_old', 'cap_pwr_leg']].plot.bar()
 
 df_plant_encar.pp_id.tolist()
 
 df_plant_encar_scenarios = read_xlsx_table(wb_fy, ['PLANT_ENCAR_CAP'],
-                                           columns=ppca_cap_cols + ['scenario'],
+                                           columns=['pp_id'] + yr_getter('cap_pwr_leg') + ['scenario'],
                                            sub_table='SCENARIOS')
 df_plant_encar_scenarios['ca_id'] = 'EL'
 
@@ -353,8 +354,7 @@ df_def_fuel = read_xlsx_table(wb, ['DEF_FUEL'],
 df_fuel_node_encar = read_xlsx_table(wb_fy, ['FUEL_NODE_ENCAR'],
                                      (['fl_id', 'nd_id', 'ca_id', 'is_chp']
                                       + yr_getter('erg_inp')
-                                      + yr_getter('vc_fl')
-                                      + yr_getter('erg_chp')))
+                                      + yr_getter('vc_fl')))
 
 df_fuel_node_encar_scenarios = read_xlsx_table(wb_fy, ['FUEL_NODE_ENCAR'],
                                      (['fl_id', 'nd_id', 'ca_id']
