@@ -263,8 +263,10 @@ cols = ([('set_1_name', 'VARCHAR'), # from {'nd_id', 'fl_id', 'pp_id'}
          ('set_1_id', 'SMALLINT'),
          ('set_2_id', 'SMALLINT'),
          ('mt_id',' SMALLINT', sc + '.def_month(mt_id)'),
-         ('parameter', 'VARCHAR') # the parameter this applies to
-         ] + yr_getter('mt_fact', 'NUMERIC(10,9)', [2015]))
+         ('parameter', 'VARCHAR'), # the parameter this applies to
+         ('mt_fact', 'NUMERIC(10,9)'),
+         ('mt_fact_others', 'NUMERIC(10,9)'),
+         ])
 pk = ['parameter', 'set_1_id', 'set_2_id', 'mt_id']
 unique = []
 init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
