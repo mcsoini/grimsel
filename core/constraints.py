@@ -557,12 +557,12 @@ class Constraints:
                 * (self.price_co2[mt, nd]
                    if 'price_co2' in self.parameter_month_list
                    else self.price_co2[nd])
-                * self.co2_int
+                * self.co2_int[fl]
                 * (self.factor_lin_0[lin, ca]
                    + 0.5 * self.pwr[sy, lin, ca]
                    * self.factor_lin_1[lin, ca])
                 for (sy, mt) in set_to_list(self.sy_mt, nn))
-            for (lin, nd, ca) in set_to_list(self.lin_ndca, nnn))
+            for (lin, nd, ca, fl) in set_to_list(self.lin_ndcafl, nnnn))
 
     def add_objective_rules(self):
         print('Objective rule quadratic')
