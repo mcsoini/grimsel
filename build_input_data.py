@@ -76,10 +76,6 @@ init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
 
 tb_name = 'def_node'
 cols = [('nd_id', 'SMALLINT'), ('nd', 'VARCHAR(3)'),
-#        ('discount_rate', 'DOUBLE PRECISION'),
-#        ('charging', 'DOUBLE PRECISION'),
-#        ('share_ws_set', 'DOUBLE PRECISION'),
-#        ('chp_cap_pwr_leg', 'DOUBLE PRECISION'),
         ('color', 'VARCHAR(7)')] + yr_getter('price_co2', 'DOUBLE PRECISION')
 pk = ['nd_id']
 unique = ['nd']
