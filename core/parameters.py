@@ -144,7 +144,7 @@ class Parameters:
 
         if type(source_dataframe) is str:
 
-            if source_dataframe in self.__dict__.keys():
+            if hasattr(self, source_dataframe):
                 _df = getattr(self, source_dataframe)
                 if _df is None:
                     print('failed (source_dataframe is None).')
