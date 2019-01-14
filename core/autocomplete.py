@@ -331,16 +331,17 @@ class AutoCompletePlantTrns(AutoCompletePlant, AutoCompleteTrns):
     def get_row_list(self):
         ''' pp names from reshaped df_node_connect table. '''
 
+        mask_trns = ((self.m.df_node_connect.cap_trmi_leg != 0) |
+                     (self.m.df_node_connect.cap_trme_leg != 0))
         self.df_add = (self.m.df_node_connect
-                           .loc[self.m.df_node_connect.cap_trm_leg != 0,
-                                 ['nd_id', 'nd_2_id']]
-                            .drop_duplicates()
-                            .stack()
-                            .reset_index()
-                            .rename(columns={'level_1': 'imex', 0: 'nd_id'})
-                            .join(self.m.df_def_node.set_index('nd_id')['nd'],
-                                  on='nd_id')[['imex', 'nd_id', 'nd']]
-                            .drop_duplicates())
+                           .loc[mask_trns, ['nd_id', 'nd_2_id']]
+                           .drop_duplicates()
+                           .stack()
+                           .reset_index()
+                           .rename(columns={'level_1': 'imex', 0: 'nd_id'})
+                           .join(self.m.df_def_node.set_index('nd_id')['nd'],
+                                 on='nd_id')[['imex', 'nd_id', 'nd']]
+                           .drop_duplicates())
 
         pt_dict = {'nd_id': 'TRNS_ST',
                    'nd_2_id': 'TRNS_RV'}
