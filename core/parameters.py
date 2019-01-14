@@ -73,7 +73,8 @@ class Parameters:
         self.padd('factor_lin_0', (self.lin, self.ca), _df, default=0, **mut) # EUR/MWh_el
         self.padd('factor_lin_1', (self.lin, self.ca), _df, default=0, **mut) # EUR/MWh_el
         self.padd('price_co2', (self.nd,), 'df_def_node', **mut) # EUR/MWh_el
-        self.padd('co2_int', (self.fl,), 'df_def_fuel', **mut) # t/MWh_fl
+        _df = self.df_def_fuel.loc[self.df_def_fuel.fl_id.isin(self.setlst['fl'])]
+        self.padd('co2_int', (self.fl,), _df, **mut) # t/MWh_fl
 
         print('Defining parameters for all generators')
         _df = self.df_plant_encar.copy()
