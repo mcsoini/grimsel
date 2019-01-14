@@ -22,6 +22,9 @@ import grimsel.auxiliary.sqlutils.aux_sql_func as aql
 from grimsel.auxiliary.timemap import TimeMap
 import grimsel.config as config
 
+reload(config)
+
+# %%
 db = config.DATABASE
 sc = config.SCHEMA
 fn = config.FN_XLSX
@@ -91,7 +94,7 @@ cols = [('nd_id', 'SMALLINT'),
 pk = ['nd_id', 'ca_id']
 unique = []
 init_table(tb_name=tb_name, cols=cols, schema=sc, ref_schema=sc,
-               pk=pk, unique=unique, db=db)
+           pk=pk, unique=unique, db=db)
 
 tb_name = 'def_encar'
 cols = [('ca_id', 'SMALLINT'),
@@ -304,7 +307,6 @@ ppca_cols = ['pp_id', 'ca_id', 'pp_eff', 'discharge_duration',
 df_plant_encar = read_xlsx_table(wb, ['PLANT_ENCAR'], columns=ppca_cols)
 df_plant_encar = df_plant_encar.rename(columns={'cap_pwr_leg': 'cap_pwr_leg_old'})
 
-
 ppca_cap_cols = ['pp_id'] + yr_getter('cap_pwr_leg') + yr_getter('erg_chp')
 df_plant_encar_capacities = read_xlsx_table(wb_fy, ['PLANT_ENCAR_CAP'], columns=ppca_cap_cols)
 df_plant_encar = (df_plant_encar.join(df_plant_encar_capacities.set_index('pp_id')[yr_getter('cap_pwr_leg')], on='pp_id')
@@ -314,7 +316,6 @@ df_plant_encar = (df_plant_encar.join(df_plant_encar_capacities.set_index('pp_id
 df_plant_encar.erg_chp
 df_plant_encar.set_index('pp_id')[['cap_pwr_leg_old', 'cap_pwr_leg']].plot.bar()
 
-df_plant_encar.pp_id.tolist()
 
 df_plant_encar_scenarios = read_xlsx_table(wb_fy, ['PLANT_ENCAR_CAP'],
                                            columns=['pp_id'] + yr_getter('cap_pwr_leg') + ['scenario'],
@@ -725,7 +726,6 @@ df_profprice['fl_id'] = 'electricity'
 
 
 
-
 df_profprice, _ = translate_id(df_profprice, df_def_node, 'nd')
 df_profprice, _ = translate_id(df_profprice, df_def_fuel, 'fl')
 
@@ -737,6 +737,7 @@ write_dfs = [
 for idf in write_dfs:
     print('Writing ', idf[1])
     aql.write_sql(idf[0], db, sc, idf[1], 'append')
+    
 # %%
 ######## PROFSUPPLY FROM PROFILES_RAW.NINJA DATA STRAIGHT TO LP_INPUT #########
 
@@ -849,8 +850,6 @@ for iyr in list_years:
 
     dfbio = dfbio.drop([cap_col, erg_col], axis=1)
 
-
-
 aql.write_sql(dfbio, db, sc, 'profsupply', 'append')
 
 # %%
@@ -880,9 +879,7 @@ df_profprice['ca_id'] = 'EL'
 df_profprice, _ = translate_id(df_profprice, df_def_node, 'nd')
 df_profprice, _ = translate_id(df_profprice, df_def_encar, 'ca')
 
-write_dfs = [
-             (df_profprice, 'profprice_comp'),
-             ]
+write_dfs = [(df_profprice, 'profprice_comp')]
 for idf in write_dfs:
     print('Writing ', idf[1])
     aql.write_sql(idf[0], db, sc, idf[1], 'append')
