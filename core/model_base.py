@@ -223,7 +223,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
     def _limit_prof_to_cap(self):
 
-        if len(self.ndcafl_chp) > 0:
+        if len(self.chp) > 0:
             self.limit_prof_to_cap()
 
 #    def limit_prof_to_cap(self):
@@ -294,12 +294,13 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
         print('*'*60 + '\nModelBase: Limiting chp profiles to cap_pwr_leg', end='... ')
 
-        # get list of fuel relevant for chp from corresponding set
-        fl_chp = [fl[-1] for fl in set_to_list(self.ndcafl_chp, [None, None, None])]
+        # get list of plants relevant for chp from corresponding set
+        pp_chp = self.setlst['chp']
 
         df_chpprof = io.IO.param_to_df(self.chpprof, ('sy', 'nd_id', 'ca_id'))
-        df_erg_chp = io.IO.param_to_df(self.erg_chp, ('nd_id', 'ca_id', 'fl_id'))
-        df_erg_chp = df_erg_chp.loc[df_erg_chp.fl_id.isin(fl_chp)]
+        df_erg_chp = io.IO.param_to_df(self.erg_chp, ('pp_id', 'ca_id'))
+        df_erg_chp = df_erg_chp.loc[df_erg_chp.pp_id.isin(pp_chp)]
+        df_erg_chp['nd_id'] = df_erg_chp.pp_id.replace(self.mps.dict_plant_2_node_id)
 
         # outer join profiles and energy to get a profile for each fuel
         df_chpprof_tot = pd.merge(df_erg_chp.rename(columns={'value': 'erg'}),
@@ -310,32 +311,29 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
         # get capacities from parameter
         df_cap_pwr_leg = io.IO.param_to_df(self.cap_pwr_leg, ('pp_id', 'ca_id'))
-        # add fuel column
-        df_cap_pwr_leg = df_cap_pwr_leg.join(self.df_def_plant.set_index(['pp_id'])[['fl_id', 'nd_id']], on ='pp_id')
         # keep only chp-related fuels
-        df_cap_pwr_leg = df_cap_pwr_leg.loc[df_cap_pwr_leg.fl_id.isin(fl_chp)]
+        df_cap_pwr_leg = df_cap_pwr_leg.loc[df_cap_pwr_leg.pp_id.isin(self.chp)]
         # pivot_by fl_id
         df_cappv = df_cap_pwr_leg.pivot_table(values='value',
-                                              index=['ca_id', 'fl_id', 'nd_id'],
+                                              index=['ca_id', 'pp_id'],
                                               aggfunc=np.sum)['value']
         # rename
         df_cappv = df_cappv.rename('cap').reset_index()
 
         # add capacity to profiles
-        df_chpprof_tot = pd.merge(df_cappv, df_chpprof_tot, on=['ca_id', 'fl_id', 'nd_id'])
+        df_chpprof_tot = pd.merge(df_cappv, df_chpprof_tot, on=['ca_id', 'pp_id'])
 
 
         # find occurrences of capacity zero and chp erg non-zero
-        df_slct = df_chpprof_tot[['fl_id', 'ca_id', 'nd_id', 'cap', 'erg']].drop_duplicates().copy()
+        df_slct = df_chpprof_tot[['pp_id', 'ca_id', 'cap', 'erg']].drop_duplicates().copy()
         df_slct = df_slct.loc[df_slct.cap.isin([0])
                             & -df_slct.erg.isin([0])]
         str_erg_cap = ''
-        for nrow, row in df_slct.iterrows():
-            str_erg_cap += 'fl_id=%d, ca_id=%d, nd_id=%d: cap_pwr_leg=%f, erg_chp=%f\n'%tuple(row.values)
         if len(df_slct > 0):
+            for nrow, row in df_slct.iterrows():
+                str_erg_cap += 'fl_id=%d, ca_id=%d, nd_id=%d: cap_pwr_leg=%f, erg_chp=%f\n'%tuple(row.values)
             raise ValueError ('limit_prof_to_cap: one or more cap_pwr_leg are zero '
                               'while erg_chp is greater 0: \n' + str_erg_cap)
-
 
         # find occurrences of capacity violations
         mask_viol = df_chpprof_tot.prof_sc > df_chpprof_tot.cap
@@ -346,8 +344,9 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         else:
             # REPORTING
             df_profviol = df_chpprof_tot.loc[mask_viol]
-            dict_viol = df_profviol.pivot_table(index=['nd_id', 'ca_id', 'fl_id'],
+            dict_viol = df_profviol.pivot_table(index=['pp_id', 'ca_id'],
                                                 values='sy', aggfunc=len)['sy'].to_dict()
+
             for kk, vv in dict_viol.items():
                 print('\n(nd, ca, fl)={}: {} violations'.format(kk, vv))
 
@@ -366,16 +365,17 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
             elif param_mod == 'cap_pwr_leg':
 
                 # calculate capacity scaling factor
-                df_capsc = df_profviol.pivot_table(index=['nd_id', 'ca_id', 'fl_id'],
+                df_capsc = df_profviol.pivot_table(index=['pp_id', 'ca_id'],
                                                    values=['cap', 'prof_sc'], aggfunc=np.max)
                 df_capsc['cap_sc'] = df_capsc.prof_sc / df_capsc.cap
 
                 # merge scaling factor with capacity table
-                df_cap_pwr_leg = df_cap_pwr_leg.join(df_capsc, on=df_capsc.index.names)
+                df_cap_pwr_leg = df_cap_pwr_leg.join(df_capsc,
+                                                     on=df_capsc.index.names)
                 df_cap_pwr_leg = df_cap_pwr_leg.loc[-df_cap_pwr_leg.cap_sc.isnull()]
 
                 # apply scaling factor to all capacity with the relevant fuel
-                df_cap_pwr_leg['cap'] *= df_cap_pwr_leg.cap_sc * 1.001
+                df_cap_pwr_leg['cap'] *= df_cap_pwr_leg.cap_sc * 1.0001
 
                 # dictionary
                 dict_cap_pwr_leg = df_cap_pwr_leg.set_index(['pp_id', 'ca_id'])['cap']
