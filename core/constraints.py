@@ -136,8 +136,8 @@ class Constraints:
             else:
                 return (self.pwr[sy, pp, ca] <= self.cap_pwr_tot[pp, ca])
 
-        self.PpStCapac = po.Constraint(self.pp_ca - self.pr_ca | self.st_ca
-                                       | self.hyrs_ca,
+        self.PpStCapac = po.Constraint((self.pp_ca - self.pr_ca)
+                                       | self.st_ca | self.hyrs_ca,
                                        self.sy, rule=ppst_capac_rule)
 
         print('- Power capacity storage charging')
