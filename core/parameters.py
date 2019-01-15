@@ -62,10 +62,11 @@ class Parameters:
         self.padd('ca_share_max', (self.pp, self.ca), _df) # .
         self.padd('pp_eff', (self.ppall, self.ca), _df, default=1) # .
         self.padd('cf_max', (self.pp, self.ca), _df, **mut) # .
+        df = self.df_plant_encar.loc[self.df_plant_encar.pp_id.isin(self.chp)]
+        self.padd('erg_chp', (self.pp, self.ca), df, **mut)
 
         print('Defining fuel parameters')
         self.padd('erg_inp', (self.nd, self.ca, self.fl), 'df_fuel_node_encar', **mut)
-        self.padd('erg_chp', (self.nd, self.ca, self.fl), 'df_fuel_node_encar', **mut)
         self.padd('vc_fl', (self.fl, self.nd), 'df_fuel_node_encar', default=0, **mut) # EUR/MWh_el
 
         _df = self.df_plant_encar.copy()
