@@ -598,16 +598,109 @@ class ModelWriter():
                     print(exec_str)
                     aql.exec_sql(exec_str, db=db)
 
-
-
-
-
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class TableReader():
+    '''
+    Reads tables from input data sources and makes them attributes of the
+    model attribute.
+    '''
+
+    def __init__(self, sql_connector, sc_inp, data_path, model):
+
+        self.sqlc = sql_connector
+        self.sc_inp = sc_inp
+        self.data_path = data_path
+        self.model = model
+
+        if not self.sc_inp and not self.data_path:
+            print('Falling back to grimsel default csv tables.')
+            self.data_path = os.path.join(grimsel.__path__[0], 'input_data')
+
+
+        self.table_list = self._get_table_list()
+
+    def _get_table_list(self):
+        ''' Obtain list of tables in the relevant data source. '''
+
+        if self.sc_inp:
+            return aql.get_sql_tables(self.sc_inp, self.sqlc.db)
+        elif self.data_path:
+            return [fn.replace('.csv', '')
+                    for fn in next(os.walk(self.data_path))[-1]]
+
+    def _expand_table_families(self, dct):
+        '''
+        Searches for tables with identical name + suffix in the same data source.
+        Updates and returns the dct.
+        '''
+
+        dct_add = {}
+        for table, filt in dct.items():
+
+            tbs_other = [tb for tb in self.table_list
+                         if table in tb and not tb == table]
+
+            if tbs_other:
+                dct_add.update({tb: filt for tb in tbs_other})
+
+        dct.update(dct_add)
+
+    def df_from_dict(self, dct):
+        ''' Reads filtered input tables and assigns them to instance
+            attributes. (Copies filtered tables to output schema.
+            OBSOLETE DUE TO AUTO-COMPLETE) '''
+
+        self._expand_table_families(dct)
+
+        for kk, vv in dct.items():
+
+            df, tb_exists, source_str = self.get_input_table(kk, vv)
+
+            setattr(self.model, 'df_' + kk, df)
+
+            if not tb_exists:
+                print('Input table {tb} does not exist. '
+                      + 'Setting model attribute df_{tb} '
+                      + 'to None.'.format(tb=kk))
+            else:
+                filt = ('filtered by ' if len(vv) > 0 else '') +\
+                   ', '.join([vvv[0] + ' in ' + str(vvv[1]) for vvv in vv
+                              if not len(vvv[1]) is 0])
+                print(('Reading input table {tb} {flt} from '
+                       '{source_str}').format(tb=kk, flt=filt,
+                                              source_str=source_str))
+
+    def get_input_table(self, table, filt):
+
+        if self.sc_inp:
+            tb_exists = table in aql.get_sql_tables(self.sc_inp, self.sqlc.db)
+            if tb_exists:
+                df = aql.read_sql(self.sqlc.db, self.sc_inp, table, filt)
+            source = '%s %s.%s'%(self.sqlc.db, self.sc_inp, table)
+        else:
+            if self.data_path:
+                path = self.data_path
+            else:
+                path = os.path.join(grimsel.__path__[0], 'input_data')
+            fn = os.path.join(path, '%s.csv'%table)
+
+            source = fn
+            tb_exists = os.path.exists(fn)
+
+            if tb_exists:
+                df = pd.read_csv(fn)
+
+                for col, vals in filt:
+                    df = df.loc[df[col].isin(vals)]
+
+        return (df if tb_exists else None), tb_exists, (' from %s'%source
+                                                        if source else '')
+
 
 class DataReader():
 
     def __init__(self, **kwargs):
-
 
         defaults = {'resume_loop': False,
                     'replace_runs_if_exist': False,
@@ -631,32 +724,6 @@ class DataReader():
 
         self._coldict = aql.get_coldict()
 
-    def get_input_table(self, table, filt):
-
-        if self.sc_inp:
-            tb_exists = table in aql.get_sql_tables(self.sc_inp, self.db)
-            if tb_exists:
-                df = aql.read_sql(self.db, self.sc_inp, table, filt)
-            source = '%s %s.%s'%(self.db, self.sc_inp, table)
-        else:
-            if self.data_path:
-                path = self.data_path
-            else:
-                path = os.path.join(grimsel.__path__[0], 'input_data')
-            fn = os.path.join(path, '%s.csv'%table)
-
-            source = fn
-            tb_exists = os.path.exists(fn)
-
-            if tb_exists:
-                df = pd.read_csv(fn)
-
-                for col, vals in filt:
-
-                    df = df.loc[df[col].isin(vals)]
-
-        return (df if tb_exists else None), tb_exists, (' from %s'%source
-                                                        if source else '')
 
 
     def read_model_data(self):
@@ -664,34 +731,13 @@ class DataReader():
         Read all input data to instance attributes.
         '''
 
-        def df_from_dict(dct):
-            ''' Reads filtered input tables and assigns them to instance
-                attributes. (Copies filtered tables to output schema.
-                OBSOLETE DUE TO AUTO-COMPLETE) '''
-
-            for kk, vv in dct.items():
-
-                df, tb_exists, source_str = self.get_input_table(kk, vv)
-
-                setattr(self.model, 'df_' + kk, df)
-
-                if not tb_exists:
-                    print('Input table {tb} does not exist. '
-                          + 'Setting model attribute df_{tb} '
-                          + 'to None.'.format(tb=kk))
-                else:
-                    filt = ('filtered by ' if len(vv) > 0 else '') +\
-                       ', '.join([vvv[0] + ' in ' + str(vvv[1]) for vvv in vv
-                                  if not len(vvv[1]) is 0])
-                    print(('Reading input table {tb} {flt} from '
-                           '{source_str}').format(tb=kk, flt=filt,
-                                                  source_str=source_str))
-
+        tbrd = TableReader(self.sql_connector, self.sc_inp,
+                           self.data_path, self.model)
 
         # unfiltered input
         dict_tb_2 = {'def_month': [], 'def_week': [],
                      'parameter_month': [], 'def_plant': []}
-        df_from_dict(dict_tb_2)
+        tbrd.df_from_dict(dict_tb_2)
 
         # read input data filtered by node and energy carrier
         _flt_nd = [('nd', self.model.slct_node)]
@@ -701,7 +747,7 @@ class DataReader():
         dict_tb_3 = {'def_node': _flt_nd,
                      'def_pp_type': _flt_pt,
                      'def_encar': _flt_ca}
-        df_from_dict(dict_tb_3)
+        tbrd.df_from_dict(dict_tb_3)
 
         self.model.slct_node_id = self.model.df_def_node.nd_id.tolist()
         self.model.slct_encar_id = self.model.df_def_encar.ca_id.tolist()
@@ -721,7 +767,7 @@ class DataReader():
                      'profprice': _flt_nd,
                      'node_encar': _flt_nd + _flt_ca,
                      'node_connect': _flt_nd + _flt_ca + _flt_nd_2}
-        df_from_dict(dict_tb_0)
+        tbrd.df_from_dict(dict_tb_0)
 
 
 
@@ -736,7 +782,7 @@ class DataReader():
                      'plant_month': _flt_pp,
                      'plant_week': _flt_pp,
                      'fuel_node_encar': _flt_fl + _flt_nd + _flt_ca}
-        df_from_dict(dict_tb_1)
+        tbrd.df_from_dict(dict_tb_1)
 
         # filter plants requiring input from non-existing ca
         # e.g. if a fuel-cell is in the input table but no hydrogen is
