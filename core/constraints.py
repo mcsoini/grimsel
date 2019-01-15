@@ -158,19 +158,13 @@ class Constraints:
 
     def add_chp_new_rules(self):
 
-        # temporary fix: CHP profiles limited to capacity
-
-
-        def chp_prof_rule(model, sy, nd, ca, fl):
+        def chp_prof_rule(model, sy, pp, nd, ca, fl):
             '''Produced power greater than CHP output profile.'''
 
-            sum_pwr = sum(self.pwr[sy, pp, ca] for (pp, nd, ca, fl)
-                          in set_to_list(self.pp_ndcafl, (None, nd, ca, fl)))
-            chp_prf = (self.chpprof[sy, nd, ca] * self.erg_chp[nd, ca, fl])
+            return (self.pwr[sy, pp, ca]
+                    >= self.chpprof[sy, nd, ca] * self.erg_chp[pp, ca])
 
-            return sum_pwr >= chp_prf
-
-        self.chp_prof = po.Constraint(self.sy, self.ndcafl_chp,
+        self.chp_prof = po.Constraint(self.sy, self.chp_ndcafl,
                                       rule=chp_prof_rule)
 
 
