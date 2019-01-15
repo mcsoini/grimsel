@@ -86,7 +86,6 @@ class Parameters:
         self.padd('fc_om', sets, _df, **mut, default=0) # .
         self.padd('fc_dc', sets, _df, **mut) # .
 
-        _df['cap_avlb'] = 1 # init 1, adjusted from monthly correction factors
         _df = _df.loc[_df['pp_id'].isin(self.setlst['pp'])]
         self.padd('cap_avlb', (self.pp, self.ca), _df, **mut) # .
 
