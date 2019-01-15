@@ -173,13 +173,6 @@ class Sets:
         self.pp_ndcafl_prof = po.Set(within=self.pp_ndcafl, initialize=lst,
                                      ordered=True)
 
-        # ndcafl_chp
-        if 'is_chp' in self.df_fuel_node_encar:
-            df = self.df_fuel_node_encar
-            slct_fl_chp = df.loc[df.is_chp == 1, ['nd_id', 'ca_id', 'fl_id']]
-            slct_fl_chp = slct_fl_chp.apply(tuple, axis=1).tolist()
-            self.ndcafl_chp = po.Set(within=self.ndcafl, initialize=slct_fl_chp)
-
     def get_setlst(self):
         '''
         Lists of indices for all model components are extracted from the
