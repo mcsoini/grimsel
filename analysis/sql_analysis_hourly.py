@@ -61,7 +61,7 @@ class SqlAnalysisHourly():
         ''' Generates basic (full time resolution) x (pp_type) x (run_id) table. '''
         print(self.in_run_id)
 
-        tb_name = 'analysis_time_series' + self._suffix
+        tb_name = 'analysis_time_series'
 
         self.generate_view_time_series_subset()
 
