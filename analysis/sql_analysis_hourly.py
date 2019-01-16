@@ -653,7 +653,7 @@ class SqlAnalysisHourly(DecoratorsSqlAnalysis):
         aql.exec_sql(exec_strg, db=self.db)
 
         aql.joinon(self.db, ['mt_id', 'season'], ['sy'],
-                   [self.sc_out, 'analysis_agg_filtdiff_agg'],
+                   [self.sc_out, 'analysis_agg_filtdiff'],
                    [self.sc_out, 'tm_soy_full'])
 
         # aggregated table
