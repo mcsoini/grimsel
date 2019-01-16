@@ -216,21 +216,23 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
                     ''').format(**self.format_kw)
         aql.exec_sql(exec_str, db=self.db)
 
-        exec_str = ('''
-                    DROP VIEW IF EXISTS {sc_out}.analysis_time_series_view_energy CASCADE;
-                    CREATE VIEW {sc_out}.analysis_time_series_view_energy AS
-                    SELECT ergst.sy, ca_id, ergst.pp_id,
-                        False::BOOLEAN AS bool_out,
-                        value, ergst.run_id,
-                        'erg'::VARCHAR AS pwrerg_cat,
-                        value AS value_posneg
-                    FROM {sc_out}.var_sy_erg_st AS ergst
-                    WHERE ergst.run_id IN {in_run_id}
-                    AND pp_id IN (SELECT pp_id FROM {sc_out}.def_plant
-                                  WHERE nd_id in {in_nd_id})
-                    AND pp_id in {list_slct_pp_id};
-                    ''').format(**self.format_kw)
-        aql.exec_sql(exec_str, db=self.db)
+
+        if 'var_sy_erg_st' in aql.get_sql_tables(self.sc_out, self.db):
+            exec_str = ('''
+                        DROP VIEW IF EXISTS {sc_out}.analysis_time_series_view_energy CASCADE;
+                        CREATE VIEW {sc_out}.analysis_time_series_view_energy AS
+                        SELECT ergst.sy, ca_id, ergst.pp_id,
+                            False::BOOLEAN AS bool_out,
+                            value, ergst.run_id,
+                            'erg'::VARCHAR AS pwrerg_cat,
+                            value AS value_posneg
+                        FROM {sc_out}.var_sy_erg_st AS ergst
+                        WHERE ergst.run_id IN {in_run_id}
+                        AND pp_id IN (SELECT pp_id FROM {sc_out}.def_plant
+                                      WHERE nd_id in {in_nd_id})
+                        AND pp_id in {list_slct_pp_id};
+                        ''').format(**self.format_kw)
+            aql.exec_sql(exec_str, db=self.db)
 
         exec_str = ('''
                     DROP VIEW IF EXISTS {sc_out}.analysis_time_series_view_crosssector_0 CASCADE;

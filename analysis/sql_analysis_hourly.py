@@ -135,19 +135,20 @@ class SqlAnalysisHourly(DecoratorsSqlAnalysis):
             aql.exec_sql(exec_str, db=self.db)
 
 
-        print('Inserting energy...')
-        exec_str = ('''
-                    INSERT INTO {sc_out}.{tb_name}
-                        (sy, ca_id, pp_id, bool_out, value, run_id, pwrerg_cat, value_posneg)
-                    SELECT * FROM {sc_out}.analysis_time_series_view_energy;
-                    ''').format(sc_out=self.sc_out, tb_name=tb_name)
-        aql.exec_sql(exec_str, db=self.db)
 #
 #        aql.exec_sql('''ALTER TABLE {sc_out}.{tb_name}
 #                        ADD PRIMARY KEY(sy, ca_id, pp_id, bool_out,
 #                                        pwrerg_cat, run_id)
 #                     '''.format(**self.format_kw, tb_name=tb_name),
 #                     time_msg='Add pk to {sc_out}.{tb_name}', db=self.db)
+        if 'var_sy_erg_st' in aql.get_sql_tables(self.sc_out, self.db):
+            print('Inserting energy...')
+            exec_str = ('''
+                        INSERT INTO {sc_out}.{tb_name}
+                            (sy, ca_id, pp_id, bool_out, value, run_id, pwrerg_cat, value_posneg)
+                        SELECT * FROM {sc_out}.analysis_time_series_view_energy;
+                        ''').format(sc_out=self.sc_out, tb_name=tb_name)
+            aql.exec_sql(exec_str, db=self.db)
 
         # add pp indices
         aql.joinon(self.db, ['pt_id', 'fl_id', 'nd_id', 'pp'], ['pp_id'],
