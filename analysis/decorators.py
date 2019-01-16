@@ -24,7 +24,7 @@ class DecoratorsSqlAnalysis():
         def _append_pp_id_columns(f):
             def wrapper(self, *args, **kwargs):
                 f(self, *args, **kwargs)
-                aql.joinon(self.db, ['pt_id', 'fl_id', 'nd_id'], ['pp_id'],
+                aql.joinon(self.db, ['pt_id', 'fl_id', 'nd_id', 'pp'], ['pp_id'],
                            [self.sc_out, func_name], [self.sc_out, 'def_plant'])
             return wrapper
         return _append_pp_id_columns
