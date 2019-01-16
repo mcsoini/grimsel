@@ -438,19 +438,19 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
                         SELECT
                             pr0.*,
                             tb_cap.value AS cap_pwr_tot,
-                            tb_cap_new.value AS cap_pwr_new,
-                            -tb_cap_rem.value AS cap_pwr_rem,
+                       --     tb_cap_new.value AS cap_pwr_new,
+                       --     -tb_cap_rem.value AS cap_pwr_rem,
                             tb_cap_leg.value AS cap_pwr_leg
                         FROM plant_{tb_mod}run_01 AS pr0
                         LEFT JOIN {sc_out}.var_yr_cap_pwr_tot AS tb_cap
                             ON tb_cap.run_id = pr0.run_id
                             AND tb_cap.pp_id = pr0.pp_id
-                        LEFT JOIN {sc_out}.var_yr_cap_pwr_new AS tb_cap_new
+/*                        LEFT JOIN {sc_out}.var_yr_cap_pwr_new AS tb_cap_new
                             ON tb_cap_new.run_id = pr0.run_id
                             AND tb_cap_new.pp_id = pr0.pp_id
                         LEFT JOIN {sc_out}.var_yr_cap_pwr_rem AS tb_cap_rem
                             ON tb_cap_rem.run_id = pr0.run_id
-                            AND tb_cap_rem.pp_id = pr0.pp_id
+                            AND tb_cap_rem.pp_id = pr0.pp_id     */
                         LEFT JOIN {sc_out}.par_cap_pwr_leg AS tb_cap_leg
                             ON tb_cap_leg.run_id = pr0.run_id
                             AND tb_cap_leg.pp_id = pr0.pp_id;
