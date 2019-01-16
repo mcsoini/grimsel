@@ -14,6 +14,9 @@ from grimsel.analysis.decorators import DecoratorsSqlAnalysis
 class SqlAnalysisHourly(DecoratorsSqlAnalysis):
     ''' Performs various SQL-based analyses on the output tables. '''
 
+
+    @DecoratorsSqlAnalysis.append_sw_columns('analysis_time_series_dual_supply')
+    @DecoratorsSqlAnalysis.append_nd_id_columns('analysis_time_series_dual_supply')
     def generate_complete_dual_supply(self):
         ''' Adds loop and sy columns to the dual_supply table.'''
         print(self.in_run_id)
@@ -36,18 +39,10 @@ class SqlAnalysisHourly(DecoratorsSqlAnalysis):
                       ''').format(tb_name=tb_name, sc_out=self.sc_out, in_run_id=self.in_run_id)
         aql.exec_sql(exec_str_0, db=self.db)
 
-        # add loop indices
-        aql.joinon(self.db, self.sw_columns, ['run_id'],
-                   [self.sc_out, 'analysis_time_series_dual_supply'],
-                   [self.sc_out, 'def_loop'],  new_columns=False)
         # add timemap indices
         aql.joinon(self.db, [c for c in self.tm_cols if not c == 'sy'], ['sy'],
                    [self.sc_out, 'analysis_time_series_dual_supply'],
                    [self.sc_out, 'tm_soy_full'],  new_columns=False)
-        # add nd indices
-        aql.joinon(self.db, ['nd'], ['nd_id'],
-                   [self.sc_out, 'analysis_time_series_dual_supply'],
-                   [self.sc_out, 'def_node'], new_columns=False)
 
         exec_str_1 = ('''
                       UPDATE {sc_out}.analysis_time_series_dual_supply
@@ -96,6 +91,10 @@ class SqlAnalysisHourly(DecoratorsSqlAnalysis):
 #        aql.exec_sql(exec_str)
 
 
+    @DecoratorsSqlAnalysis.append_nd_id_columns('analysis_time_series')
+    @DecoratorsSqlAnalysis.append_fl_id_columns('analysis_time_series')
+    @DecoratorsSqlAnalysis.append_pp_id_columns('analysis_time_series')
+    @DecoratorsSqlAnalysis.append_sw_columns('analysis_time_series')
     def generate_analysis_time_series(self, energy_only=False):
         ''' Generates basic (full time resolution) x (pp_type) x (run_id) table. '''
         print(self.in_run_id)
@@ -150,22 +149,6 @@ class SqlAnalysisHourly(DecoratorsSqlAnalysis):
                         ''').format(sc_out=self.sc_out, tb_name=tb_name)
             aql.exec_sql(exec_str, db=self.db)
 
-        # add pp indices
-        aql.joinon(self.db, ['pt_id', 'fl_id', 'nd_id', 'pp'], ['pp_id'],
-                   [self.sc_out, tb_name], [self.sc_out, 'def_plant'], new_columns=True)
-        # add loop indices
-        if len(self.sw_columns) > 0:
-            aql.joinon(self.db, self.sw_columns, ['run_id'],
-                       [self.sc_out, tb_name], [self.sc_out, 'def_loop'], new_columns=False)
-#        # add pp indices
-#        aql.joinon(self.db, ['pt'], ['pt_id'],
-#                   [self.sc_out, tb_name], [self.sc_out, 'def_pp_type'], new_columns=False)
-        # add fl indices
-        aql.joinon(self.db, ['fl'], ['fl_id'],
-                   [self.sc_out, tb_name], [self.sc_out, 'def_fuel'], new_columns=False)
-        # add nd indices
-        aql.joinon(self.db, ['nd'], ['nd_id'],
-                   [self.sc_out, tb_name], [self.sc_out, 'def_node'], new_columns=False)
         # add timemap indices
         aql.joinon(self.db, [c for c in self.tm_cols if (not c == 'sy')], ['sy'],
                    [self.sc_out, tb_name], [self.sc_out, 'tm_soy_full'], new_columns=False)

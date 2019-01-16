@@ -15,6 +15,7 @@ import grimsel.auxiliary.maps as maps
 
 import grimsel.analysis.sql_analysis as  sql_analysis
 
+from grimsel.analysis.decorators import DecoratorsSqlAnalysis
 
 
 class SqlAnalysisComp(sql_analysis.SqlAnalysis):
@@ -27,6 +28,8 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
         super().__init__(sc_out, db, **kwargs)
 
 
+
+    @DecoratorsSqlAnalysis.append_sw_columns('analysis_monthly_comparison')
     def analysis_monthly_comparison(self):
 
         tb_name = 'analysis_monthly_comparison'
@@ -214,11 +217,6 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
         SET fl2 = fl;
         '''.format(**self.format_kw)
         aql.exec_sql(exec_strg, db=self.db)
-
-
-        aql.joinon(self.db, self.sw_columns, ['run_id'],
-                   [self.sc_out, 'analysis_monthly_comparison'],
-                   [self.sc_out, 'def_loop'])
 
 
 
