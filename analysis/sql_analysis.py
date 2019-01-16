@@ -21,7 +21,7 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
     ''' Performs various SQL-based analyses on the output tables. '''
 
     def __init__(self, sc_out, db, slct_run_id=None, bool_run=True, nd_id=False,
-                 suffix=False, slct_pt=False):
+                 suffix=False, slct_pt=False, sw_year_col='swyr_vl'):
         ''' Init extracts model run parameter names from def_loop table. '''
 
 
@@ -94,6 +94,7 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
                           'in_nd_id': self.in_nd_id,
                           'in_nd': self.in_nd,
                           'list_slct_pp_id': list_slct_pp_id,
+                          'sw_year_col': sw_year_col
                           }
 
         try:

@@ -234,7 +234,7 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
                     RENAME TO analysis_time_series_soy;
 
                     SELECT
-                    run_id, bool_out, fl, nd, swhy_vl, hy AS sy, value,
+                    run_id, bool_out, fl, nd, {sw_year_col}, hy AS sy, value,
                     value_posneg,
                     dow, dow_type, hom, hour, how, mt_id,
                     season, wk_id, wom, 'model'::VARCHAR AS sta_mod, pwrerg_cat
@@ -255,14 +255,14 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
 
                     INSERT INTO
                         {sc_out}.analysis_time_series(run_id, bool_out, fl, nd,
-                                                     swhy_vl, sy, value,
+                                                     {sw_year_col}, sy, value,
                                                      value_posneg, dow,
                                                      dow_type, hom, hour,
                                                      how, mt_id, season, wk_id,
                                                      wom, sta_mod, pwrerg_cat)
                     SELECT -1::SMALLINT AS run_id, False::BOOLEAN AS bool_out, --'EL' AS ca,
                         fl_id AS fl, nd_id AS nd,
-                        'yr' || tm.year::VARCHAR AS swhy_vl,
+                        'yr' || tm.year::VARCHAR AS {sw_year_col},
                         tm.hy AS sy, value, value AS value_posneg,
                         dow, dow_type, hom, hour, how, mt_id,
                         season, wk_id, wom, 'stats_entsoe'::VARCHAR AS sta_mod,
@@ -274,14 +274,14 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
 
                     INSERT INTO
                         {sc_out}.analysis_time_series(run_id, bool_out, fl, nd,
-                                                     swhy_vl, sy, value,
+                                                     {sw_year_col}, sy, value,
                                                      value_posneg, dow,
                                                      dow_type, hom, hour,
                                                      how, mt_id, season, wk_id,
                                                      wom, sta_mod, pwrerg_cat)
                     SELECT -1::SMALLINT AS run_id, False::BOOLEAN AS bool_out, --'EL' AS ca,
                         fl_id AS fl, nd_id AS nd,
-                        'yr' || tm.year::VARCHAR AS swhy_vl,
+                        'yr' || tm.year::VARCHAR AS {sw_year_col},
                         tm.hy AS sy, value, value AS value_posneg,
                         dow, dow_type, hom, hour, how, ent.mt_id,
                         season, wk_id, wom, 'stats_rte_eco2mix'::VARCHAR AS sta_mod,
@@ -292,7 +292,7 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
 
                     INSERT INTO
                         {sc_out}.analysis_time_series(run_id, bool_out, fl, nd,
-                                                     swhy_vl, sy, value,
+                                                     {sw_year_col}, sy, value,
                                                      value_posneg, dow,
                                                      dow_type, hom, hour,
                                                      how, mt_id, season, wk_id,
@@ -300,7 +300,7 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
                     SELECT -1::SMALLINT AS run_id,
                         False::BOOLEAN AS bool_out, --'EL' AS ca,
                         fl_id AS fl, nd_id AS nd,
-                        'yr' || tb.year::VARCHAR AS swhy_vl,
+                        'yr' || tb.year::VARCHAR AS {sw_year_col},
                         ts.slot AS sy,
                         CASE WHEN fl_id = 'dmnd' THEN -1 ELSE 1 END * 1000 * value,
                         CASE WHEN fl_id = 'dmnd' THEN -1 ELSE 1 END * 1000 * value AS value_posneg,
@@ -327,14 +327,14 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
                     )
                     INSERT INTO
                         {sc_out}.analysis_time_series(run_id, bool_out, fl, nd,
-                                                     swhy_vl, sy, value,
+                                                     {sw_year_col}, sy, value,
                                                      value_posneg, dow,
                                                      dow_type, hom, hour,
                                                      how, mt_id, season, wk_id,
                                                      wom, sta_mod, pwrerg_cat)
                     SELECT
                     -1::SMALLINT AS run_is, bool_out, fl, nd,
-                                    'yr2015'::VARCHAR AS swhy_vl, tb_raw.hy AS sy,
+                                    'yr2015'::VARCHAR AS {sw_year_col}, tb_raw.hy AS sy,
                                     value, value AS value_posneg,
                                     dow, 'NONE'::VARCHAR AS dow_type, hom, hour, how, mt_id, season,
                                     EXTRACT(week FROM datetime)::SMALLINT - 1 AS wk_id,
