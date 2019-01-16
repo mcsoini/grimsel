@@ -103,16 +103,29 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
             FROM {sc_out}.analysis_time_series
             WHERE sta_mod = 'stats_rte_eco2mix'
             GROUP BY fl, mt_id, nd, run_id
-        ), tb_model_sd AS (
+        ), tb_model_tr AS (
             SELECT
-                fl, mt_id, nd, run_id,
-                -SUM(value * weight) AS erg,
+                CASE WHEN bool_out = True THEN 'export_' || nd2 ELSE 'import_' || nd2 END AS fl,
+                mt_id, nd, run_id,
+                SUM((CASE WHEN bool_out = True THEN -1 ELSE +1 END) * value * weight) AS erg,
                 'model_tr'::VARCHAR AS input
-            FROM {sc_out}.var_tr_trm_sd AS tbsd
-            LEFT JOIN (SELECT nd_id, nd AS nd FROM {sc_out}.def_node) AS dfnd ON dfnd.nd_id = tbsd.nd_id
-            LEFT JOIN (SELECT nd_id, 'export_' || nd AS fl FROM {sc_out}.def_node) AS dfnd2 ON dfnd2.nd_id = tbsd.nd_2_id
-            LEFT JOIN (SELECT sy, mt_id, weight FROM {sc_out}.tm_soy) AS dftm ON dftm.sy = tbsd.sy
+            FROM {sc_out}.var_tr_trm AS tbtr
+            LEFT JOIN (SELECT nd_id, nd FROM {sc_out}.def_node) AS dfnd ON dfnd.nd_id = tbtr.nd_id
+            LEFT JOIN (SELECT nd_id, nd AS nd2 FROM {sc_out}.def_node) AS dfnd2 ON dfnd2.nd_id = tbtr.nd_2_id
+            LEFT JOIN (SELECT sy, mt_id, weight FROM {sc_out}.tm_soy) AS dftm ON dftm.sy = tbtr.sy
             GROUP BY fl, mt_id, nd, run_id
+        ), tb_model_tr_cap_imp AS (
+            SELECT 'import_' || nd2 AS fl, mt_id, nd, run_id, value AS erg, 'model_cap_tr'
+            FROM {sc_out}.par_cap_trmi_leg AS tbrv
+            LEFT JOIN (SELECT nd_id, nd AS nd2 FROM {sc_out}.def_node) AS dfnd2 ON dfnd2.nd_id = tbrv.nd_id
+            LEFT JOIN (SELECT nd_id, nd AS nd FROM {sc_out}.def_node) AS dfnd ON dfnd.nd_id = tbrv.nd_2_id
+            ORDER BY nd, nd2
+        ), tb_model_tr_cap_exp AS (
+            SELECT 'export_' || nd2 AS fl, mt_id, nd, run_id, value AS erg, 'model_cap_tr'
+            FROM {sc_out}.par_cap_trme_leg AS tbrv
+            LEFT JOIN (SELECT nd_id, nd AS nd FROM {sc_out}.def_node) AS dfnd2 ON dfnd2.nd_id = tbrv.nd_id
+            LEFT JOIN (SELECT nd_id, nd AS nd2 FROM {sc_out}.def_node) AS dfnd ON dfnd.nd_id = tbrv.nd_2_id
+            ORDER BY nd, nd2
         ), tb_entsoe_comm AS (
             WITH tb_raw AS (
                 SELECT nd_to, nd_from, mt_id, tb.year, SUM(value) AS erg
@@ -131,32 +144,26 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
             SELECT fl, mt_id, nd, 0::SMALLINT AS run_id,
                 erg, 'entsoe_commercial_exchange'::VARCHAR AS input
             FROM tb
-        ), tb_model_rv AS (
-            SELECT
-                fl, mt_id, nd, run_id,
-                SUM(value * weight) AS erg,
-                'model_tr'::VARCHAR AS input
-            FROM {sc_out}.var_tr_trm_rv AS tbrv
-            LEFT JOIN (SELECT nd_id, nd AS nd FROM {sc_out}.def_node) AS dfnd ON dfnd.nd_id = tbrv.nd_id
-            LEFT JOIN (SELECT nd_id, 'import_' || nd AS fl FROM {sc_out}.def_node) AS dfnd2 ON dfnd2.nd_id = tbrv.nd_2_id
-            LEFT JOIN (SELECT sy, mt_id, weight FROM {sc_out}.tm_soy) AS dftm ON dftm.sy = tbrv.sy
-            GROUP BY fl, mt_id, nd, run_id
+        ), tb_monthly AS (
+            SELECT fl, mt_id, nd, 0::SMALLINT AS run_id, erg, input
+            FROM profiles_raw.monthly_production
+            WHERE year = 2015
         ), tb_all AS (
         SELECT * FROM tb_agora_month_sum
         UNION ALL
         SELECT * FROM tb_rte_month_sum
         UNION ALL
---        SELECT * FROM tb_model_erg_max_from_cf
---        UNION ALL
         SELECT * FROM tb_model_var_sy_pwr
         UNION ALL
         SELECT * FROM tb_entsoe_xborder
         UNION ALL
-        SELECT * FROM tb_model_rv
+        SELECT * FROM tb_model_tr
         UNION ALL
-        SELECT * FROM tb_model_sd
+        SELECT * FROM tb_model_tr_cap_imp
         UNION ALL
-        SELECT * FROM profiles_raw.monthly_production
+        SELECT * FROM tb_model_tr_cap_exp
+        UNION ALL
+        SELECT * FROM tb_monthly
         UNION ALL
         SELECT * FROM tb_entsoe_comm
         UNION ALL
@@ -168,7 +175,7 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
         FROM tb_all
         NATURAL LEFT JOIN map_input;
 
-
+/*
         /* ADD CAPACITY FACTORS CROSS-BORDER TRANSMISSION */
         INSERT INTO {sc_out}.analysis_monthly_comparison (
                         fl, mt_id, nd, run_id, erg, input, input_simple)
@@ -209,6 +216,8 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
                    WHERE input = 'model_tr' AND fl LIKE 'export_%') AS tban
             ON tban.mt_id = tbrv.mt_id AND tban.run_id = tbrv.run_id
                 AND tban.fl = dfnd2.fl AND tban.nd = dfnd.nd;
+
+*/
 
         ALTER TABLE {sc_out}.analysis_monthly_comparison
         ADD COLUMN fl2 VARCHAR;
