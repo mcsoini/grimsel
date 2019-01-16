@@ -56,7 +56,7 @@ class Constraints:
                           in set_to_list(self.pp_ndcaca,
                                          [None, nd, None, ca]))
                     )
-            return prod * (1 - self.grid_losses[nd, ca]) == dmnd
+            return prod == dmnd * (1 + self.grid_losses[nd, ca])
         self.supply = po.Constraint(self.sy, self.ndca, rule=supply_rule)
 
 
