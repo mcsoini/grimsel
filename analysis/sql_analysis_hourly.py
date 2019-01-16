@@ -11,7 +11,7 @@ import grimsel.auxiliary.sqlutils.aux_sql_func as aql
 
 from grimsel.analysis.decorators import DecoratorsSqlAnalysis
 
-class SqlAnalysisHourly(DecoratorsSqlAnalysis):
+class SqlAnalysisHourly():
     ''' Performs various SQL-based analyses on the output tables. '''
 
 
@@ -51,44 +51,6 @@ class SqlAnalysisHourly(DecoratorsSqlAnalysis):
         aql.exec_sql(exec_str_1, db=self.db)
 
         return(exec_str_0 + exec_str_1)
-
-#
-#    def generate_view_time_series_subset(self):
-#
-#        format_kws = {'sc_out': self.sc_out,
-#                      'in_run_id': self.in_run_id,
-#                      'in_nd_id': self.in_nd_id}
-#
-#        exec_str = ('''
-#                    DROP VIEW IF EXISTS {sc_out}.analysis_time_series_view_power CASCADE;
-#                    CREATE VIEW {sc_out}.analysis_time_series_view_power AS
-#                    SELECT
-#                        pwr.sy, ca_id, pwr.pp_id,
-#                        bool_out,
-#                        value, pwr.run_id,
-#                        'pwr'::VARCHAR AS pwrerg_cat,
-#                        (CASE WHEN bool_out = True THEN -1 ELSE 1 END) * value AS value_posneg
-#                    FROM {sc_out}.var_sy_pwr AS pwr
-#                    WHERE pwr.run_id IN {in_run_id}
-#                    AND pp_id IN (SELECT pp_id FROM {sc_out}.def_plant
-#                                  WHERE nd_id in {in_nd_id});
-#                    ''').format(**format_kws)
-#        aql.exec_sql(exec_str)
-#
-#        exec_str = ('''
-#                    DROP VIEW IF EXISTS {sc_out}.analysis_time_series_view_energy CASCADE;
-#                    CREATE VIEW {sc_out}.analysis_time_series_view_energy AS
-#                    SELECT ergst.sy, ca_id, ergst.pp_id,
-#                        False::BOOLEAN AS bool_out,
-#                        value, ergst.run_id,
-#                        'erg'::VARCHAR AS pwrerg_cat,
-#                        value AS value_posneg
-#                    FROM {sc_out}.var_sy_erg_st AS ergst
-#                    WHERE ergst.run_id IN {in_run_id}
-#                    AND pp_id IN (SELECT pp_id FROM {sc_out}.def_plant
-#                                  WHERE nd_id in {in_nd_id})
-#                    ''').format(**format_kws)
-#        aql.exec_sql(exec_str)
 
 
     @DecoratorsSqlAnalysis.append_nd_id_columns('analysis_time_series')
@@ -134,12 +96,6 @@ class SqlAnalysisHourly(DecoratorsSqlAnalysis):
             aql.exec_sql(exec_str, db=self.db)
 
 
-#
-#        aql.exec_sql('''ALTER TABLE {sc_out}.{tb_name}
-#                        ADD PRIMARY KEY(sy, ca_id, pp_id, bool_out,
-#                                        pwrerg_cat, run_id)
-#                     '''.format(**self.format_kw, tb_name=tb_name),
-#                     time_msg='Add pk to {sc_out}.{tb_name}', db=self.db)
         if 'var_sy_erg_st' in aql.get_sql_tables(self.sc_out, self.db):
             print('Inserting energy...')
             exec_str = ('''
