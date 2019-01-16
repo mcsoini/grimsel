@@ -633,7 +633,8 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         print('*'*(33 + len(variable)) + '\n')
 
     def fill_peaker_plants(self, demand_factor=1.02,
-                           from_variable=False, reset_to_zero=False):
+                           reset_to_zero=False,
+                           list_peak=[]):
         '''
         Calculate required capacity of designated peaker plants from
         power capacity and demand profiles.
@@ -647,21 +648,25 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         reset_to_zero -- boolean, if True: stop after the reset-to-zero stage
         '''
 
-        list_attr = ['cap_pwr_leg', 'cap_pwr_tot']
+        list_attr = ['cap_pwr_leg']
 
         # reset to zero: get list of peaker plants ppca indices from
         # df_plant_encar then set both cap_pwr_tot and cap_pwr_leg to zero
-        _df = self.df_plant_encar
-        list_peak_0 = _df.loc[_df['pp_id'].isin(self.setlst['peak']),
-                              ['pp_id', 'ca_id']].drop_duplicates()
-        list_peak = list_peak_0.apply(tuple, axis=1).tolist()
+        if not list_peak:
+            _df = self.df_plant_encar
+            _list_peak = _df.loc[_df['pp_id'].isin(self.setlst['peak']),
+                                  ['pp_id', 'ca_id']].drop_duplicates()
+            _list_peak = _list_peak.apply(tuple, axis=1).tolist()
+        else:
+            _list_peak = list_peak
+
         for iattr in list_attr:
             for kk in list_peak:
                 getattr(self, iattr)[kk] = 0
 
-        if self.setlst['peak'] and not reset_to_zero:
+        if (self.setlst['peak'] or list_peak) and not reset_to_zero:
 
-            slct_attr = 'cap_pwr_tot' if from_variable else 'cap_pwr_leg'
+            slct_attr = 'cap_pwr_leg'
 
             # Ids all plants considered dispatchable, not peaker plants.
             slct_pp = [pp for pp in
@@ -692,9 +697,9 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
             df_cap_peak = df_cap_peak.apply(lambda x: max(0., x))
             df_cap_peak = df_cap_peak.reset_index()
 
-            _df = self.df_def_plant.loc[self.df_def_plant['pp_id']
-                                        .isin(self.setlst['peak'])]
-            dict_nd_pp = _df.set_index('nd_id')['pp_id'].to_dict()
+            dict_nd_pp = {nd: pp for pp, nd in
+                          self.mps.dict_plant_2_node_id.items()
+                          if pp in list(zip(*_list_peak))[0]}
 
             df_cap_peak['pp_id'] = df_cap_peak['nd_id']
             df_cap_peak['pp_id'] = df_cap_peak['pp_id'].replace(dict_nd_pp)
