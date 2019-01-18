@@ -540,11 +540,12 @@ class SqlAnalysisHourly(DecoratorsSqlAnalysis):
 
         slct_pp_id_st = aql.read_sql(self.db, self.sc_out, 'def_plant',
                                filt=[('pp', ['%STO%'], ' LIKE '),
-                                     ('nd_id', self._nd_id)])['pp_id']
+                                     ('pp_id', self.slct_pp_id),
+                                     ('nd_id', self._nd_id)])['pp_id'].tolist()
         lst_pp_id_st = self.list_to_str(slct_pp_id_st)
 
         slct_pp_id_non_st = [pp for pp in self.slct_pp_id
-                             if not pp in slct_pp_id_st.tolist()]
+                             if not pp in slct_pp_id_st]
         lst_pp_id_non_st = self.list_to_str(slct_pp_id_non_st)
 
         run_id_zero_st = self.list_to_str(aql.read_sql(self.db, self.sc_out, 'def_loop',
@@ -552,7 +553,8 @@ class SqlAnalysisHourly(DecoratorsSqlAnalysis):
                                             ('run_id', self.slct_run_id)])['run_id'])
         run_id_nonzero_st = self.list_to_str(aql.read_sql(self.db, self.sc_out, 'def_loop',
                                         filt=[('swst', [0], ' <> '),
-                                            ('run_id', self.slct_run_id)])['run_id'])
+                                              ('run_id', self.slct_run_id)])['run_id'])
+
 
         self.format_kw.update({'sw_not_st': sw_not_st,
                                'join_ref': join_ref,
@@ -592,11 +594,11 @@ class SqlAnalysisHourly(DecoratorsSqlAnalysis):
         WITH ref_st AS (
             SELECT swvr_vl, swtc_vl, swpt_vl, swyr_vl, swco_vl, run_id AS run_id_rf
             FROM {sc_out}.def_loop
-            WHERE swst_vl = '0.00%' AND run_id IN {in_run_id}
+            WHERE swst_vl = '0.00%' AND run_id IN {run_id_zero_st}
         )
         SELECT dflp.run_id, ref_st.run_id_rf FROM {sc_out}.def_loop AS dflp
         NATURAL JOIN ref_st
-        WHERE run_id IN {in_run_id}
+        WHERE run_id IN {run_id_nonzero_st}
         ORDER BY run_id;
         '''.format(**self.format_kw)
         aql.exec_sql(exec_strg, db=self.db)
@@ -653,7 +655,7 @@ class SqlAnalysisHourly(DecoratorsSqlAnalysis):
         aql.exec_sql(exec_strg, db=self.db)
 
         aql.joinon(self.db, ['mt_id', 'season'], ['sy'],
-                   [self.sc_out, 'analysis_agg_filtdiff_agg'],
+                   [self.sc_out, 'analysis_agg_filtdiff'],
                    [self.sc_out, 'tm_soy_full'])
 
         # aggregated table
