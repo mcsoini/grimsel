@@ -52,7 +52,7 @@ mkwargs = {
            }
 
 # additional kwargs for the i/o
-iokwargs = {'resume_loop': 3581,
+iokwargs = {'resume_loop': 3615,
             'autocomplete_curtailment': True,
            }
 
@@ -289,45 +289,59 @@ sqa.build_table_plant_run_tot_balance(from_quick=True)
 
 
 
-# EMISSIONS LIN
 
-slct_run_id = aql.exec_sql('''
-                           SELECT run_id FROM out_replace_all.def_loop
-                           WHERE swvr_vl IN (SELECT GENERATE_SERIES(0, 100, 5) || '.00%')
-                           AND swst_vl IN ('0.00%', '20.00%')
-                           AND swrc_vl = 'x1.0'
-                           AND swyr_vl = '2015'
-                           AND swpt_vl = 'WIN_ONS|WIN_OFF|SOL_PHO'
-                           AND swtr_vl = 'on'
-                           ''', db=db)
-slct_run_id = list(np.array(slct_run_id).flatten())
+try:
+    # EMISSIONS LIN
+    slct_run_id = aql.exec_sql('''
+                               SELECT run_id FROM out_replace_all.def_loop
+                               WHERE swvr_vl IN (SELECT GENERATE_SERIES(0, 100, 5) || '.00%')
+                               AND swst_vl IN ('0.00%', '20.00%')
+                               AND swrc_vl = 'x1.0'
+                               AND swyr_vl = '2015'
+                               AND swpt_vl = 'WIN_ONS|WIN_OFF|SOL_PHO'
+                               AND swtr_vl = 'on'
+                               ''', db=db)
+    slct_run_id = list(np.array(slct_run_id).flatten())
+    
+    sqa = sql_analysis.SqlAnalysis(sc_out=sc_out, db=db, slct_run_id=slct_run_id)
+    sqa.analysis_emissions_lin()
+except:
+    pass
 
-sqa = sql_analysis.SqlAnalysis(sc_out=sc_out, db=db, slct_run_id=slct_run_id)
-sqa.analysis_emissions_lin()
+
+try:
+    # FILTDIFF FOR FRENCH NUCLEAR
+    import grimsel.auxiliary.maps as maps
+    
+    mps = maps.Maps(sc_out, db)
+    
+    slct_nd_id = [mps.dict_nd_id[nd] for nd in ['FR0']]
+    slct_run_id = aql.exec_sql('''
+                               SELECT run_id FROM out_replace_all.def_loop
+                               WHERE swvr_vl IN (SELECT GENERATE_SERIES(0, 100, 10) || '.00%')
+                               AND swst_vl IN ('0.00%', '20.00%')
+                               AND swrc_vl = 'x1.0'
+                               AND swyr_vl = '2015'
+                               AND swpt_vl = 'WIN_ONS|WIN_OFF|SOL_PHO'
+                               AND swtr_vl = 'on'
+                               AND swco_vl = '40EUR/tCO2'
+                               ''', db=db)
+    slct_run_id = list(np.array(slct_run_id).flatten())
+    
+    reload(sql_analysis)
+    sqac_filt_chgdch = sql_analysis.SqlAnalysis(sc_out=sc_out, db=db,
+                                                slct_pt=['NUC_ELC', 'NEW_STO'],
+                                                slct_run_id=slct_run_id,
+                                                nd_id=slct_nd_id)
+    self = sqac_filt_chgdch
+    sqac_filt_chgdch.analysis_agg_filtdiff()
+except:
+    pass
 
 
-# FILTDIFF FOR FRENCH NUCLEAR
-import grimsel.auxiliary.maps as maps
+target_dir = os.path.normpath('C:\\Users\\ashreeta\\Documents\\Martin\\SWITCHdrive\\SQL_DUMPS\\out_replace_all')
+patterns_only = ['def_', 'filtdiff_agg', 'emissions', 'plant_run', 'plant_encar']
+aql.dump_by_table(sc=sc_out, db=db, target_dir=target_dir,
+                  patterns_only=patterns_only)
 
-mps = maps.Maps(sc_out, db)
 
-slct_nd_id = [mps.dict_nd_id[nd] for nd in ['FR0']]
-slct_run_id = aql.exec_sql('''
-                           SELECT run_id FROM out_replace_all.def_loop
-                           WHERE swvr_vl IN (SELECT GENERATE_SERIES(0, 100, 10) || '.00%')
-                           AND swst_vl IN ('0.00%', '20.00%')
-                           AND swrc_vl = 'x1.0'
-                           AND swyr_vl = '2015'
-AND swpt_vl = 'WIN_ONS|WIN_OFF|SOL_PHO'
-                           AND swtr_vl = 'on'
-                           AND swco_vl = '40EUR/tCO2'
-                           ''', db=db)
-slct_run_id = list(np.array(slct_run_id).flatten())
-
-reload(sql_analysis)
-sqac_filt_chgdch = sql_analysis.SqlAnalysis(sc_out=sc_out, db=db,
-                                            slct_pt=['NUC_ELC'],
-                                            slct_run_id=slct_run_id,
-                                            nd_id=slct_nd_id)
-self = sqac_filt_chgdch
-sqac_filt_chgdch.analysis_agg_filtdiff()
