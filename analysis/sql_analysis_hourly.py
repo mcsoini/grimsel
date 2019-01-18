@@ -11,9 +11,12 @@ import grimsel.auxiliary.sqlutils.aux_sql_func as aql
 
 from grimsel.analysis.decorators import DecoratorsSqlAnalysis
 
-class SqlAnalysisHourly(DecoratorsSqlAnalysis):
+class SqlAnalysisHourly():
     ''' Performs various SQL-based analyses on the output tables. '''
 
+
+    @DecoratorsSqlAnalysis.append_sw_columns('analysis_time_series_dual_supply')
+    @DecoratorsSqlAnalysis.append_nd_id_columns('analysis_time_series_dual_supply')
     def generate_complete_dual_supply(self):
         ''' Adds loop and sy columns to the dual_supply table.'''
         print(self.in_run_id)
@@ -36,18 +39,10 @@ class SqlAnalysisHourly(DecoratorsSqlAnalysis):
                       ''').format(tb_name=tb_name, sc_out=self.sc_out, in_run_id=self.in_run_id)
         aql.exec_sql(exec_str_0, db=self.db)
 
-        # add loop indices
-        aql.joinon(self.db, self.sw_columns, ['run_id'],
-                   [self.sc_out, 'analysis_time_series_dual_supply'],
-                   [self.sc_out, 'def_loop'],  new_columns=False)
         # add timemap indices
         aql.joinon(self.db, [c for c in self.tm_cols if not c == 'sy'], ['sy'],
                    [self.sc_out, 'analysis_time_series_dual_supply'],
                    [self.sc_out, 'tm_soy_full'],  new_columns=False)
-        # add nd indices
-        aql.joinon(self.db, ['nd'], ['nd_id'],
-                   [self.sc_out, 'analysis_time_series_dual_supply'],
-                   [self.sc_out, 'def_node'], new_columns=False)
 
         exec_str_1 = ('''
                       UPDATE {sc_out}.analysis_time_series_dual_supply
@@ -57,50 +52,16 @@ class SqlAnalysisHourly(DecoratorsSqlAnalysis):
 
         return(exec_str_0 + exec_str_1)
 
-#
-#    def generate_view_time_series_subset(self):
-#
-#        format_kws = {'sc_out': self.sc_out,
-#                      'in_run_id': self.in_run_id,
-#                      'in_nd_id': self.in_nd_id}
-#
-#        exec_str = ('''
-#                    DROP VIEW IF EXISTS {sc_out}.analysis_time_series_view_power CASCADE;
-#                    CREATE VIEW {sc_out}.analysis_time_series_view_power AS
-#                    SELECT
-#                        pwr.sy, ca_id, pwr.pp_id,
-#                        bool_out,
-#                        value, pwr.run_id,
-#                        'pwr'::VARCHAR AS pwrerg_cat,
-#                        (CASE WHEN bool_out = True THEN -1 ELSE 1 END) * value AS value_posneg
-#                    FROM {sc_out}.var_sy_pwr AS pwr
-#                    WHERE pwr.run_id IN {in_run_id}
-#                    AND pp_id IN (SELECT pp_id FROM {sc_out}.def_plant
-#                                  WHERE nd_id in {in_nd_id});
-#                    ''').format(**format_kws)
-#        aql.exec_sql(exec_str)
-#
-#        exec_str = ('''
-#                    DROP VIEW IF EXISTS {sc_out}.analysis_time_series_view_energy CASCADE;
-#                    CREATE VIEW {sc_out}.analysis_time_series_view_energy AS
-#                    SELECT ergst.sy, ca_id, ergst.pp_id,
-#                        False::BOOLEAN AS bool_out,
-#                        value, ergst.run_id,
-#                        'erg'::VARCHAR AS pwrerg_cat,
-#                        value AS value_posneg
-#                    FROM {sc_out}.var_sy_erg_st AS ergst
-#                    WHERE ergst.run_id IN {in_run_id}
-#                    AND pp_id IN (SELECT pp_id FROM {sc_out}.def_plant
-#                                  WHERE nd_id in {in_nd_id})
-#                    ''').format(**format_kws)
-#        aql.exec_sql(exec_str)
 
-
+    @DecoratorsSqlAnalysis.append_nd_id_columns('analysis_time_series')
+    @DecoratorsSqlAnalysis.append_fl_id_columns('analysis_time_series')
+    @DecoratorsSqlAnalysis.append_pp_id_columns('analysis_time_series')
+    @DecoratorsSqlAnalysis.append_sw_columns('analysis_time_series')
     def generate_analysis_time_series(self, energy_only=False):
         ''' Generates basic (full time resolution) x (pp_type) x (run_id) table. '''
         print(self.in_run_id)
 
-        tb_name = 'analysis_time_series' + self._suffix
+        tb_name = 'analysis_time_series'
 
         self.generate_view_time_series_subset()
 
@@ -135,36 +96,15 @@ class SqlAnalysisHourly(DecoratorsSqlAnalysis):
             aql.exec_sql(exec_str, db=self.db)
 
 
-        print('Inserting energy...')
-        exec_str = ('''
-                    INSERT INTO {sc_out}.{tb_name}
-                        (sy, ca_id, pp_id, bool_out, value, run_id, pwrerg_cat, value_posneg)
-                    SELECT * FROM {sc_out}.analysis_time_series_view_energy;
-                    ''').format(sc_out=self.sc_out, tb_name=tb_name)
-        aql.exec_sql(exec_str, db=self.db)
-#
-#        aql.exec_sql('''ALTER TABLE {sc_out}.{tb_name}
-#                        ADD PRIMARY KEY(sy, ca_id, pp_id, bool_out,
-#                                        pwrerg_cat, run_id)
-#                     '''.format(**self.format_kw, tb_name=tb_name),
-#                     time_msg='Add pk to {sc_out}.{tb_name}', db=self.db)
+        if 'var_sy_erg_st' in aql.get_sql_tables(self.sc_out, self.db):
+            print('Inserting energy...')
+            exec_str = ('''
+                        INSERT INTO {sc_out}.{tb_name}
+                            (sy, ca_id, pp_id, bool_out, value, run_id, pwrerg_cat, value_posneg)
+                        SELECT * FROM {sc_out}.analysis_time_series_view_energy;
+                        ''').format(sc_out=self.sc_out, tb_name=tb_name)
+            aql.exec_sql(exec_str, db=self.db)
 
-        # add pp indices
-        aql.joinon(self.db, ['pt_id', 'fl_id', 'nd_id', 'pp'], ['pp_id'],
-                   [self.sc_out, tb_name], [self.sc_out, 'def_plant'], new_columns=True)
-        # add loop indices
-        if len(self.sw_columns) > 0:
-            aql.joinon(self.db, self.sw_columns, ['run_id'],
-                       [self.sc_out, tb_name], [self.sc_out, 'def_loop'], new_columns=False)
-#        # add pp indices
-#        aql.joinon(self.db, ['pt'], ['pt_id'],
-#                   [self.sc_out, tb_name], [self.sc_out, 'def_pp_type'], new_columns=False)
-        # add fl indices
-        aql.joinon(self.db, ['fl'], ['fl_id'],
-                   [self.sc_out, tb_name], [self.sc_out, 'def_fuel'], new_columns=False)
-        # add nd indices
-        aql.joinon(self.db, ['nd'], ['nd_id'],
-                   [self.sc_out, tb_name], [self.sc_out, 'def_node'], new_columns=False)
         # add timemap indices
         aql.joinon(self.db, [c for c in self.tm_cols if (not c == 'sy')], ['sy'],
                    [self.sc_out, tb_name], [self.sc_out, 'tm_soy_full'], new_columns=False)

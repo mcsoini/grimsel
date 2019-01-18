@@ -21,7 +21,7 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
     ''' Performs various SQL-based analyses on the output tables. '''
 
     def __init__(self, sc_out, db, slct_run_id=None, bool_run=True, nd_id=False,
-                 suffix=False, slct_pt=False):
+                 suffix=False, slct_pt=False, sw_year_col='swyr_vl'):
         ''' Init extracts model run parameter names from def_loop table. '''
 
 
@@ -94,6 +94,7 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
                           'in_nd_id': self.in_nd_id,
                           'in_nd': self.in_nd,
                           'list_slct_pp_id': list_slct_pp_id,
+                          'sw_year_col': sw_year_col
                           }
 
         try:
@@ -217,21 +218,23 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
                     ''').format(**self.format_kw)
         aql.exec_sql(exec_str, db=self.db)
 
-        exec_str = ('''
-                    DROP VIEW IF EXISTS {sc_out}.analysis_time_series_view_energy CASCADE;
-                    CREATE VIEW {sc_out}.analysis_time_series_view_energy AS
-                    SELECT ergst.sy, ca_id, ergst.pp_id,
-                        False::BOOLEAN AS bool_out,
-                        value, ergst.run_id,
-                        'erg'::VARCHAR AS pwrerg_cat,
-                        value AS value_posneg
-                    FROM {sc_out}.var_sy_erg_st AS ergst
-                    WHERE ergst.run_id IN {in_run_id}
-                    AND pp_id IN (SELECT pp_id FROM {sc_out}.def_plant
-                                  WHERE nd_id in {in_nd_id})
-                    AND pp_id in {list_slct_pp_id};
-                    ''').format(**self.format_kw)
-        aql.exec_sql(exec_str, db=self.db)
+
+        if 'var_sy_erg_st' in aql.get_sql_tables(self.sc_out, self.db):
+            exec_str = ('''
+                        DROP VIEW IF EXISTS {sc_out}.analysis_time_series_view_energy CASCADE;
+                        CREATE VIEW {sc_out}.analysis_time_series_view_energy AS
+                        SELECT ergst.sy, ca_id, ergst.pp_id,
+                            False::BOOLEAN AS bool_out,
+                            value, ergst.run_id,
+                            'erg'::VARCHAR AS pwrerg_cat,
+                            value AS value_posneg
+                        FROM {sc_out}.var_sy_erg_st AS ergst
+                        WHERE ergst.run_id IN {in_run_id}
+                        AND pp_id IN (SELECT pp_id FROM {sc_out}.def_plant
+                                      WHERE nd_id in {in_nd_id})
+                        AND pp_id in {list_slct_pp_id};
+                        ''').format(**self.format_kw)
+            aql.exec_sql(exec_str, db=self.db)
 
         exec_str = ('''
                     DROP VIEW IF EXISTS {sc_out}.analysis_time_series_view_crosssector_0 CASCADE;
@@ -436,19 +439,19 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
                         SELECT
                             pr0.*,
                             tb_cap.value AS cap_pwr_tot,
-                            tb_cap_new.value AS cap_pwr_new,
-                            -tb_cap_rem.value AS cap_pwr_rem,
+                       --     tb_cap_new.value AS cap_pwr_new,
+                       --     -tb_cap_rem.value AS cap_pwr_rem,
                             tb_cap_leg.value AS cap_pwr_leg
                         FROM plant_{tb_mod}run_01 AS pr0
                         LEFT JOIN {sc_out}.var_yr_cap_pwr_tot AS tb_cap
                             ON tb_cap.run_id = pr0.run_id
                             AND tb_cap.pp_id = pr0.pp_id
-                        LEFT JOIN {sc_out}.var_yr_cap_pwr_new AS tb_cap_new
+/*                        LEFT JOIN {sc_out}.var_yr_cap_pwr_new AS tb_cap_new
                             ON tb_cap_new.run_id = pr0.run_id
                             AND tb_cap_new.pp_id = pr0.pp_id
                         LEFT JOIN {sc_out}.var_yr_cap_pwr_rem AS tb_cap_rem
                             ON tb_cap_rem.run_id = pr0.run_id
-                            AND tb_cap_rem.pp_id = pr0.pp_id
+                            AND tb_cap_rem.pp_id = pr0.pp_id     */
                         LEFT JOIN {sc_out}.par_cap_pwr_leg AS tb_cap_leg
                             ON tb_cap_leg.run_id = pr0.run_id
                             AND tb_cap_leg.pp_id = pr0.pp_id;

@@ -62,10 +62,11 @@ class Parameters:
         self.padd('ca_share_max', (self.pp, self.ca), _df) # .
         self.padd('pp_eff', (self.ppall, self.ca), _df, default=1) # .
         self.padd('cf_max', (self.pp, self.ca), _df, **mut) # .
+        df = self.df_plant_encar.loc[self.df_plant_encar.pp_id.isin(self.chp)]
+        self.padd('erg_chp', (self.pp, self.ca), df, **mut)
 
         print('Defining fuel parameters')
         self.padd('erg_inp', (self.nd, self.ca, self.fl), 'df_fuel_node_encar', **mut)
-        self.padd('erg_chp', (self.nd, self.ca, self.fl), 'df_fuel_node_encar', **mut)
         self.padd('vc_fl', (self.fl, self.nd), 'df_fuel_node_encar', default=0, **mut) # EUR/MWh_el
 
         _df = self.df_plant_encar.copy()
@@ -73,7 +74,8 @@ class Parameters:
         self.padd('factor_lin_0', (self.lin, self.ca), _df, default=0, **mut) # EUR/MWh_el
         self.padd('factor_lin_1', (self.lin, self.ca), _df, default=0, **mut) # EUR/MWh_el
         self.padd('price_co2', (self.nd,), 'df_def_node', **mut) # EUR/MWh_el
-        self.padd('co2_int', (self.fl,), 'df_def_fuel', **mut) # t/MWh_fl
+        _df = self.df_def_fuel.loc[self.df_def_fuel.fl_id.isin(self.setlst['fl'])]
+        self.padd('co2_int', (self.fl,), _df, **mut) # t/MWh_fl
 
         print('Defining parameters for all generators')
         _df = self.df_plant_encar.copy()
@@ -84,7 +86,6 @@ class Parameters:
         self.padd('fc_om', sets, _df, **mut, default=0) # .
         self.padd('fc_dc', sets, _df, **mut) # .
 
-        _df['cap_avlb'] = 1 # init 1, adjusted from monthly correction factors
         _df = _df.loc[_df['pp_id'].isin(self.setlst['pp'])]
         self.padd('cap_avlb', (self.pp, self.ca), _df, **mut) # .
 
@@ -144,7 +145,7 @@ class Parameters:
 
         if type(source_dataframe) is str:
 
-            if source_dataframe in self.__dict__.keys():
+            if hasattr(self, source_dataframe):
                 _df = getattr(self, source_dataframe)
                 if _df is None:
                     print('failed (source_dataframe is None).')

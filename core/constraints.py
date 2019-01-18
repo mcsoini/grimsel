@@ -18,13 +18,15 @@ class Constraints:
 
     def add_transmission_bounds_rules(self):
 
-        for sy, nd1, nd2, ca in self.trm:
 
-            mt = self.dict_soy_month[sy]
-            ub = self.cap_trme_leg[mt, nd1, nd2, ca]
-            lb = - self.cap_trmi_leg[mt, nd1, nd2, ca]
-            self.trm[(sy, nd1, nd2, ca)].setub(ub)
-            self.trm[(sy, nd1, nd2, ca)].setlb(lb)
+        if hasattr(self, 'trm'):
+            for sy, nd1, nd2, ca in self.trm:
+
+                mt = self.dict_soy_month[sy]
+                ub = self.cap_trme_leg[mt, nd1, nd2, ca]
+                lb = - self.cap_trmi_leg[mt, nd1, nd2, ca]
+                self.trm[(sy, nd1, nd2, ca)].setub(ub)
+                self.trm[(sy, nd1, nd2, ca)].setlb(lb)
 
     def add_supply_rules(self):
 
@@ -54,7 +56,7 @@ class Constraints:
                           in set_to_list(self.pp_ndcaca,
                                          [None, nd, None, ca]))
                     )
-            return prod * (1 - self.grid_losses[nd, ca]) == dmnd
+            return prod == dmnd * (1 + self.grid_losses[nd, ca])
         self.supply = po.Constraint(self.sy, self.ndca, rule=supply_rule)
 
 
@@ -134,8 +136,8 @@ class Constraints:
             else:
                 return (self.pwr[sy, pp, ca] <= self.cap_pwr_tot[pp, ca])
 
-        self.PpStCapac = po.Constraint(self.pp_ca - self.pr_ca | self.st_ca
-                                       | self.hyrs_ca,
+        self.PpStCapac = po.Constraint((self.pp_ca - self.pr_ca)
+                                       | self.st_ca | self.hyrs_ca,
                                        self.sy, rule=ppst_capac_rule)
 
         print('- Power capacity storage charging')
@@ -156,19 +158,13 @@ class Constraints:
 
     def add_chp_new_rules(self):
 
-        # temporary fix: CHP profiles limited to capacity
-
-
-        def chp_prof_rule(model, sy, nd, ca, fl):
+        def chp_prof_rule(model, sy, pp, nd, ca, fl):
             '''Produced power greater than CHP output profile.'''
 
-            sum_pwr = sum(self.pwr[sy, pp, ca] for (pp, nd, ca, fl)
-                          in set_to_list(self.pp_ndcafl, (None, nd, ca, fl)))
-            chp_prf = (self.chpprof[sy, nd, ca] * self.erg_chp[nd, ca, fl])
+            return (self.pwr[sy, pp, ca]
+                    >= self.chpprof[sy, nd, ca] * self.erg_chp[pp, ca])
 
-            return sum_pwr >= chp_prf
-
-        self.chp_prof = po.Constraint(self.sy, self.ndcafl_chp,
+        self.chp_prof = po.Constraint(self.sy, self.chp_ndcafl,
                                       rule=chp_prof_rule)
 
 
@@ -555,12 +551,12 @@ class Constraints:
                 * (self.price_co2[mt, nd]
                    if 'price_co2' in self.parameter_month_list
                    else self.price_co2[nd])
-                * self.co2_int
+                * self.co2_int[fl]
                 * (self.factor_lin_0[lin, ca]
                    + 0.5 * self.pwr[sy, lin, ca]
                    * self.factor_lin_1[lin, ca])
                 for (sy, mt) in set_to_list(self.sy_mt, nn))
-            for (lin, nd, ca) in set_to_list(self.lin_ndca, nnn))
+            for (lin, nd, ca, fl) in set_to_list(self.lin_ndcafl, nnnn))
 
     def add_objective_rules(self):
         print('Objective rule quadratic')

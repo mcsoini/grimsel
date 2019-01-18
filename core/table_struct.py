@@ -72,7 +72,7 @@ par = [
     ('week_ror_output', ('wk', 'pp_id')),
     ('dmnd', ('sy', 'nd_id', 'ca_id')),
     ('erg_inp', ('nd_id', 'ca_id', 'fl_id')),
-    ('erg_chp', ('nd_id', 'ca_id', 'fl_id')),
+    ('erg_chp', ('pp_id', 'ca_id')),
     ('capchnge_max', tuple()),
     ]
 dual = [('supply', ('sy', 'nd_id', 'ca_id'))]

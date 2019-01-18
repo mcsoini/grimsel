@@ -15,6 +15,7 @@ import grimsel.auxiliary.maps as maps
 
 import grimsel.analysis.sql_analysis as  sql_analysis
 
+from grimsel.analysis.decorators import DecoratorsSqlAnalysis
 
 
 class SqlAnalysisComp(sql_analysis.SqlAnalysis):
@@ -27,6 +28,8 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
         super().__init__(sc_out, db, **kwargs)
 
 
+
+    @DecoratorsSqlAnalysis.append_sw_columns('analysis_monthly_comparison')
     def analysis_monthly_comparison(self):
 
         tb_name = 'analysis_monthly_comparison'
@@ -100,16 +103,29 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
             FROM {sc_out}.analysis_time_series
             WHERE sta_mod = 'stats_rte_eco2mix'
             GROUP BY fl, mt_id, nd, run_id
-        ), tb_model_sd AS (
+        ), tb_model_tr AS (
             SELECT
-                fl, mt_id, nd, run_id,
-                -SUM(value * weight) AS erg,
+                CASE WHEN bool_out = True THEN 'export_' || nd2 ELSE 'import_' || nd2 END AS fl,
+                mt_id, nd, run_id,
+                SUM((CASE WHEN bool_out = True THEN -1 ELSE +1 END) * value * weight) AS erg,
                 'model_tr'::VARCHAR AS input
-            FROM {sc_out}.var_tr_trm_sd AS tbsd
-            LEFT JOIN (SELECT nd_id, nd AS nd FROM {sc_out}.def_node) AS dfnd ON dfnd.nd_id = tbsd.nd_id
-            LEFT JOIN (SELECT nd_id, 'export_' || nd AS fl FROM {sc_out}.def_node) AS dfnd2 ON dfnd2.nd_id = tbsd.nd_2_id
-            LEFT JOIN (SELECT sy, mt_id, weight FROM {sc_out}.tm_soy) AS dftm ON dftm.sy = tbsd.sy
+            FROM {sc_out}.var_tr_trm AS tbtr
+            LEFT JOIN (SELECT nd_id, nd FROM {sc_out}.def_node) AS dfnd ON dfnd.nd_id = tbtr.nd_id
+            LEFT JOIN (SELECT nd_id, nd AS nd2 FROM {sc_out}.def_node) AS dfnd2 ON dfnd2.nd_id = tbtr.nd_2_id
+            LEFT JOIN (SELECT sy, mt_id, weight FROM {sc_out}.tm_soy) AS dftm ON dftm.sy = tbtr.sy
             GROUP BY fl, mt_id, nd, run_id
+        ), tb_model_tr_cap_imp AS (
+            SELECT 'import_' || nd2 AS fl, mt_id, nd, run_id, value AS erg, 'model_cap_tr'
+            FROM {sc_out}.par_cap_trmi_leg AS tbrv
+            LEFT JOIN (SELECT nd_id, nd AS nd2 FROM {sc_out}.def_node) AS dfnd2 ON dfnd2.nd_id = tbrv.nd_id
+            LEFT JOIN (SELECT nd_id, nd AS nd FROM {sc_out}.def_node) AS dfnd ON dfnd.nd_id = tbrv.nd_2_id
+            ORDER BY nd, nd2
+        ), tb_model_tr_cap_exp AS (
+            SELECT 'export_' || nd2 AS fl, mt_id, nd, run_id, value AS erg, 'model_cap_tr'
+            FROM {sc_out}.par_cap_trme_leg AS tbrv
+            LEFT JOIN (SELECT nd_id, nd AS nd FROM {sc_out}.def_node) AS dfnd2 ON dfnd2.nd_id = tbrv.nd_id
+            LEFT JOIN (SELECT nd_id, nd AS nd2 FROM {sc_out}.def_node) AS dfnd ON dfnd.nd_id = tbrv.nd_2_id
+            ORDER BY nd, nd2
         ), tb_entsoe_comm AS (
             WITH tb_raw AS (
                 SELECT nd_to, nd_from, mt_id, tb.year, SUM(value) AS erg
@@ -128,32 +144,26 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
             SELECT fl, mt_id, nd, 0::SMALLINT AS run_id,
                 erg, 'entsoe_commercial_exchange'::VARCHAR AS input
             FROM tb
-        ), tb_model_rv AS (
-            SELECT
-                fl, mt_id, nd, run_id,
-                SUM(value * weight) AS erg,
-                'model_tr'::VARCHAR AS input
-            FROM {sc_out}.var_tr_trm_rv AS tbrv
-            LEFT JOIN (SELECT nd_id, nd AS nd FROM {sc_out}.def_node) AS dfnd ON dfnd.nd_id = tbrv.nd_id
-            LEFT JOIN (SELECT nd_id, 'import_' || nd AS fl FROM {sc_out}.def_node) AS dfnd2 ON dfnd2.nd_id = tbrv.nd_2_id
-            LEFT JOIN (SELECT sy, mt_id, weight FROM {sc_out}.tm_soy) AS dftm ON dftm.sy = tbrv.sy
-            GROUP BY fl, mt_id, nd, run_id
+        ), tb_monthly AS (
+            SELECT fl, mt_id, nd, 0::SMALLINT AS run_id, erg, input
+            FROM profiles_raw.monthly_production
+            WHERE year = 2015
         ), tb_all AS (
         SELECT * FROM tb_agora_month_sum
         UNION ALL
         SELECT * FROM tb_rte_month_sum
         UNION ALL
---        SELECT * FROM tb_model_erg_max_from_cf
---        UNION ALL
         SELECT * FROM tb_model_var_sy_pwr
         UNION ALL
         SELECT * FROM tb_entsoe_xborder
         UNION ALL
-        SELECT * FROM tb_model_rv
+        SELECT * FROM tb_model_tr
         UNION ALL
-        SELECT * FROM tb_model_sd
+        SELECT * FROM tb_model_tr_cap_imp
         UNION ALL
-        SELECT * FROM profiles_raw.monthly_production
+        SELECT * FROM tb_model_tr_cap_exp
+        UNION ALL
+        SELECT * FROM tb_monthly
         UNION ALL
         SELECT * FROM tb_entsoe_comm
         UNION ALL
@@ -165,7 +175,7 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
         FROM tb_all
         NATURAL LEFT JOIN map_input;
 
-
+/*
         /* ADD CAPACITY FACTORS CROSS-BORDER TRANSMISSION */
         INSERT INTO {sc_out}.analysis_monthly_comparison (
                         fl, mt_id, nd, run_id, erg, input, input_simple)
@@ -207,6 +217,8 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
             ON tban.mt_id = tbrv.mt_id AND tban.run_id = tbrv.run_id
                 AND tban.fl = dfnd2.fl AND tban.nd = dfnd.nd;
 
+*/
+
         ALTER TABLE {sc_out}.analysis_monthly_comparison
         ADD COLUMN fl2 VARCHAR;
 
@@ -214,11 +226,6 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
         SET fl2 = fl;
         '''.format(**self.format_kw)
         aql.exec_sql(exec_strg, db=self.db)
-
-
-        aql.joinon(self.db, self.sw_columns, ['run_id'],
-                   [self.sc_out, 'analysis_monthly_comparison'],
-                   [self.sc_out, 'def_loop'])
 
 
 
@@ -236,7 +243,7 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
                     RENAME TO analysis_time_series_soy;
 
                     SELECT
-                    run_id, bool_out, fl, nd, swhy_vl, hy AS sy, value,
+                    run_id, bool_out, fl, nd, {sw_year_col}, hy AS sy, value,
                     value_posneg,
                     dow, dow_type, hom, hour, how, mt_id,
                     season, wk_id, wom, 'model'::VARCHAR AS sta_mod, pwrerg_cat
@@ -257,14 +264,14 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
 
                     INSERT INTO
                         {sc_out}.analysis_time_series(run_id, bool_out, fl, nd,
-                                                     swhy_vl, sy, value,
+                                                     {sw_year_col}, sy, value,
                                                      value_posneg, dow,
                                                      dow_type, hom, hour,
                                                      how, mt_id, season, wk_id,
                                                      wom, sta_mod, pwrerg_cat)
                     SELECT -1::SMALLINT AS run_id, False::BOOLEAN AS bool_out, --'EL' AS ca,
                         fl_id AS fl, nd_id AS nd,
-                        'yr' || tm.year::VARCHAR AS swhy_vl,
+                        'yr' || tm.year::VARCHAR AS {sw_year_col},
                         tm.hy AS sy, value, value AS value_posneg,
                         dow, dow_type, hom, hour, how, mt_id,
                         season, wk_id, wom, 'stats_entsoe'::VARCHAR AS sta_mod,
@@ -276,14 +283,14 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
 
                     INSERT INTO
                         {sc_out}.analysis_time_series(run_id, bool_out, fl, nd,
-                                                     swhy_vl, sy, value,
+                                                     {sw_year_col}, sy, value,
                                                      value_posneg, dow,
                                                      dow_type, hom, hour,
                                                      how, mt_id, season, wk_id,
                                                      wom, sta_mod, pwrerg_cat)
                     SELECT -1::SMALLINT AS run_id, False::BOOLEAN AS bool_out, --'EL' AS ca,
                         fl_id AS fl, nd_id AS nd,
-                        'yr' || tm.year::VARCHAR AS swhy_vl,
+                        'yr' || tm.year::VARCHAR AS {sw_year_col},
                         tm.hy AS sy, value, value AS value_posneg,
                         dow, dow_type, hom, hour, how, ent.mt_id,
                         season, wk_id, wom, 'stats_rte_eco2mix'::VARCHAR AS sta_mod,
@@ -294,7 +301,7 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
 
                     INSERT INTO
                         {sc_out}.analysis_time_series(run_id, bool_out, fl, nd,
-                                                     swhy_vl, sy, value,
+                                                     {sw_year_col}, sy, value,
                                                      value_posneg, dow,
                                                      dow_type, hom, hour,
                                                      how, mt_id, season, wk_id,
@@ -302,7 +309,7 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
                     SELECT -1::SMALLINT AS run_id,
                         False::BOOLEAN AS bool_out, --'EL' AS ca,
                         fl_id AS fl, nd_id AS nd,
-                        'yr' || tb.year::VARCHAR AS swhy_vl,
+                        'yr' || tb.year::VARCHAR AS {sw_year_col},
                         ts.slot AS sy,
                         CASE WHEN fl_id = 'dmnd' THEN -1 ELSE 1 END * 1000 * value,
                         CASE WHEN fl_id = 'dmnd' THEN -1 ELSE 1 END * 1000 * value AS value_posneg,
@@ -329,14 +336,14 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
                     )
                     INSERT INTO
                         {sc_out}.analysis_time_series(run_id, bool_out, fl, nd,
-                                                     swhy_vl, sy, value,
+                                                     {sw_year_col}, sy, value,
                                                      value_posneg, dow,
                                                      dow_type, hom, hour,
                                                      how, mt_id, season, wk_id,
                                                      wom, sta_mod, pwrerg_cat)
                     SELECT
                     -1::SMALLINT AS run_is, bool_out, fl, nd,
-                                    'yr2015'::VARCHAR AS swhy_vl, tb_raw.hy AS sy,
+                                    'yr2015'::VARCHAR AS {sw_year_col}, tb_raw.hy AS sy,
                                     value, value AS value_posneg,
                                     dow, 'NONE'::VARCHAR AS dow_type, hom, hour, how, mt_id, season,
                                     EXTRACT(week FROM datetime)::SMALLINT - 1 AS wk_id,
