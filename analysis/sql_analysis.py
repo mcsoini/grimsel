@@ -80,10 +80,10 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
 #        list_pt_id = self.list_to_str(aql.read_sql(self.db, self.sc_out, 'def_pp_type',
 #                                                   filt=[('pt', slct_pt + ['%STO%'], ' LIKE ')] if slct_pt else False)['pt_id'])
         list_pt_id = aql.read_sql(self.db, self.sc_out, 'def_pp_type',
-                                  filt=[('pt', slct_pt + ['%STO%'], ' LIKE ')] if slct_pt else False)['pt_id']
+                                  filt=[('pt', slct_pt, ' LIKE ')] if slct_pt else False)['pt_id']
         self.slct_pp_id = aql.read_sql(self.db, self.sc_out, 'def_plant',
                                   filt=[('pt_id', list_pt_id),
-                                        ('nd_id', self._nd_id)])['pp_id']
+                                        ('nd_id', self._nd_id)])['pp_id'].tolist()
 
         list_slct_pp_id =  self.list_to_str(aql.read_sql(self.db, self.sc_out, 'def_plant',
                                                          filt=[('pt_id', list_pt_id.tolist(), ' = '),
@@ -97,6 +97,7 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
                           }
 
         try:
+            print('Calling generate_view_time_series_subset')
             self.generate_view_time_series_subset()
         except:
             warnings.warn('Method generate_view_time_series_subset could not be executed.')
@@ -1385,6 +1386,7 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
             WHERE pwr.pp_id IN (SELECT pp_id
                                 FROM {sc_out}.def_plant
                                 WHERE set_def_lin = 1)
+                AND pwr.run_id IN {in_run_id}
             GROUP BY pwr.pp_id, pwr.ca_id, pwr.run_id
         )
         INSERT INTO {sc_out}.analysis_emissions_lin ({cols})
