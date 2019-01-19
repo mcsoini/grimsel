@@ -66,7 +66,6 @@ class SqlAnalysisHourly():
         self.generate_view_time_series_subset()
 
 
-
         aql.init_table(tb_name, (['sy', 'ca_id', 'pp_id', 'bool_out', 'run_id',
                                  'pwrerg_cat', 'nd_id', 'fl_id', 'pt_id',
                                  * self.tm_cols,
@@ -82,8 +81,9 @@ class SqlAnalysisHourly():
             exec_str = ('''
                         INSERT INTO {sc_out}.{tb_name}
                             (sy, ca_id, pp_id, bool_out, value, run_id, pwrerg_cat, value_posneg)
-                        SELECT * FROM {sc_out}.analysis_time_series_view_power;
-                        ''').format(sc_out=self.sc_out, tb_name=tb_name)
+                        SELECT * FROM {sc_out}.analysis_time_series_view_power
+                        WHERE run_id IN {in_run_id};
+                        ''').format(tb_name=tb_name, **self.format_kw)
             aql.exec_sql(exec_str, db=self.db)
 
 
@@ -91,8 +91,9 @@ class SqlAnalysisHourly():
             exec_str = ('''
                         INSERT INTO {sc_out}.{tb_name}
                             (sy, ca_id, pp_id, bool_out, value, run_id, pwrerg_cat, value_posneg)
-                        SELECT * FROM {sc_out}.analysis_time_series_view_crosssector;
-                        ''').format(sc_out=self.sc_out, tb_name=tb_name)
+                        SELECT * FROM {sc_out}.analysis_time_series_view_crosssector
+                        WHERE run_id IN {in_run_id};
+                        ''').format(tb_name=tb_name, **self.format_kw)
             aql.exec_sql(exec_str, db=self.db)
 
 
@@ -101,8 +102,10 @@ class SqlAnalysisHourly():
             exec_str = ('''
                         INSERT INTO {sc_out}.{tb_name}
                             (sy, ca_id, pp_id, bool_out, value, run_id, pwrerg_cat, value_posneg)
-                        SELECT * FROM {sc_out}.analysis_time_series_view_energy;
-                        ''').format(sc_out=self.sc_out, tb_name=tb_name)
+                        SELECT * FROM {sc_out}.analysis_time_series_view_energy
+                        WHERE run_id IN {in_run_id};
+
+                        ''').format(tb_name=tb_name, **self.format_kw)
             aql.exec_sql(exec_str, db=self.db)
 
         # add timemap indices
