@@ -32,9 +32,9 @@ sc_out = 'out_replace_all'
 
 for fn in [fn for fn in os.listdir('.') if 'ephemeral' in fn or 'def_loop' in fn]:
     os.remove(fn)
-    
+
 # %%
-    
+
 connect_dict = dict(db=db,
                     password=config.PSQL_PASSWORD,
                     user=config.PSQL_USER,
@@ -84,6 +84,7 @@ dict_st = {nst: st for nst, st in enumerate(list(np.linspace(0, 0.3, swst_max)))
 swvr_max = nvr - 1
 dict_vre = {nvr: vr for nvr , vr
             in enumerate(['default'] + list(np.linspace(0, 0.7, swvr_max)))}
+dict_rc = {**{ii: ii/10 for ii in range(26)}, **{0: 1, 10: 0}}
 
 
 # %%
@@ -102,7 +103,7 @@ ml.io.var_sy
 # %%
 
 
-# figure 8/9: various nuclear power indicators france 
+# figure 8/9: various nuclear power indicators france
 slct_vr = [0] + list(np.arange(0, ml.df_def_loop.swvr_id.max(), 4) + 1)
 slct_st = list(np.arange(0, ml.df_def_loop.swvr_id.max() + 10, 10))
 mask_base = (ml.df_def_loop.swvr_id.isin(slct_vr) &
@@ -123,7 +124,7 @@ mask_ramping = (ml.df_def_loop.swvr_id.isin(slct_vr) &
                 ml.df_def_loop.swpt_id.isin([0]) &
                 ml.df_def_loop.swyr_id.isin([0]) &
                 ml.df_def_loop.swco_id.isin([0]) &
-                ml.df_def_loop.swtr_id.isin([0]) 
+                ml.df_def_loop.swtr_id.isin([0])
 #               ml.df_def_loop.swrc_id.isin([0]) --> all
                )
 
@@ -137,7 +138,7 @@ mask_years = (ml.df_def_loop.swvr_id.isin(slct_vr) &
 #                ml.df_def_loop.swyr_id.isin([0]) & --> all
                 ml.df_def_loop.swco_id.isin([0]) &
                 ml.df_def_loop.swtr_id.isin([0]) &
-                ml.df_def_loop.swrc_id.isin([0]) 
+                ml.df_def_loop.swrc_id.isin([0])
                 )
 
 # figure 12: consecutive replacement
@@ -150,7 +151,7 @@ mask_consec = (#ml.df_def_loop.swvr_id.isin(slct_vr) &
                 ml.df_def_loop.swyr_id.isin([0]) &
                 ml.df_def_loop.swco_id.isin([0, 1]) &
                 ml.df_def_loop.swtr_id.isin([0, 1]) &
-                ml.df_def_loop.swrc_id.isin([0]) 
+                ml.df_def_loop.swrc_id.isin([0])
                 )
 
 # figure 13: emissions
@@ -163,7 +164,7 @@ mask_emissions = (ml.df_def_loop.swvr_id.isin(slct_vr) &
                 ml.df_def_loop.swyr_id.isin([0]) &
 #                ml.df_def_loop.swco_id.isin([0]) & --> all
                 ml.df_def_loop.swtr_id.isin([0]) &
-                ml.df_def_loop.swrc_id.isin([0]) 
+                ml.df_def_loop.swrc_id.isin([0])
                 )
 
 mask_total = mask_base | mask_ramping | mask_years | mask_consec | mask_emissions
@@ -181,7 +182,7 @@ mask_emissions = (ml.df_def_loop.swvr_id.isin(slct_vr) &
                 ml.df_def_loop.swyr_id.isin([0]) &
 #                ml.df_def_loop.swco_id.isin([0]) & --> all
                 ml.df_def_loop.swtr_id.isin([0]) &
-                ml.df_def_loop.swrc_id.isin([0]) 
+                ml.df_def_loop.swrc_id.isin([0])
                 )
 
 
@@ -200,7 +201,7 @@ mask_emissions_LIO = (ml.df_def_loop.swvr_id.isin(slct_vr) &
                 ml.df_def_loop.swyr_id.isin([0]) &
 #                ml.df_def_loop.swco_id.isin([0]) & --> all
                 ml.df_def_loop.swtr_id.isin([0]) &
-                ml.df_def_loop.swrc_id.isin([0]) 
+                ml.df_def_loop.swrc_id.isin([0])
                 )
 
 
@@ -238,7 +239,7 @@ for irow in list(range(irow_0, len(ml.df_def_loop))):
     ###
     print('set_trm_cap_onoff')
     mlm.set_trm_cap_onoff()
-    
+
     ####
     print('set_co2_price')
     mlm.set_co2_price()
@@ -257,7 +258,7 @@ for irow in list(range(irow_0, len(ml.df_def_loop))):
 
     ####
     print('set_ramping_cost')
-    mlm.set_ramping_cost()
+    mlm.set_ramping_cost(dict_rc)
 
     ####
     print('select_storage_tech')
@@ -282,7 +283,7 @@ for irow in list(range(irow_0, len(ml.df_def_loop))):
 
 
 # %%
-        
+
 sqa = sql_analysis.SqlAnalysis(sc_out=sc_out, db=db)
 sqa.build_tables_plant_run_quick()
 sqa.build_table_plant_run_tot_balance(from_quick=True)
