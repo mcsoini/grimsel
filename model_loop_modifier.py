@@ -33,71 +33,44 @@ class ModelLoopModifier():
         self.ml = ml
 
 
-    def set_ramping_cost(self):
+    def set_ramping_cost(self, dict_rc):
 
-        dict_rc = {0: 1.0,
-                   10: 0.0,
-                   1: 0.1,
-                   2: 0.2,
-                   3: 0.3,
-                   4: 0.4,
-                   5: 0.5,
-                   6: 0.6,
-                   7: 0.7,
-                   8: 0.8,
-                   9: 0.9,
-                   11: 1.1,
-                   12: 1.2,
-                   13: 1.3,
-                   14: 1.4,
-                   15: 1.5,
-                   16: 1.6,
-                   17: 1.7,
-                   18: 1.8,
-                   19: 1.9,
-                   20: 2.0,
-                   21: 2.1,
-                   22: 2.2,
-                   23: 2.3,
-                   24: 2.4,
-                   25: 2.5,
-                   }
 
         slct_rc = dict_rc[self.ml.dct_step['swrc']]
-        
+
         # reset ramping costs
         dict_vc_ramp = self.ml.m.df_plant_encar.set_index(['pp_id', 'ca_id'])['vc_ramp'].to_dict()
-        
+
         for key in self.ml.m.vc_ramp:
-            
+
             self.ml.m.vc_ramp[key] = dict_vc_ramp[key] * slct_rc
-        
-        
+
+
 
         self.ml.dct_vl['swrc_vl'] = 'x%03.1f'%slct_rc
 
 
 
     def set_trm_cap_onoff(self):
-        
+
         dict_trm = {0: 'on',
                     1: 'off'}
 
         slct_trm = dict_trm[self.ml.dct_step['swtr']]
-        
+
         if slct_trm == 'on':
             # reset
             dict_trm = self.ml.m.df_node_connect.set_index(['mt_id', 'nd_id', 'nd_2_id',
                                                  'ca_id'])['cap_trm_leg'].to_dict()
-        
+
             for key, val in dict_trm.items():
                 self.ml.m.cap_trm_leg[key] = val
         elif slct_trm == 'off':
-            
+
             for key in self.ml.m.cap_trm_leg:
                 self.ml.m.cap_trm_leg[key] = 0
-            
-            
+
+
         self.ml.dct_vl['swtr_vl'] = slct_trm
 
 
