@@ -164,7 +164,7 @@ class AutoComplete():
 
         add_cols = [c for c in self.df_add.columns if c in self._df.columns]
         setattr(self.m, self.df_name,
-                pd.concat([self._df, self.df_add[add_cols]]))
+                pd.concat([self._df, self.df_add[add_cols]], sort=True))
         self._df = getattr(self.m, self.df_name)
 
 
