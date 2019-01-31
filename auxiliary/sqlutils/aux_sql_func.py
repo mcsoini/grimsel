@@ -470,9 +470,9 @@ def copy_table_structure(sc, tb, sc0, db, verbose=False):
 
 
 
-def read_sql(db=None, sc=None, tb=None, filt=False, filt_func=False, drop=False, keep=False,
-             copy=False, tweezer=False, distinct=False, verbose=False,
-             engine=None):
+def read_sql(db=None, sc=None, tb=None, filt=False, filt_func=False, drop=False,
+             keep=False, copy=False, tweezer=False, distinct=False, verbose=False,
+             engine=None, limit=None):
     '''
     Keyword arguments:
     tweezer -- list; filter (exclude or include) single combinations of values
@@ -486,6 +486,8 @@ def read_sql(db=None, sc=None, tb=None, filt=False, filt_func=False, drop=False,
     else:
         _engine = engine
 
+
+    limit_str = 'LIMIT %d'%limit if isinstance(limit, int) else ''
 
     if verbose:
         print('Reading ' + sc + '.' + tb +  ' from database ' + db)
@@ -514,10 +516,12 @@ def read_sql(db=None, sc=None, tb=None, filt=False, filt_func=False, drop=False,
                     SELECT {distinct_str} {keep_str}
                     FROM {sc}.{tb}
                     WHERE {filt_str}
-                          {tweez_str};
+                          {tweez_str}
+                    {limit_str};
                     ''').format(keep_str=keep_str, sc=sc, tb=tb,
                                 filt_str=filt_str, tweez_str=tweez_str,
-                                distinct_str=distinct_str)
+                                distinct_str=distinct_str,
+                                limit_str=limit_str)
         if verbose:
             print(exec_str)
 
