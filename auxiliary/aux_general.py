@@ -144,11 +144,12 @@ def translate_id(df, dft, n):
     '''
     translate id columns
     '''
+
     if type(n) == str:
-        n = [n, n]
+        n = [n] * 2
     n_id = [i_n + '_id' for i_n in n]
     dft = dft[[n[0], n_id[0]]]
-    dict_id = {dft[n[0]].ix[r]: dft[n_id[0]].ix[r] for r in range(len(dft))}
+    dict_id = dft.set_index(n[0])[n[0] + '_id']
     df[n_id[1]] = df[n_id[1]].replace(dict_id)
     return df, dict_id
 
