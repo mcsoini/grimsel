@@ -160,7 +160,6 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         Note: io needs to have loaded all data
         '''
         self.get_setlst()
-        self.adjust_cost_time()
         self.define_sets() # in mixin class
 
         self.define_parameters() # in mixin class
@@ -401,6 +400,8 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         self.df_hoy_soy = self.tm.df_hoy_soy
         self.df_tm_soy = self.tm.df_time_red[['wk_id', 'mt_id', 'sy',
                                          'weight', 'wk_weight']]
+        # scale fixed costs to account for less than full year
+        self.adjust_cost_time()
 
         _df = self.df_tm_soy.copy()
 
