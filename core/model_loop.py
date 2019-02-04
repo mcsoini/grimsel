@@ -71,8 +71,8 @@ class ModelLoop(parameter_changes.ParameterChanges):
             self.unq_code = self.sc_out.replace('out_', '')
         else: # generate output schema name
             self.unq_code = datetime.datetime.now().strftime("%H%M")
-            self.sc_out = 'out_' + str(self.mkwargs['nhours'])
-            self.sc_out += '_' + self.unq_code
+            self.sc_out = 'out_{n}_{uq}'.format(n=self.mkwargs['nhours'],
+                                                uq=self.unq_code)
 
     def __init__(self, sql_connector, **kwargs):
         '''
