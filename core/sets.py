@@ -162,15 +162,6 @@ class Sets:
                               | self.ror_ca, ordered=True)
 
         # fuels with cost profiles
-        df = self.df_fuel_node_encar.loc[self.df_fuel_node_encar.has_profile == 1,
-                                   ['nd_id', 'fl_id']]
-#        # fuels with cost profiles (referenced nodes)
-#        df = self.df_fuel_node_encar.loc[mask_prf, ['fl_id', 'nd_id', 'ca_id']]
-#        self.ndfl_prof = po.Set(within=self.nd * self.fl, ordered=True,
-#                                initialize=cols2tuplelist(df[['nd_id', 'fl_id']]))
-
-        self.fl_prof = po.Set(within=self.fl, ordered=True,
-                              initialize=cols2tuplelist(df.fl_id))
         df = pd.merge(df, self.df_def_plant[['pp_id', 'fl_id', 'nd_id']])
         df = pd.merge(df, self.df_plant_encar[['pp_id', 'ca_id']])
         lst = [tuple(c) for c in df[slct_cols_ppndcafl].values]
