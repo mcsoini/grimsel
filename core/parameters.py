@@ -197,7 +197,11 @@ class Parameters:
                     'ppall': 'pp_id', 'hyrs': 'pp_id', 'wk': 'wk_id',
                     'mt': 'mt_id',
                     'ndcnn': ['nd_id', 'nd_2_id', 'ca_id'],
-                    'st': 'pp_id', 'lin': 'pp_id'}
+                    'st': 'pp_id', 'lin': 'pp_id',
+                    'ndfl_prof': ['nd_id', 'fl_id'],
+                    'price_pf': 'price_pf_id',
+                    'dmnd_pf': 'dmnd_pf_id',
+                    'supply_pf': 'supply_pf_id'}
 
         # apply filter to dataframe
         if filt_col:
