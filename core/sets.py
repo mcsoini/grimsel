@@ -162,6 +162,8 @@ class Sets:
                               | self.ror_ca, ordered=True)
 
         # fuels with cost profiles
+        mask_prf = ~self.df_fuel_node_encar.price_pf_id.isna()
+        df = self.df_fuel_node_encar.loc[mask_prf, ['nd_id', 'fl_id']]
         df = pd.merge(df, self.df_def_plant[['pp_id', 'fl_id', 'nd_id']])
         df = pd.merge(df, self.df_plant_encar[['pp_id', 'ca_id']])
         lst = [tuple(c) for c in df[slct_cols_ppndcafl].values]
