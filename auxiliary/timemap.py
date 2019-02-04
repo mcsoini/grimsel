@@ -9,7 +9,7 @@ SEASON_DICT = {'JAN': 'WINTER', 'FEB': 'WINTER', 'DEC': 'WINTER',
                'JUN': 'SUMMER', 'JUL': 'SUMMER', 'AUG': 'SUMMER',
                'SEP': 'FALL', 'OCT': 'FALL', 'NOV': 'FALL'}
 DOW_DICT = {0: 'MON', 1: 'TUE', 2: 'WED', 3: 'THU', 4: 'FRI', 5: 'SAT', 6: 'SUN'}
-DOW_TYPE_DICT = {0: 'WEEKDAY', 1: 'WEEKDAY', 2: 'WEEKDAY', 3: 'WEEKDAY', 4: 'WEEKDAY', 5: 'SAT', 6: 'SUN'}
+DOW_TYPE_DICT = {**{d: 'WEEKDAY' for d in range(5)}, **{5: 'SAT', 6: 'SUN'}}
 
 class TimeMap():
 
@@ -36,7 +36,8 @@ class TimeMap():
         print('Generating time map from {} to {}'.format(start, stop))
 
         df_time_map = pd.DataFrame(index=pd.date_range(start, stop, freq=freq))
-        df_time_map = df_time_map.reset_index().rename(columns={'index': 'DateTime'})
+        df_time_map = (df_time_map.reset_index()
+                                  .rename(columns={'index': 'DateTime'}))
 
         df_time_map['month'] = df_time_map['DateTime'].dt.month
         df_time_map['mt_id'] = df_time_map['DateTime'].dt.month - 1
@@ -85,8 +86,11 @@ class TimeMap():
 
 
         # add hour of the year column
-        get_hoy = lambda x: x.reset_index(drop=True).reset_index().rename(columns={'index': 'hy'})[['hy']]
-        df_time_map['hy'] = df_time_map.groupby(['year']).apply(get_hoy).reset_index(drop=True)['hy']
+        get_hoy = lambda x: (x.reset_index(drop=True)
+                              .reset_index()
+                              .rename(columns={'index': 'hy'})[['hy']])
+        df_time_map['hy'] = (df_time_map.groupby(['year']).apply(get_hoy)
+                                        .reset_index(drop=True)['hy'])
 
         # apply filtering
         mask = df_time_map.mt_id.apply(lambda x: True).rename('mask')
@@ -119,7 +123,8 @@ class TimeMap():
 
         # add weight column to dataframe
         df_weight = df_time_map.pivot_table(values=['hy'], index='sy',
-                                            aggfunc=len).rename(columns={'hy': 'weight'})
+                                            aggfunc=len)
+        df_weight = df_weight.rename(columns={'hy': 'weight'})
         df_time_map = df_time_map.join(df_weight, on='sy')
 
         self.df_hoy_soy = df_time_map[['sy', 'hy']]
@@ -137,8 +142,9 @@ class TimeMap():
         _df = self.df_time_map.loc[self.df_time_map.mt.isin(list_months)]
         mask_dy = _df.dow_name == 'SUN'
 
-        _df = _df.loc[mask_dy].pivot_table(index=['mt', 'year'], values='doy',
-                              aggfunc=np.max).reset_index()[['year', 'mt', 'doy']]
+        _df = _df.loc[mask_dy].pivot_table(index=['mt', 'year'],
+                                           values='doy', aggfunc=np.max)
+        _df = _df.reset_index()[['year', 'mt', 'doy']]
 
         dict_dst = _df.set_index(['year', 'mt'])['doy'].to_dict()
 
@@ -147,12 +153,3 @@ class TimeMap():
 
 if __name__ == '__main__':
     pass
-    #    tm = TimeMap(1, tm_filt=[('wk_id', [27]), ('dow', [2])])
-#
-#    tm.gen_soy_timemap(4)
-#
-#    tm.df_time_red
-#
-#    tm.
-#
-#    write_sql(tm.df_time_red, 'storage1', 'public', 'temp_time_map_soy', 'replace')

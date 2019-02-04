@@ -229,7 +229,6 @@ class ModelLoop(parameter_changes.ParameterChanges):
 
         # update instance variable and add run_name column
         self.df_add = df_add
-#        self.add_run_name()
 
         # can't use io method here if we want this to happen when no_output
         aql.write_sql(self.df_add, self.db, self.sc_out, 'def_loop', 'append')
@@ -256,7 +255,7 @@ class ModelLoop(parameter_changes.ParameterChanges):
         self._df_def_loop = self._df_def_loop.reset_index(drop=True)
         self._df_def_loop = self._df_def_loop.reset_index()
         self._df_def_loop = self._df_def_loop.rename(columns={'index':
-                                                                'run_id'})
+                                                              'run_id'})
 
     def perform_model_run(self, zero_run=False, warmstart=True):
         """

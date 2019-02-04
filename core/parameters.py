@@ -23,7 +23,6 @@ class Parameters:
     parameter_month_list = []
 
     def define_parameters(self):
-#
         mut = {'mutable': True}
         inf = {'default': float('inf')}
 
@@ -135,6 +134,7 @@ class Parameters:
         mutable -- like the pyomo parameter keyword argument
         default -- like the pyomo parameter keyword argument
         '''
+#        parameter_name, parameter_index, source_dataframe, value_col = 'dmnd', (self.sy, self.dmnd_pf), 'df_profdmnd_soy', 'value'
 
         print('Assigning parameter {par}'.format(par=parameter_name), end='... ')
 
@@ -161,17 +161,13 @@ class Parameters:
         elif type(source_dataframe) is pd.DataFrame:
             _df = source_dataframe
 
-
         # transform into tuple in case a single set is provided
         parameter_index = (tuple(parameter_index)
                            if not type(parameter_index) == tuple
                            else parameter_index)
 
-
         if not flag_empty and not self.check_valid_indices(parameter_index):
             flag_empty = True
-#            return None
-
 
         # set data column to parameter name in case no other value is provided
         if not value_col:
@@ -181,7 +177,6 @@ class Parameters:
         if not flag_empty and value_col not in _df.columns:
             print('failed (column doesn\'t exist).')
             flag_empty = True
-#            return None
 
         # dictionary sets -> column names
         dict_ind = {'sy': 'sy', 'sy_hydbc': 'sy', 'nd': 'nd_id', 'ca': 'ca_id',
@@ -202,6 +197,7 @@ class Parameters:
                       if type(pi) in [poset.SimpleSet, poset.OrderedSimpleSet]
                       else 'pp_id' # Exception: Set unions are always pp
                       for pi in parameter_index]
+
         index_cols = [[c] if not type(c) == list else c for c in index_cols]
         index_cols = list(itertools.chain.from_iterable(index_cols))
 

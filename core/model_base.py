@@ -399,7 +399,8 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         self.df_tm_soy_full = self.tm.df_time_red # save to output database
         self.df_hoy_soy = self.tm.df_hoy_soy
         self.df_tm_soy = self.tm.df_time_red[['wk_id', 'mt_id', 'sy',
-                                         'weight', 'wk_weight']]
+                                              'weight', 'wk_weight']]
+
         # scale fixed costs to account for less than full year
         self.adjust_cost_time()
 
@@ -633,8 +634,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
                       + str(vv[i].value))
         print('*'*(33 + len(variable)) + '\n')
 
-    def fill_peaker_plants(self, demand_factor=1.02,
-                           reset_to_zero=False,
+    def fill_peaker_plants(self, demand_factor=1.02, reset_to_zero=False,
                            list_peak=[]):
         '''
         Calculate required capacity of designated peaker plants from

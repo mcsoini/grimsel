@@ -7,8 +7,7 @@ Created on Mon May 14 07:41:11 2018
 """
 
 import pandas as pd
-import itertools
-
+import itertools as it
 import matplotlib as mpl
 
 
@@ -102,7 +101,6 @@ class AutoComplete():
     def generate_df_add(self):
         '''
         Generate full DataFrame to be appended to _df.
-        This is replaced by children if ...
         '''
 
         # some children assign df_add before this (e.g. for pp name generation)
@@ -153,7 +151,7 @@ class AutoComplete():
         ''' Check which columns are missing in df_add and fill with zeros. '''
 
         list_cols = [c for c in self._df.columns
-             if not c in self.df_add.columns]
+                     if not c in self.df_add.columns]
 
         for icol in list_cols:
             self.df_add[icol] = 0

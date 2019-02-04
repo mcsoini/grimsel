@@ -93,7 +93,6 @@ class Sets:
 
         ''' SPECIAL SETS '''
         # temporal
-        print(self.df_plant_month.sy.tolist())
         self.sy = po.Set(initialize=list(self.df_tm_soy['sy']), ordered=True)
         self.sy_hydbc = po.Set(within=self.sy,
                                initialize=self.df_plant_month.sy.tolist())
@@ -108,7 +107,6 @@ class Sets:
                             initialize=cols2tuplelist(
                                     self.df_tm_soy_full[['sy', 'mt_id']]))
                       if not self.mt is None else None)
-
 
         # pp_cacafcl; used to account for conversions of ca in the supply rule
         df_cafl = self.df_def_encar.set_index('fl_id')['ca_id']
@@ -164,6 +162,10 @@ class Sets:
         # fuels with cost profiles
         df = self.df_fuel_node_encar.loc[self.df_fuel_node_encar.has_profile == 1,
                                    ['nd_id', 'fl_id']]
+#        # fuels with cost profiles (referenced nodes)
+#        df = self.df_fuel_node_encar.loc[mask_prf, ['fl_id', 'nd_id', 'ca_id']]
+#        self.ndfl_prof = po.Set(within=self.nd * self.fl, ordered=True,
+#                                initialize=cols2tuplelist(df[['nd_id', 'fl_id']]))
 
         self.fl_prof = po.Set(within=self.fl, ordered=True,
                               initialize=cols2tuplelist(df.fl_id))
@@ -196,10 +198,6 @@ class Sets:
         df = df.loc[df.is_ca.isin([0]), 'fl_id']
         self.setlst['fl'] = df.get_values().tolist()
 
-#        # generated fuels are scf
-#        df = self.df_def_fuel.copy()
-#        df = df.loc[df.is_ca.isin([1]), 'fl_id']
-#        self.setlst['scf'] = df.get_values().tolist()
 
         # hydro and storage together
         self.setlst['sthyrs'] = self.setlst['st'] + self.setlst['hyrs']

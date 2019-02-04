@@ -1087,45 +1087,4 @@ class IO:
 if __name__ == '__main__':
 
 
-
-    import grimsel.config as config
-    sc_out = 'test_io_new'
-
-    db = 'storage2'
-
-    sqlc = aql.sql_connector(**dict(db=db,
-                                    password=config.PSQL_PASSWORD,
-                                    user=config.PSQL_USER,
-                                    port=config.PSQL_PORT,
-                                    host=config.PSQL_HOST))
-
-    kwargs = {'resume_loop': False,
-              'model': ml.m,
-              'autocomplete_curtailment': False,
-              'sql_connector': sqlc,
-              'autocompletion': True,
-              'no_output': False,
-              'dev_mode': True,
-              'data_path': None,
-              'sc_inp': False,
-              'sc_out': sc_out,
-               }
-
-
-    ioobj = IO(**kwargs)
-
-    self = ioobj
-
-
-
-    self.read_model_data()
-    self.write_runtime_tables()
-
-    self.init_output_tables()
-    self.write_run(123)
-
-
-
-
-
-
+    pass
