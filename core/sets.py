@@ -17,6 +17,7 @@ class Sets:
         self.nd = po.Set(initialize=self.setlst['nd'], doc='Nodes')
         self.ca = po.Set(initialize=self.setlst['ca'], doc='Energy carriers')
         self.fl = po.Set(initialize=self.setlst['fl'], doc='Sub-fuels')
+        self.pf = po.Set(initialize=self.setlst['pf'], doc='Profiles')
 #        self.fcl = po.Set(initialize=self.setlst['scf'],
 #                          doc='Sub-fuels from energy carriers')
 
