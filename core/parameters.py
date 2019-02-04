@@ -36,12 +36,12 @@ class Parameters:
         mut = {'mutable': True}
         inf = {'default': float('inf')}
 
-        self.padd('dmnd', (self.sy, self.nd, self.ca), 'df_profdmnd_soy', 'value', **mut, default=0) # Complete information on demand
         logging.info('Profile parameters:')
+        self.padd('dmnd', (self.sy, self.dmnd_pf), 'df_profdmnd_soy', 'value', **mut, default=0) # Complete information on demand
         self.padd('chpprof', (self.sy, self.nd, self.ca), 'df_profchp_soy', 'value', **mut) # Relative heat demand profile.
-        self.padd('supprof', (self.sy, self.pr, self.ca), 'df_profsupply_soy', 'value', **mut) # Supply from variable generators.
+        self.padd('supprof', (self.sy, self.supply_pf), 'df_profsupply_soy', 'value', **mut) # Supply from variable generators.
         self.padd('inflowprof', (self.sy, self.hyrs | self.ror, self.ca), 'df_profinflow_soy', 'value', **mut) # Hydro inflow profiles.
-        self.padd('priceprof', (self.sy, self.nd, self.fl_prof), 'df_profprice_soy', 'value', **mut) # Relative heat demand profile.
+        self.padd('priceprof', (self.sy, self.price_pf), 'df_profprice_soy', 'value', **mut) # Relative heat demand profile.
 
         logging.info('Hydro parameters')
         self.padd('min_erg_mt_out_share', (self.hyrs,), 'df_hydro') # minimum monthly production as share of max_erg_mt_in_share.
