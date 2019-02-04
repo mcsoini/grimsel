@@ -170,6 +170,12 @@ class Sets:
         self.pp_ndcafl_prof = po.Set(within=self.pp_ndcafl, initialize=lst,
                                      ordered=True)
 
+        # set pf_id for profiles
+        for pf_set in ['dmnd_pf', 'supply_pf', 'price_pf']:
+            setattr(self, pf_set,
+                    po.Set(within=self.pf, initialize=self.setlst[pf_set],
+                           ordered=True))
+
     def get_setlst(self):
         '''
         Lists of indices for all model components are extracted from the
