@@ -200,6 +200,20 @@ class Sets:
         df = df.loc[df.is_ca.isin([0]), 'fl_id']
         self.setlst['fl'] = df.get_values().tolist()
 
+        df = self.df_plant_encar.copy()
+        df = df.loc[-df.supply_pf_id.isna(), 'supply_pf_id']
+        self.setlst['supply_pf'] = df.drop_duplicates().get_values().tolist()
+
+        df = self.df_fuel_node_encar.copy()
+        df = df.loc[-df.price_pf_id.isna(), 'price_pf_id']
+        self.setlst['price_pf'] = df.drop_duplicates().get_values().tolist()
+
+        df = self.df_node_encar.copy()
+        df = df.loc[-df.dmnd_pf_id.isna(), 'dmnd_pf_id']
+        self.setlst['dmnd_pf'] = df.drop_duplicates().get_values().tolist()
+
+        self.setlst['pf'] = (self.setlst['dmnd_pf'] + self.setlst['price_pf']
+                             + self.setlst['supply_pf'])
 
         # hydro and storage together
         self.setlst['sthyrs'] = self.setlst['st'] + self.setlst['hyrs']
