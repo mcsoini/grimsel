@@ -15,15 +15,24 @@ class Parameters:
     '''
     Mixin class containing all parameters.
     Methods:
-    define_parameters -- contains all parameter defintions relevant
-                         for the model
-    padd -- helper method for compact parameter definitions
+    define_parameters : contains all parameter defintions relevant for the model
+    padd : helper method for compact parameter definitions
+
     '''
 
     # holds the names of all parameters which got modified by monthly factors
     parameter_month_list = []
 
     def define_parameters(self):
+        '''
+        Adds all parameters to the model.
+
+        Selects appropriate data from the input DataFrames. Calls the method
+        :func:Parameters.padd.
+
+        '''
+
+
         mut = {'mutable': True}
         inf = {'default': float('inf')}
 

@@ -17,6 +17,15 @@ class Constraints:
 
 
     def add_transmission_bounds_rules(self):
+        '''
+        Add transmission bounds.
+
+        :math:`-C_\mathrm{import} \leqslant p_{\mathrm{trm}, t} \leqslant C_\mathrm{export}`
+
+        *Note*: This method modifies the ``trm`` transmission power Pyomo
+        variable object by calling its ``setub`` and ``setlb`` methods.
+
+        '''
 
 
         if hasattr(self, 'trm'):
@@ -29,6 +38,19 @@ class Constraints:
                 self.trm[(sy, nd1, nd2, ca)].setlb(lb)
 
     def add_supply_rules(self):
+        r'''
+        Adds the supply rule.
+
+        .. math::
+
+           & p_\mathrm{pp} - p_\mathrm{sell} - p_\mathrm{curt} \\
+           & + p_\mathrm{trm} \\
+           & \leqslant \\
+           & p_\mathrm{dmnd} + p_\mathrm{st,chg} \\
+           & + p_\mathrm{pp, ca_out} / \eta_\mathrm{pp}
+
+
+        '''
 
         print('Supply rule')
         def supply_rule(self, sy, nd, ca):

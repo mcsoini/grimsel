@@ -160,17 +160,30 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
     def build_model(self):
         '''
-        Call the relevant model methods to get everything set up;
-        Note: io needs to have loaded all data
-        '''
-        self.get_setlst()
-        self.define_sets() # in mixin class
+        Call the relevant model methods to get everything set up.
 
-        self.define_parameters() # in mixin class
+        This consists in:
+        1. call self.get_setlst (in Sets mixin class) to initialize
+            the self.setlst dictionary
+        2. call self.define_sets (in Sets mixin class) to initialize
+            Pyomo set objects
+        3. call self.define_parameters (in Parameters mixin class)
+        4. call self.define_variables (in Variables mixin class)
+        5. call self.add_all_constraints
+        6. call self.init_solver
+
+        Note: io needs to have loaded all data, i.e. set the ModelBase
+        DataFrames.
+        '''
+
+        self.get_setlst()
+        self.define_sets()
+
+        self.define_parameters()
 
         if not self.skip_runs:
 
-            self.define_variables() # in mixin class
+            self.define_variables()
             self.add_all_constraints()
             self.init_solver()
 
@@ -179,8 +192,12 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         '''
         Returns list names of methods defining constraint groups.
 
-        Paramters:
-        excl -- exclude certain group names from the result list
+        This classmethod can also be used to define the constraint_groups
+        parameter to initialize the ModelBase object by selecting certain
+        groups to be excluded.
+
+        Parameters:
+        excl : exclude certain group names from the returned list
         '''
 
         cg_lst = [mth.replace('add_', '').replace('_rules', '')
@@ -195,9 +212,9 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
     def check_contraint_groups(self):
         '''
-        Verification and completion of constraint group selection.
+        Verification and completion of the constraint group selection.
 
-        Verifies constraint groups if the constraint_groups argument
+        Verifies constraint groups if the `constraint_groups` argument
         is not None. Otherwise it gathers all accordingly named
         methods from the class attributes and populates the list thusly.
         '''
@@ -218,7 +235,12 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
                                          cg=',\n'.join(cg_options)))
 
     def add_all_constraints(self):
-        ''' Call all selected methods from the constraint mixin class. '''
+        '''
+        Call all selected methods from the constraint mixin class.
+
+        Loops through the `constraint_groups` list and calls the corresponding
+        methods in the :class:`.Constraints` mixing class.
+        '''
 
         for cg in self.constraint_groups:
             getattr(self, 'add_%s_rules'%cg)()
@@ -474,8 +496,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
     def get_maximum_demand(self):
         '''
-        Calculation of maximum demand (in MW) from the mapped profiles
-        for various uses.
+        Calculation of maximum demand (in MW) with adjusted time resolution.
 
         Note: Database table def_node is updated in io.write_runtime_tables
         '''
