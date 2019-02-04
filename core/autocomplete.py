@@ -10,12 +10,18 @@ import pandas as pd
 import itertools as it
 import matplotlib as mpl
 
+import abc
 
-class AutoComplete():
 import logging
 
     list_acclasses = []
 logging.getLogger().setLevel(logging.INFO)
+
+
+class AutoComplete(abc.ABC):
+    '''
+    Base class for the autocompletion of model input DataFrames.
+    '''
 
     def __init__(self, m):
 
@@ -68,10 +74,7 @@ logging.getLogger().setLevel(logging.INFO)
                          '{}'.format(', '.join(lst_mss_df)))
 
 
-    def get_row_list(self):
-        ''' List of rows to potentially be added. Implemented in children. '''
 
-        pass
 
     def filter_row_list(self):
         ''' Filter rows by additionality or relevance. '''
@@ -82,6 +85,12 @@ logging.getLogger().setLevel(logging.INFO)
 
         # set flag_add to False/0 if lst_add is empty
         self.flag_add *= (True if self.lst_add else False)
+
+    @abc.abstractmethod
+    def get_row_list(self):
+        ''' List of rows to potentially be added. Implemented in children. '''
+
+        pass
 
     def filter_rows_existing(self):
         ''' Remove rows already included in _df. By names in _add_col. '''
