@@ -6,6 +6,7 @@ import pyomo.core.base.sets as poset
 import itertools
 import pandas as pd
 
+import logging
 
 from grimsel.auxiliary.aux_m_func import pdef
 import grimsel.core.io as io
@@ -26,19 +27,19 @@ class Parameters:
         mut = {'mutable': True}
         inf = {'default': float('inf')}
 
-        print('Profile parameters:')
         self.padd('dmnd', (self.sy, self.nd, self.ca), 'df_profdmnd_soy', 'value', **mut, default=0) # Complete information on demand
+        logging.info('Profile parameters:')
         self.padd('chpprof', (self.sy, self.nd, self.ca), 'df_profchp_soy', 'value', **mut) # Relative heat demand profile.
         self.padd('supprof', (self.sy, self.pr, self.ca), 'df_profsupply_soy', 'value', **mut) # Supply from variable generators.
         self.padd('inflowprof', (self.sy, self.hyrs | self.ror, self.ca), 'df_profinflow_soy', 'value', **mut) # Hydro inflow profiles.
         self.padd('priceprof', (self.sy, self.nd, self.fl_prof), 'df_profprice_soy', 'value', **mut) # Relative heat demand profile.
 
-        print('Hydro parameters')
+        logging.info('Hydro parameters')
         self.padd('min_erg_mt_out_share', (self.hyrs,), 'df_hydro') # minimum monthly production as share of max_erg_mt_in_share.
         self.padd('max_erg_mt_in_share', (self.hyrs,), 'df_hydro') # maximum monthly inflow as share of yearly total.
         self.padd('min_erg_share', (self.hyrs,), 'df_hydro', **mut) # minimum filling level as share of cap_erg.
 
-        print('Defining general parameters')
+        logging.info('Defining general parameters')
         self.padd('weight', (self.sy,), self.df_tm_soy) # Weight per time slot.
         self.padd('month_weight', (self.mt,), self.df_def_month) # Hours per month.
         self.padd('dmnd_sum', (self.nd,), self.df_node_encar, default=0) # .
@@ -49,12 +50,12 @@ class Parameters:
         self.padd('cap_trme_leg', (self.mt, self.ndcnn,), 'df_node_connect', **mut) # Cross-node transmission capacity.
         self.padd('cap_trmi_leg', (self.mt, self.ndcnn,), 'df_node_connect', **mut) # Cross-node transmission capacity.
 
-        print('Defining ramping parameters')
+        logging.info('Defining ramping parameters')
         _df = self.df_plant_encar.copy()
         _df = _df.loc[_df['pp_id'].isin(self.setlst['pp'] + self.setlst['hyrs'] + self.setlst['ror'])]
         self.padd('vc_ramp', (self.pp | self.hyrs | self.ror, self.ca), _df, **mut) # .
 
-        print('Defining pp parameters')
+        logging.info('Defining pp parameters')
         _df = self.df_plant_encar.copy()
         _df = _df.loc[_df['pp_id'].isin(self.setlst['pp'])]
         self.padd('ca_share_min', (self.pp, self.ca), _df) # .
@@ -64,7 +65,7 @@ class Parameters:
         df = self.df_plant_encar.loc[self.df_plant_encar.pp_id.isin(self.chp)]
         self.padd('erg_chp', (self.pp, self.ca), df, **mut)
 
-        print('Defining fuel parameters')
+        logging.info('Defining fuel parameters')
         self.padd('erg_inp', (self.nd, self.ca, self.fl), 'df_fuel_node_encar', **mut)
         self.padd('vc_fl', (self.fl, self.nd), 'df_fuel_node_encar', default=0, **mut) # EUR/MWh_el
 
@@ -76,7 +77,7 @@ class Parameters:
         _df = self.df_def_fuel.loc[self.df_def_fuel.fl_id.isin(self.setlst['fl'])]
         self.padd('co2_int', (self.fl,), _df, **mut) # t/MWh_fl
 
-        print('Defining parameters for all generators')
+        logging.info('Defining parameters for all generators')
         _df = self.df_plant_encar.copy()
         _df = _df.loc[_df['pp_id'].isin(self.setlst['ppall'])]
         sets = (self.pp | self.pr | self.ror | self.st | self.hyrs | self.curt | self.lin, self.ca)
@@ -88,26 +89,26 @@ class Parameters:
         _df = _df.loc[_df['pp_id'].isin(self.setlst['pp'])]
         self.padd('cap_avlb', (self.pp, self.ca), _df, **mut) # .
 
-        print('Defining parameters investment')
+        logging.info('Defining parameters investment')
         _df = self.df_plant_encar.copy()
         _df = _df.loc[_df['pp_id'].isin(self.setlst['add'])]
         self.padd('fc_cp_ann', (self.add, self.ca), _df, **mut) # .
 
-        print('Defining st + hybrid parameters')
+        logging.info('Defining st + hybrid parameters')
         _df = self.df_plant_encar.copy()
         _df = _df.loc[_df['pp_id'].isin(self.setlst['st'])]
         self.padd('st_lss_hr', (self.st, self.ca), _df, **mut)
         self.padd('st_lss_rt', (self.st, self.ca), _df, **mut)
 
-        print('Defining hy parameters')
+        logging.info('Defining hy parameters')
         self.padd('hyd_erg_bc', (self.sy_hydbc, self.hyrs), self.df_plant_month)
 
-        print('Defining st + hyrs parameters')
+        logging.info('Defining st + hyrs parameters')
         _df = self.df_plant_encar
         _df = (_df.loc[_df['pp_id'].isin(self.setlst['sthyrs'])])
         self.padd('discharge_duration', (self.st | self.hyrs, self.ca), _df, **mut)
 
-        print('Defining parameter for investment and retirement control')
+        logging.info('Defining parameter for investment and retirement control')
         self.capchnge_max = po.Param(initialize=float('inf'), **mut)
 
         # applying monthly adjustment factors to some parameters as defined
@@ -136,7 +137,8 @@ class Parameters:
         '''
 #        parameter_name, parameter_index, source_dataframe, value_col = 'dmnd', (self.sy, self.dmnd_pf), 'df_profdmnd_soy', 'value'
 
-        print('Assigning parameter {par}'.format(par=parameter_name), end='... ')
+        log_str = 'Assigning parameter {par} ...'.format(par=parameter_name)
+        logging.info(log_str)
 
 
         flag_empty = False
@@ -148,12 +150,12 @@ class Parameters:
             if hasattr(self, source_dataframe):
                 _df = getattr(self, source_dataframe)
                 if _df is None:
-                    print('failed (source_dataframe is None).')
+                    logging.warn(log_str + ' failed (source_dataframe is None).')
                     _df = pd.DataFrame()
                     flag_empty = True
 #                    return None
             else:
-                print('failed (source_dataframe does not exist).')
+                logging.warn(log_str + ' failed (source_dataframe does not exist).')
                 _df = pd.DataFrame()
                 flag_empty = True
 #                return None
@@ -175,7 +177,7 @@ class Parameters:
 
         # check if column exists in table
         if not flag_empty and value_col not in _df.columns:
-            print('failed (column doesn\'t exist).')
+            logging.warn(log_str + ' failed (column doesn\'t exist).')
             flag_empty = True
 
         # dictionary sets -> column names
@@ -206,7 +208,7 @@ class Parameters:
                             default=default)
         if not flag_empty:
             param_kwargs['initialize'] = pdef(_df, index_cols, value_col)
-            print('ok.')
+            logging.info(log_str + ' ok.')
 
         setattr(self, parameter_name, po.Param(*parameter_index,
                                                **param_kwargs))

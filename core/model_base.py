@@ -17,6 +17,10 @@ import numpy as np
 
 import pandas as pd
 
+import logging
+
+logger = logging.Logger('grimsel')
+
 import pyomo.environ as po
 from pyomo.core.base.objective import SimpleObjective
 

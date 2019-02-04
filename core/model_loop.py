@@ -8,6 +8,9 @@ import itertools
 import time
 from importlib import reload
 import datetime
+import logging
+
+logger = logging.Logger('grimsel')
 
 import grimsel.core.model_base as model_base
 import grimsel.core.io as io
@@ -235,14 +238,15 @@ class ModelLoop(parameter_changes.ParameterChanges):
 
     def print_run_title(self, warmstartfile, solutionfile):
 
-        print('*'*60)
-        print('run_id = ' + str(self.run_id)
-              + ' of ' + str(self.df_def_loop['run_id'].max()))
-        print('\n'.join([str(c[0]) + ' = ' + str(c[1])
-                         for c in self.dct_vl.items()]))
-        print('*'*60)
-        print('Using warmstartfile: ', warmstartfile)
-        print('Using solutionfile: ', solutionfile)
+        sep = '*' * 60
+        run_id_str = 'run_id = %d of %d'%(self.run_id,
+                                          self.df_def_loop['run_id'].max())
+        sw_str = '\n'.join([str(c[0]) + ' = ' + str(c[1])
+                            for c in self.dct_vl.items()])
+        run_title_str = '{sep}\n{run_id_str}\n{sw_str}\n{sep}'\
+                                .format(sep=sep, run_id_str=run_id_str,
+                                        sw_str=sw_str)
+        logger.info(run_title_str)
 
     def restore_run_id(self):
         '''

@@ -12,13 +12,16 @@ import matplotlib as mpl
 
 
 class AutoComplete():
+import logging
 
     list_acclasses = []
+logging.getLogger().setLevel(logging.INFO)
 
     def __init__(self, m):
 
-        print('Autocompletion {} in {}'.format(self.df_name,
-                                               type(self).__name__), end=' ... ')
+        format_list = [self.df_name, type(self).__name__]
+        logging.info('Autocompletion '
+                     '{} in {}'.format(*format_list))
 
         self.flag_add = True
         self.m = m
@@ -55,12 +58,14 @@ class AutoComplete():
                 self.reset_index()
                 self.complement_columns()
                 self.concatenate()
-                print('done. Added: {}'.format(', '.join(map(str, self.lst_add))))
+
+                logging.info('done. Added: '
+                             '{}'.format(', '.join(map(str, self.lst_add))))
             else:
-                print('nothing added.')
+                logging.info('nothing added.')
         else:
-            print('infeasible. Missing model DataFrames: {}'\
-                  .format(', '.join(lst_mss_df)))
+            logging.info('infeasible. Missing model DataFrames: '
+                         '{}'.format(', '.join(lst_mss_df)))
 
 
     def get_row_list(self):
