@@ -241,8 +241,7 @@ class ModelLoop(parameter_changes.ParameterChanges):
                              + list(self.dct_vl.keys()))
 
         df_add['objective'] = (self.m.objective_value
-                               if 'objective_value' in self.m.__dict__.keys()
-                               else 0)
+                               if hasattr(self.m, 'objective_value') else 0)
 
         # update instance variable and add run_name column
         self.df_add = df_add
