@@ -51,7 +51,8 @@ class Sets:
 
             ''' SETS PP x ND x ENCAR '''
             _df = df_ndca.copy()
-            _df = _df.loc[df_ndca['pp_id'].isin(self.setlst[iset] if iset in self.setlst.keys() else [])]
+            _df = _df.loc[df_ndca['pp_id'].isin(self.setlst[iset]
+                          if iset in self.setlst.keys() else [])]
             setattr(self, iset + '_ndca',
                     po.Set(within=getattr(self, iset) * self.nd * self.ca,
                            initialize=cols2tuplelist(_df)))
