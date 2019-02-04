@@ -131,7 +131,23 @@ class ModelLoop(parameter_changes.ParameterChanges):
 
         self.m.build_model()
 
+        self.init_run_table()
+
         self.io.init_output_tables()
+
+        self.select_run(0)
+
+
+    def init_run_table(self):
+        '''
+        Initializes the ``df_def_loop`` table by expanding the ``nsteps`` list.
+
+        Expands the ``nsteps`` parameter to the corresponding DataFrame.
+        The resulting attribute ``df_def_loop`` contains all relevant
+        combinations of the model change indices as defined in ``nsteps``.
+
+        Also initializes the output ``def_loop`` table, if required.
+        '''
 
         _nsteps = [list(ist) + ([0, 1] if ist[-1] == np.linspace else [])
                   for ist in self.nsteps]
@@ -160,8 +176,6 @@ class ModelLoop(parameter_changes.ParameterChanges):
 
         if not self.io.resume_loop:
             self.init_loop_table()
-
-        self.select_run(0)
 
     def select_run(self, slct_run_id):
         '''
