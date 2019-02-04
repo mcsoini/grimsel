@@ -428,8 +428,12 @@ class AutoCompletePlantDmnd(AutoCompletePlant):
 
     def complement_columns(self):
 
-        self.df_add['nd'] = self.df_add['pp'].apply(lambda x: x[:2] + '0')
-        self.df_add['pt'] = self.df_add['pp'].apply(lambda x: x[3:])
+        get_nd = lambda x: x.replace('_DMND', '').replace('_FLEX', '')
+        self.df_add['nd'] = self.df_add.pp.apply(get_nd)
+
+        get_pt = lambda x: x.pp.replace(x.nd + '_', '')
+        self.df_add['pt'] = self.df_add[['pp', 'nd']].apply(get_pt, axis=1)
+
         self.df_add['fl'] = self.df_add['pt'].apply(str.lower)
 
         self.add_id_cols()
@@ -455,7 +459,7 @@ class AutoCompletePlantCons(AutoCompletePlant):
         self.add_id_cols(add_names=True)
 
         self.df_add['pt'] = 'CONS_' + self.df_add['ca']
-        self.df_add['pp'] = self.df_add.nd.apply(lambda x: x[:2] + '_') + self.df_add.pt
+        self.df_add['pp'] = self.df_add.nd + '_' + self.df_add.pt
 
         self.lst_add = self.df_add.pp.tolist()
 
