@@ -819,14 +819,13 @@ class DataReader():
         if self.autocompletion:
             print('#' * 60)
 
-            ac.AutoCompletePpType(self.model)
+            ac.AutoCompletePpType(self.model, self.autocomplete_curtailment)
             ac.AutoCompleteFuelTrns(self.model)
-            ac.AutoCompleteFuelDmnd(self.model)
+            ac.AutoCompleteFuelDmnd(self.model, self.autocomplete_curtailment)
             ac.AutoCompletePlantTrns(self.model)
-            ac.AutoCompletePlantDmnd(self.model)
+            ac.AutoCompletePlantDmnd(self.model, self.autocomplete_curtailment)
             ac.AutoCompletePlantCons(self.model)
-            if self.autocomplete_curtailment:
-                ac.AutoCompletePpCaFlex(self.model)
+            ac.AutoCompletePpCaFlex(self.model, self.autocomplete_curtailment)
             print('#' * 60)
 
 

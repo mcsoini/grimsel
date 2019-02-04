@@ -175,21 +175,46 @@ logging.getLogger().setLevel(logging.INFO)
         ''' Implemented in child classes if additional columns are required '''
         pass
 
+    def _get_dmnd_list(self, name_type):
+        '''
+        Returns a list of the relevant fuel or pp_type names.
+
+        The returned list depends on the ``autocomplete_curtailment``
+        bool value.
+
+        Args:
+            name_type (str): one of ('fuel', 'plant')
+
+        Returns:
+            list. The selected list of demand-like plants or fuels.
+        '''
+
+        if name_type == 'fuel':
+            flx, dmd = 'dmnd_flex', 'dmnd'
+        elif name_type == 'plant':
+            flx, dmd = 'DMND_FLEX', 'DMND'
+
+        return ([flx, dmd] if self.autocomplete_curtailment else [dmd])
+
+
+
 class AutoCompletePpType(AutoComplete):
 
     df_name = 'df_def_pp_type'
 
-    def __init__(self, m):
+    def __init__(self, m, autocomplete_curtailment):
 
         self._df = getattr(m, self.df_name)
         self._add_col = 'pt'
+
+        self.autocomplete_curtailment = autocomplete_curtailment
 
         super().__init__(m)
 
     def get_row_list(self):
         ''' Static pt names plus one for each energy carrier in def_encar. '''
 
-        self.lst_add = ['TRNS_ST', 'TRNS_RV', 'DMND', 'DMND_FLEX']
+        self.lst_add = ['TRNS_ST', 'TRNS_RV'] + self._get_dmnd_list('plant')
         self.lst_add += ['CONS_' + ca for ca in self.m.df_def_encar.ca]
 
 #        print('Potential additions: {}'.format(', '.join(self.lst_add)))
@@ -257,16 +282,6 @@ class AutoCompleteFuelTrns(AutoCompleteFuel, AutoCompleteTrns):
         super().filter_rows_existing()
 
 
-class AutoCompleteFuelDmnd(AutoCompleteFuel):
-
-    def __init__(self, m):
-
-        super().__init__(m)
-
-    def get_row_list(self):
-        ''' Static fl names. '''
-
-        self.lst_add = ['dmnd', 'dmnd_flex']
 
 class AutoCompleteFuelConsumed(AutoCompleteFuel):
 
@@ -371,9 +386,26 @@ class AutoCompletePlantTrns(AutoCompletePlant, AutoCompleteTrns):
 
         self.df_add['set_def_tr'] = 1
 
+
+class AutoCompleteFuelDmnd(AutoCompleteFuel):
+
+    def __init__(self, m, autocomplete_curtailment):
+
+        self.autocomplete_curtailment = autocomplete_curtailment
+
+        super().__init__(m)
+
+
+    def get_row_list(self):
+        ''' Static fl names. '''
+
+        self.lst_add = self._get_dmnd_list('fuel')
+
 class AutoCompletePlantDmnd(AutoCompletePlant):
 
-    def __init__(self, m):
+    def __init__(self, m, autocomplete_curtailment):
+
+        self.autocomplete_curtailment = autocomplete_curtailment
 
         super().__init__(m)
 
@@ -382,8 +414,8 @@ class AutoCompletePlantDmnd(AutoCompletePlant):
 
         self.lst_add = self.m.df_def_node['nd'].apply(lambda x: x[:2]).tolist()
         self.lst_add = ['_'.join(pp) for pp in
-                        list(itertools.product(self.lst_add,
-                                               ['DMND', 'DMND_FLEX']))]
+                        list(it.product(self.lst_add,
+                                        self._get_dmnd_list('plant')))]
 
     def complement_columns(self):
 
@@ -447,18 +479,24 @@ class AutoCompletePpCa(AutoComplete):
 
 class AutoCompletePpCaFlex(AutoCompletePpCa):
 
-    def __init__(self, m):
+    def __init__(self, m, autocomplete_curtailment):
+
+        self.autocomplete_curtailment = autocomplete_curtailment
 
         super().__init__(m)
 
     def get_row_list(self):
         ''' . '''
 
-        mask_flex = self.m.df_def_plant.pp.str.contains('FLEX')
-        list_pp = self.m.df_def_plant.loc[mask_flex, 'pp_id'].tolist()
-        list_ca = self.m.df_def_encar['ca_id'].tolist()
+        if self.autocomplete_curtailment:
 
-        self.lst_add = [list(pc) for pc in itertools.product(list_pp, list_ca)]
+            mask_flex = self.m.df_def_plant.pp.str.contains('FLEX')
+            list_pp = self.m.df_def_plant.loc[mask_flex, 'pp_id'].tolist()
+            list_ca = self.m.df_def_encar['ca_id'].tolist()
+
+            self.lst_add = [list(pc) for pc in it.product(list_pp, list_ca)]
+        else:
+            self.lst_add = []
 
 
 if __name__ == '__main__':
