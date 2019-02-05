@@ -28,7 +28,6 @@ class AutoComplete(abc.ABC):
         logging.info('Autocompletion '
                      '{} in {}'.format(*format_list))
 
-        self.flag_add = True
         self.m = m
 
         flag_feas, lst_mss_df = self._check_feasible()
@@ -46,9 +45,9 @@ class AutoComplete(abc.ABC):
 
             self.get_row_list()
             self.filter_rows()
-            self.check_add()
 
-            if self.flag_add:
+            if self.lst_add:
+
                 self.generate_df_add()
                 self.reset_index()
                 self.complement_columns()
