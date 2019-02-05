@@ -781,8 +781,6 @@ class DataReader():
                      'node_connect': _flt_nd + _flt_ca + _flt_nd_2}
         tbrd.df_from_dict(dict_tb_0)
 
-
-
         # secondary filtering by plant
         _flt_pp = [('pp_id', self.model.df_def_plant['pp_id'].tolist())]
         _flt_fl = [('fl_id', self.model.df_def_plant.fl_id.unique().tolist())]
@@ -824,8 +822,8 @@ class DataReader():
 
         # filter table by special index name/id columns
         self.model.df_parameter_month = self.filter_by_name_id_cols(
-                                                'df_parameter_month',
-                                                _flt_fl + _flt_nd + _flt_pp + _flt_ca)
+                                            'df_parameter_month',
+                                            _flt_fl + _flt_nd + _flt_pp + _flt_ca)
 
         # autocomplete input tables
         self.data_autocompletion()
