@@ -31,16 +31,7 @@ class AutoComplete(abc.ABC):
         self.flag_add = True
         self.m = m
 
-        # determine whether autocompletion is feasible based on
-        # available model dataframes
-        flag_feas = True
-        if 'lst_req_df' in self.__dict__.keys():
-            lst_mss_df = [df for df in self.lst_req_df
-                          if (not df in self.m.__dict__.keys()
-                              or getattr(self.m, df) is None)]
-            if lst_mss_df:
-                # set flag to False if any of the required dataframes are missing
-                flag_feas = False
+        flag_feas, lst_mss_df = self._check_feasible()
 
         if flag_feas:
             # Control attributes need to be assigned in child
@@ -73,6 +64,14 @@ class AutoComplete(abc.ABC):
 
 
 
+    def _check_feasible(self):
+        '''
+        Return False if DataFrame requirements are not met.
+
+        Some child classes have specific DataFrame requirements. These are
+        defined by the lst_req_df instance attribute, if applicable. This
+        method checks whether the required tables are available as model
+        attributes and returns True or False accordingly.
 
     def filter_row_list(self):
         ''' Filter rows by additionality or relevance. '''
