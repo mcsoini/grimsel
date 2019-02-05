@@ -507,6 +507,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
             if not df_tbsoy is None:
                 df_tbsoy = df_tbsoy.join(self.df_hoy_soy.set_index('hy'), on='hy')
                 val = [c for c in df_tbsoy.columns if not c in idx + ['hy']]
+                df_tbsoy[val] = df_tbsoy[val].astype(float)
                 df_tbsoy = df_tbsoy.pivot_table(values=val, index=idx,
                                                 aggfunc=np.mean).reset_index()
 
