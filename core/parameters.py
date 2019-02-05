@@ -174,8 +174,8 @@ class Parameters:
             _df = source_dataframe
 
         # transform into tuple in case a single set is provided
-        parameter_index = (tuple(parameter_index)
-                           if not type(parameter_index) == tuple
+        parameter_index = ((parameter_index,)
+                           if not isinstance(parameter_index, tuple)
                            else parameter_index)
 
         if not flag_empty and not self.check_valid_indices(parameter_index):
