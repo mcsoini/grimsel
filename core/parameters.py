@@ -32,7 +32,6 @@ class Parameters:
 
         '''
 
-
         mut = {'mutable': True}
         inf = {'default': float('inf')}
 
@@ -129,7 +128,6 @@ class Parameters:
     def padd(self, parameter_name, parameter_index, source_dataframe=False,
              value_col=False, filt_col=False, filt_vals=[], mutable=False,
              default=None):
-
         '''
         Parameter definition based on input dataframes
 
