@@ -503,8 +503,10 @@ def read_sql(db=None, sc=None, tb=None, filt=False, filt_func=False, drop=False,
         if verbose:
             print('tweez_str', tweez_str)
 
+    cols = keep if keep else get_sql_cols(tb, sc, db)
+
     # filtering through sql
-    if filt:
+    if filt and not any(not list(ff[1]) for ff in filt):
 
         if not filt_func:
             filt_func = {}
@@ -525,9 +527,12 @@ def read_sql(db=None, sc=None, tb=None, filt=False, filt_func=False, drop=False,
         if verbose:
             print(exec_str)
 
-        cols = keep if keep else get_sql_cols(tb, sc, db)
 
         df = pd.DataFrame(exec_sql(exec_str, db=db), columns=cols)
+
+    elif filt:
+        # one of the value lists is empty... return empty DataFrame
+        df = pd.DataFrame(columns=cols)
 
     else:
         df = pd.read_sql_table(tb, _engine, schema=sc)
