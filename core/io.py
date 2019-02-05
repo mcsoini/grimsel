@@ -774,9 +774,7 @@ class DataReader():
 
         # read input data filtered by node, energy carrier, and fuel
         dict_tb_0 = {'def_plant': _flt_nd + _flt_pt,
-                     'profdmnd': _flt_nd + _flt_ca,
                      'profchp': _flt_nd,
-                     'profprice': _flt_nd,
                      'node_encar': _flt_nd + _flt_ca,
                      'node_connect': _flt_nd + _flt_ca + _flt_nd_2}
         tbrd.df_from_dict(dict_tb_0)
@@ -785,7 +783,6 @@ class DataReader():
         _flt_pp = [('pp_id', self.model.df_def_plant['pp_id'].tolist())]
         _flt_fl = [('fl_id', self.model.df_def_plant.fl_id.unique().tolist())]
         dict_tb_1 = {'profinflow': _flt_pp,
-                     'profsupply': _flt_pp,
                      'plant_encar': _flt_pp + _flt_ca,
                      'hydro': _flt_pp,
                      'def_fuel': [],
