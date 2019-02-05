@@ -67,7 +67,8 @@ class Constraints:
                     + sum(self.trm[sy, nd, nd_2, ca] for (nd, nd_2, ca)
                           in set_to_list(self.ndcnn, [None, nd, ca]))
                    )
-            dmnd = (self.dmnd[sy, nd, ca]
+            dmnd = (#self.dmnd[sy, nd, ca]
+                    self.dmnd[sy, self.dict_dmnd_pf[(nd, ca)]]
                     + sum(self.trm[sy, nd, nd_2, ca] for (nd, nd_2, ca)
                           in set_to_list(self.ndcnn, [nd, None, ca]))
                     + sum(self.pwr_st_ch[sy, st, ca] for (st, nd, ca)
@@ -231,7 +232,8 @@ class Constraints:
         def variables_prof_rule(self, sy, pp, nd, ca):
             ''' Produced power equal output profile '''
             left = self.pwr[sy, pp, ca]
-            return left == self.supprof[sy, pp, ca] * self.cap_pwr_tot[pp, ca]
+            return left == (self.supprof[sy, self.dict_supply_pf[(pp, ca)]]
+                            * self.cap_pwr_tot[pp, ca])
         self.variables_prof = po.Constraint(self.sy, self.pr_ndca,
                                             rule=variables_prof_rule)
     def add_ramp_rate_rules(self):
@@ -451,8 +453,11 @@ class Constraints:
             sign = -1 if pp in self.setlst['sll'] else 1
 
             # Case 1: fuel has price profile
-            if (pp, nd, ca, fl) in self.pp_ndcafl_prof:
-                sums = (sign * sum(self.weight[sy] * self.priceprof[sy, nd, fl]
+            if (fl, nd, ca) in self.dict_price_pf:
+
+                pf = self.dict_price_pf[(fl, nd, ca)]
+                sums = (sign * sum(self.weight[sy]
+                                   * self.priceprof[sy, pf]
                                    / self.pp_eff[pp, ca]
                                    * self.pwr[sy, pp, ca] for sy in self.sy))
             # Case 2: monthly adjustment factors have been applied to vc_fl
