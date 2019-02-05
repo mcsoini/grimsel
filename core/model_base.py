@@ -229,10 +229,10 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
                   if not cg in cg_options]
 
             if nv:
-                raise ValueError(('Invalid constraint group(s): {nv}.'
-                                + '\nPossible choices are:\n{cg}'
-                                ).format(nv=', '.join(nv),
-                                         cg=',\n'.join(cg_options)))
+                estr = ('Invalid constraint group(s): {nv}.'
+                        + '\nPossible choices are:\n{cg}'
+                        ).format(nv=', '.join(nv), cg=',\n'.join(cg_options))
+                raise ValueError(estr)
 
     def add_all_constraints(self):
         '''
@@ -672,6 +672,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         from_variable -- boolean, if True, use variable 'cap_pwr_tot' instead
                          of default 'cap_pwr_leg'
         reset_to_zero -- boolean, if True: stop after the reset-to-zero stage
+
         '''
 
         list_attr = ['cap_pwr_leg']
