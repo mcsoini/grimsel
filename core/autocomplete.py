@@ -469,8 +469,11 @@ class AutoCompletePlantCons(AutoCompletePlant):
     def get_row_list(self):
         ''' Plants in df_def_plant which consume energy carriers. '''
 
-        self.df_add = self._df.loc[self._df.fl_id.isin(self.m.df_def_encar.fl_id.tolist()), ['nd_id', 'fl_id']].drop_duplicates()
-        self.df_add = self.df_add.join(self.m.df_def_encar.set_index('fl_id')['ca'], on='fl_id')
+        list_cafl = self.m.df_def_encar.fl_id.tolist()
+        self.df_add = self._df.loc[self._df.fl_id.isin(list_cafl),
+                                   ['nd_id', 'fl_id']].drop_duplicates()
+        df_flca = self.m.df_def_encar.set_index('fl_id')['ca']
+        self.df_add = self.df_add.join(df_flca, on='fl_id')
 
         # adding nd column
         self.add_id_cols(add_names=True)
