@@ -52,6 +52,7 @@ class AutoComplete(abc.ABC):
                 self.generate_df_add()
                 self.reset_index()
                 self.complement_columns()
+                self._set_pf_id_nan()
                 self.concatenate()
 
                 logging.info('done. Added: '
@@ -121,6 +122,17 @@ class AutoComplete(abc.ABC):
                     if type(self._add_col) is list
                     else [self._add_col])
             self.df_add = pd.DataFrame(self.lst_add, columns=cols)
+
+    def _set_pf_id_nan(self):
+        '''
+        Set the values of profile ids in all values to None.
+
+        ``pf_id`` columns must be None if not applicable; the value zero
+        if assigned to a specific profile.
+        '''
+
+        self.df_add[[c for c in self.df_add.columns if 'pf_id' in c]] = None
+
 
     def reset_index(self):
         ''' Implemented in children. Calls _reset_index if required. '''
