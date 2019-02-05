@@ -492,10 +492,10 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
         # Map profiles and bc to soy
         for itb, idx in [
-                         ('dmnd', ['nd_id', 'ca_id', 'sy']),
-                         ('price', ['nd_id', 'sy']),
+                         ('dmnd', ['dmnd_pf_id', 'sy']),
+                         ('price', ['price_pf_id', 'sy']),
                          ('inflow', ['pp_id', 'ca_id', 'sy']),
-                         ('supply', ['pp_id', 'ca_id', 'sy']),
+                         ('supply', ['supply_pf_id', 'sy']),
                          ('chp', ['nd_id', 'ca_id', 'sy']),
                         ]:
 
