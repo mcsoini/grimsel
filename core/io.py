@@ -380,8 +380,14 @@ class DmndIO(ParamIO):
 
         ''''''
 
-        df['pp_id'] = df.nd_id.replace(self._node_to_plant('DMND'))
-        df.drop('nd_id', axis=1, inplace=True)
+        dict_ndpp = self._node_to_plant('DMND')
+
+        dict_pfpp = {val: dict_ndpp[key[0]] for key, val
+                     in self.model.dict_dmnd_pf.items()}
+
+        df['pp_id'] = df.dmnd_pf_id.replace(dict_pfpp)
+
+        df.drop('dmnd_pf_id', axis=1, inplace=True)
 
         return df
 
