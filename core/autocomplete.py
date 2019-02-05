@@ -74,15 +74,25 @@ class AutoComplete(abc.ABC):
         method checks whether the required tables are available as model
         attributes and returns True or False accordingly.
 
-    def filter_row_list(self):
-        ''' Filter rows by additionality or relevance. '''
-        pass
+        Returns
+        =======
 
-    def check_add(self):
-        ''' Checks whether there are any rows to be added. '''
+        flag_feasible : bool
+        lst_mss_df : list of missing DataFrames
+        '''
 
-        # set flag_add to False/0 if lst_add is empty
-        self.flag_add *= (True if self.lst_add else False)
+        flag_feas = True
+        lst_mss_df = None
+        if hasattr(self, 'lst_req_df'):
+            lst_mss_df = [df for df in self.lst_req_df
+                          if (not hasattr(self.m, df)
+                              or getattr(self.m, df) is None)]
+            if lst_mss_df:
+                # set flag to False if any of the required
+                # dataframes are missing
+                flag_feas = False
+
+        return flag_feas, lst_mss_df
 
     @abc.abstractmethod
     def get_row_list(self):
