@@ -200,8 +200,7 @@ class Constraints:
                     == sum(self.pwr[sy, pp, ca]
                        * self.weight[sy]
                        for sy in self.dict_month_soy[mt]))
-        self.monthly_totals = po.Constraint(self.mt,
-                                            self.pp_ca | self.hyrs_ca,
+        self.monthly_totals = po.Constraint(self.mt, self.hyrs_ca,
                                             rule=monthly_totals_rule)
 
     def add_chp_rules(self):
