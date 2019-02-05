@@ -785,7 +785,7 @@ class DataReader():
         dict_tb_1 = {'profinflow': _flt_pp,
                      'plant_encar': _flt_pp + _flt_ca,
                      'hydro': _flt_pp,
-                     'def_fuel': [],
+                     'def_fuel': _flt_fl,
                      'plant_month': _flt_pp,
                      'plant_week': _flt_pp,
                      'fuel_node_encar': _flt_fl + _flt_nd + _flt_ca}
