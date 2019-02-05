@@ -444,6 +444,9 @@ class AutoCompletePlantDmnd(AutoCompletePlant):
                                         self._get_dmnd_list('plant')))]
 
     def complement_columns(self):
+        '''
+
+        '''
 
         get_nd = lambda x: x.replace('_DMND', '').replace('_FLEX', '')
         self.df_add['nd'] = self.df_add.pp.apply(get_nd)
