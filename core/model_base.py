@@ -539,7 +539,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         Note: Database table def_node is updated in io.write_runtime_tables
         '''
 
-        if ('df_profdmnd_soy' in self.__dict__.keys()
+        if (hasattr(self, 'df_profdmnd_soy')
             and len(self.df_profdmnd_soy.index) > 0):
             _df = self.df_profdmnd_soy
             df_dmd_params = _df.pivot_table(values=['value'],
