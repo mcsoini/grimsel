@@ -276,7 +276,7 @@ class ParamIO(CompIO):
 
         df = pd.Series(obj.extract_values()).fillna(0).reset_index()
         if df.empty:
-            df = pd.DataFrame(columns=cols + ['value'])
+            df = pd.DataFrame(columns=list(cols) + ['value'])
         else:
             if not cols and len(df) is 1:
                 df = df[[0]].rename(columns={0: 'value'})
