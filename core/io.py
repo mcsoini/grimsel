@@ -223,14 +223,17 @@ class VariabIO(CompIO):
     def _to_df(cls, obj, cols):
         ''' Converts pyomo variable to DataFrame.'''
 
-        # replace none with zeros
-        for v in obj.iteritems():
-            if v[1].value is None:
-                v[1].value = 0
+#        # replace none with zeros
+#        for v in obj.iteritems():
+#            if v[1].value is None:
+#                v[1].value = 0
+#
+#        dat = [v[0] + (v[1].value,) for v in obj.iteritems()]
 
-        dat = [v[0] + (v[1].value,) for v in obj.iteritems()]
+        df = pd.Series(obj.extract_values()).fillna(0).reset_index()
+        df.columns = list(cols) + ['value']
 
-        return pd.DataFrame(dat, columns=list(cols) + ['value'])
+        return df#pd.DataFrame(dat, columns=list(cols) + ['value'])
 
     def post_processing(self, df):
         '''
@@ -271,25 +274,34 @@ class ParamIO(CompIO):
     def _to_df(cls, obj, cols):
         ''' Converts pyomo parameter to DataFrame. '''
 
-        dat = []
-        for v in obj.iteritems():
-            v = list(v)
-            if not v[0] == None:
-                if isinstance(v[1], _ParamData):
-                    # if parameter is mutable v[1] is a _ParamData;
-                    # requires manual extraction of value
-                    v[1] = v[1].value
-                if v[1] == None:
-                    v[1] = 0
-                if not type(v[0]) == tuple:
-                    v_sets = [v[0]]
-                else:
-                    v_sets = [iv for iv in v[0]]
-                dat += [v_sets + [v[1]]]
+        df = pd.Series(obj.extract_values()).fillna(0).reset_index()
+        if df.empty:
+            df = pd.DataFrame(columns=cols + ['value'])
+        else:
+            if not cols and len(df) is 1:
+                df = df[[0]].rename(columns={0: 'value'})
             else:
-                dat = [v[1].extract_values()[None]]
+                df.columns = list(cols) + ['value']
+##
+#        dat = []
+#        for v in obj.iteritems():
+#            v = list(v)
+#            if not v[0] == None:
+#                if isinstance(v[1], _ParamData):
+#                    # if parameter is mutable v[1] is a _ParamData;
+#                    # requires manual extraction of value
+#                    v[1] = v[1].value
+#                if v[1] == None:
+#                    v[1] = 0
+#                if not type(v[0]) == tuple:
+#                    v_sets = [v[0]]
+#                else:
+#                    v_sets = [iv for iv in v[0]]
+#                dat += [v_sets + [v[1]]]
+#            else:
+#                dat = [v[1].extract_values()[None]]
 
-        return pd.DataFrame(dat, columns=list(cols) + ['value'])
+        return df#pd.DataFrame(dat, columns=list(cols) + ['value'])
 
 
 class TransmIO(VariabIO):
