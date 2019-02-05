@@ -796,6 +796,22 @@ class DataReader():
                      'fuel_node_encar': _flt_fl + _flt_nd + _flt_ca}
         tbrd.df_from_dict(dict_tb_1)
 
+        # initialize profile index dicts
+        self.model._init_pf_dicts()
+
+        _flt_pf_supply = [('supply_pf_id', list(self.model.dict_supply_pf.values()))]
+        _flt_pf_dmnd = [('dmnd_pf_id', list(self.model.dict_dmnd_pf.values()))]
+        _flt_pf_price = [('price_pf_id', list(self.model.dict_price_pf.values()))]
+        dict_pf_0 = {'profsupply': _flt_pf_supply,
+                     'profdmnd': _flt_pf_dmnd,
+                     'profprice': _flt_pf_price,
+                     }
+        tbrd.df_from_dict(dict_pf_0)
+
+        _flt_pf = [('pf_id', _flt_pf_price[-1][-1] + _flt_pf_dmnd[-1][-1] + _flt_pf_supply[-1][-1])]
+        dict_pf_1 = {'def_profile': _flt_pf}
+        tbrd.df_from_dict(dict_pf_1)
+
         # filter plants requiring input from non-existing ca
         # e.g. if a fuel-cell is in the input table but no hydrogen is
         # included in the model, the plant's H2 demand wouldn't be accounted
