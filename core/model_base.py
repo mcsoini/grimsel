@@ -758,15 +758,15 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
                                           index=df_dmd_max.index).fillna(0)
             df_cap_tot = df_cap_tot['cap_pwr']
 
-            df_cap_peak = df_dmd_max - df_cap_tot
-            df_cap_peak = df_cap_peak.apply(lambda x: max(0., x))
-            df_cap_peak = df_cap_peak.reset_index()
-
             dict_nd_pp = {nd: pp for pp, nd in
                           self.mps.dict_plant_2_node_id.items()
                           if pp in list(zip(*_list_peak))[0]}
 
+            df_cap_peak = df_dmd_max - df_cap_tot
+            df_cap_peak = df_cap_peak.apply(lambda x: max(0., x))
+            df_cap_peak = df_cap_peak.reset_index()
             df_cap_peak['pp_id'] = df_cap_peak['nd_id']
+            df_cap_peak = df_cap_peak.loc[df_cap_peak.nd_id.isin(list(dict_nd_pp.keys()))]
             df_cap_peak['pp_id'] = df_cap_peak['pp_id'].replace(dict_nd_pp)
             df_cap_peak['ca_id'] = 0
 
