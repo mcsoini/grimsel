@@ -411,6 +411,43 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
             print('done.\n' + '*'*60)
 
+    def _init_pf_dicts(self):
+        '''
+        Initializes dicts mapping the profile ids to other model ids.
+
+        This results in dictionaries which are assigned as :class:`ModelBase`
+        instance attributes:
+
+        * ``dict_price_pf``: (fl_id, nd_id, ca_id) |rarr| (price_pf_id)
+        * ``dict_dmnd_pf``: (nd_id, ca_id) |rarr| (dmnd_pf_id)
+        * ``dict_supply_pf``: (pp_id, ca_id) |rarr| (supply_pf_id)
+
+        Use:
+        ____
+
+        The resulting dictionaries are used for filtering the profile tables
+        in the :module:`io` module and to access the profile parameters
+        in the model :class:`Constraints`.
+
+        '''
+
+        list_pf = [(self.df_fuel_node_encar,
+                    ['fl_id', 'nd_id', 'ca_id'], 'price'),
+                   (self.df_node_encar,
+                    ['nd_id', 'ca_id'], 'dmnd'),
+                   (self.df_plant_encar,
+                    ['pp_id', 'ca_id'], 'supply')]
+
+
+        df, ind, name = list_pf[-1]
+        for df, ind, name in list_pf:
+
+            col = '%s_pf_id'%name
+            dct = df.loc[~df[col].isna()].set_index(ind)[col].to_dict()
+
+            setattr(self, 'dict_%s_pf'%name, dct)
+
+
     def map_to_time_res(self):
         '''
         Generates a map between hours-of-the-year and time slots-of-the-year
