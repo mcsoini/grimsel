@@ -139,7 +139,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
             setattr(self, key, val)
         self.__dict__.update(kwargs)
 
-        self.check_contraint_groups()
+        self._check_contraint_groups()
 
         # translate node and energy carrier selection to ids
 #        self.slct_node_id = [self.mps.dict_nd_id[x] for x in self.slct_node]
@@ -210,7 +210,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         return cg_lst
 
 
-    def check_contraint_groups(self):
+    def _check_contraint_groups(self):
         '''
         Verification and completion of the constraint group selection.
 
