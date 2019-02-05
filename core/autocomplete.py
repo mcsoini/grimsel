@@ -14,7 +14,6 @@ import abc
 
 import logging
 
-    list_acclasses = []
 logging.getLogger().setLevel(logging.INFO)
 
 
