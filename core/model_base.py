@@ -356,7 +356,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         str_erg_cap = ''
         if len(df_slct > 0):
             for nrow, row in df_slct.iterrows():
-                str_erg_cap += 'fl_id=%d, ca_id=%d, nd_id=%d: cap_pwr_leg=%f, erg_chp=%f\n'%tuple(row.values)
+                str_erg_cap += 'pp_id=%d, ca_id=%d: cap_pwr_leg=%f, erg_chp=%f\n'%tuple(row.values)
             raise ValueError ('limit_prof_to_cap: one or more cap_pwr_leg are zero '
                               'while erg_chp is greater 0: \n' + str_erg_cap)
 
@@ -373,7 +373,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
                                                 values='sy', aggfunc=len)['sy'].to_dict()
 
             for kk, vv in dict_viol.items():
-                print('\n(nd, ca, fl)={}: {} violations'.format(kk, vv))
+                print('\n(pp, ca)={}: {} violations'.format(kk, vv))
 
             print('Modifing model parameter ' + param_mod, end=' ... ')
 
