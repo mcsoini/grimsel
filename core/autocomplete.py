@@ -137,7 +137,6 @@ class AutoComplete(abc.ABC):
         E.g. not for non-def_ dataframes, which don't have a
         '''
 
-#        print('Resetting index.')
         id_col = self._add_col + '_id'
         self.df_add = (self.df_add.reset_index(drop=True).reset_index()
                                   .rename(columns={'index': id_col}))
