@@ -628,6 +628,9 @@ coldict = {
            'wom': ('SMALLINT',),
            'pwrerg_cat': ('VARCHAR',),
            'run_id': ('SMALLINT', '{sc}.def_loop(run_id)'),
+           'supply_pf_id': ('SMALLINT', '{sc}.def_profile(pf_id)'),
+           'dmnd_pf_id': ('SMALLINT', '{sc}.def_profile(pf_id)'),
+           'price_pf_id': ('SMALLINT', '{sc}.def_profile(pf_id)')
           }
 
 def get_coldict(sc=None, db=None, fk_include_missing=False):
