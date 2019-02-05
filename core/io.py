@@ -333,12 +333,12 @@ class TransmIO(VariabIO):
                                         nd_id = dfall.nd_2_id,
                                         value = -dfall.value)])
 
-        dfexp = dfall.loc[dfall.value < 0]
+        dfexp = dfall.loc[dfall.value > 0]
         dfexp = dfexp.groupby(['sy', 'nd_id', 'ca_id'])['value'].sum()
         dfexp = dfexp.reset_index()
         dfexp['bool_out'] = True
 
-        dfimp = dfall.loc[dfall.value > 0]
+        dfimp = dfall.loc[dfall.value < 0]
         dfimp = dfimp.groupby(['sy', 'nd_id', 'ca_id'])['value'].sum()
         dfimp = dfimp.reset_index()
         dfimp['bool_out'] = False
