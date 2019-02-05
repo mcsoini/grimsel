@@ -420,7 +420,7 @@ class AutoCompletePlantDmnd(AutoCompletePlant):
     def get_row_list(self):
         ''' Cross product fixed pt names and nodes. '''
 
-        self.lst_add = self.m.df_def_node['nd'].apply(lambda x: x[:2]).tolist()
+        self.lst_add = self.m.df_def_node['nd'].tolist()
         self.lst_add = ['_'.join(pp) for pp in
                         list(it.product(self.lst_add,
                                         self._get_dmnd_list('plant')))]
