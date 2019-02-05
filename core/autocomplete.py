@@ -44,12 +44,11 @@ class AutoComplete(abc.ABC):
                 flag_feas = False
 
         if flag_feas:
-
-            # Control attributes need to be assigned in child classes, otherwise
-            # they are None, which won't work.
-            if not '_df' in self.__dict__.keys():
+            # Control attributes need to be assigned in child
+            # classes, otherwise they are None, which won't work.
+            if not hasattr(self, '_df'):
                 self._df = None # DataFrame to be completed
-            if not '_add_col' in self.__dict__.keys():
+            if not hasattr(self, '_add_col'):
                 self._add_col = None # Reference column(s)
 
             self.df_add = None
