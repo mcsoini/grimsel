@@ -543,9 +543,15 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
             and len(self.df_profdmnd_soy.index) > 0):
             _df = self.df_profdmnd_soy
             df_dmd_params = _df.pivot_table(values=['value'],
-                                            index='nd_id', aggfunc=[max, sum])
-            df_dmd_params.columns = ['dmnd_max', 'dmnd_sum']
-            df_dmd_params['dmnd_sum'] *= self.nhours
+                                            index='dmnd_pf_id', aggfunc=[max])
+            df_dmd_params.columns = ['dmnd_max']
+
+
+            ndca = [{val: key for key, val in self.dict_dmnd_pf.items()}[pf]
+                    for pf in df_dmd_params.reset_index().dmnd_pf_id]
+            df_dmd_params[['nd_id', 'ca_id']] = pd.DataFrame(ndca)
+            df_dmd_params = df_dmd_params.set_index('nd_id')[['dmnd_max']]
+
 
             self.df_def_node.drop([c for c in self.df_def_node.columns
                                    if c in df_dmd_params.columns],
