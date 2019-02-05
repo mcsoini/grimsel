@@ -105,8 +105,7 @@ class Constraints:
             ''' Yearly ramping in MW/yr. Up and down aggregated. '''
             return (self.pwr_ramp_yr[pp, ca]
                     == sum(self.pwr_ramp_abs[sy, pp, ca] for sy in self.sy))
-        self.yrrmp = po.Constraint(self.pp_ca | self.hyrs_ca | self.ror_ca,
-                                   rule=yearly_ramp_rule)
+        self.yrrmp = po.Constraint(self.pprp_ca, rule=yearly_ramp_rule)
 
         print('Yearly fuel consumption rule')
         def yearly_fuel_cons_rule(self, pp, nd, ca, fl):
@@ -245,8 +244,7 @@ class Constraints:
             return (self.pwr_ramp[sy, pp, ca]
                     == self.pwr[this_soy, pp, ca]
                      - self.pwr[last_soy, pp, ca])
-        self.calc_ramp_rate = po.Constraint(self.pp_ca | self.hyrs_ca
-                                            | self.ror_ca, self.sy,
+        self.calc_ramp_rate = po.Constraint(self.pprp_ca, self.sy,
                                             rule=calc_ramp_rate_rule)
 
         print('Calculation of absolute ramp rates rule')
@@ -255,12 +253,10 @@ class Constraints:
                     <= self.pwr_ramp_abs[sy, pp, ca])
 
         flag_abs = 1
-        self.ramp_rate_abs_pos = po.Constraint(self.pp_ca | self.hyrs_ca
-                                               | self.ror_ca, self.sy,
+        self.ramp_rate_abs_pos = po.Constraint(self.pprp_ca, self.sy,
                                                rule=ramp_rate_abs_rule)
         flag_abs = -1
-        self.ramp_rate_abs_neg = po.Constraint(self.pp_ca | self.hyrs_ca
-                                               | self.ror_ca, self.sy,
+        self.ramp_rate_abs_neg = po.Constraint(self.pprp_ca, self.sy,
                                                rule=ramp_rate_abs_rule)
 
     def add_energy_constraint_rules(self):
@@ -520,9 +516,7 @@ class Constraints:
 #            else:
             return (self.vc_ramp_yr[pp, ca]
                     == self.pwr_ramp_yr[pp, ca] * self.vc_ramp[pp, ca])
-        self.calc_vc_ramp = po.Constraint(self.pp_ca
-                                          | self.hyrs_ca | self.ror_ca,
-                                          rule=calc_vc_ramp_rule)
+        self.calc_vc_ramp = po.Constraint(self.pprp_ca, rule=calc_vc_ramp_rule)
 
         print('Fixed O&M cost calculation rule')
         def calc_fc_om_rule(self, pp, ca):
@@ -603,8 +597,7 @@ class Constraints:
 #                  + sum(self.vc_dmnd_flex_yr[nd, ca]
 #                        for (nd, ca) in set_to_list(self.ndca_EL, nn))
                   + sum(self.vc_ramp_yr[pp, ca]
-                        for (pp, ca) in set_to_list(self.pp_ca | self.hyrs_ca
-                                                    | self.ror_ca, nn))
+                        for (pp, ca) in set_to_list(self.pprp_ca, nn))
                   + sum(self.fc_om_pp_yr[pp, ca]
                         for (pp, ca) in set_to_list(self.ppall_ca, nn))
                   + sum(self.fc_cp_pp_yr[pp, ca]

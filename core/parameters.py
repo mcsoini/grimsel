@@ -8,7 +8,7 @@ import pandas as pd
 
 import logging
 
-from grimsel.auxiliary.aux_m_func import pdef
+from grimsel.auxiliary.aux_m_func import pdef, set_to_list
 import grimsel.core.io as io
 
 class Parameters:
@@ -60,9 +60,10 @@ class Parameters:
         self.padd('cap_trmi_leg', (self.mt, self.ndcnn,), 'df_node_connect', **mut) # Cross-node transmission capacity.
 
         logging.info('Defining ramping parameters')
-        _df = self.df_plant_encar.copy()
-        _df = _df.loc[_df['pp_id'].isin(self.setlst['pp'] + self.setlst['hyrs'] + self.setlst['ror'])]
-        self.padd('vc_ramp', (self.pp | self.hyrs | self.ror, self.ca), _df, **mut) # .
+        _df = self.df_plant_encar.set_index(['pp_id', 'ca_id'])
+        list_pprp_ca = set_to_list(self.pprp_ca, [None, None])
+        _df = _df.loc[list_pprp_ca, 'vc_ramp'].reset_index()
+        self.padd('vc_ramp', (self.ppall, self.ca), _df, **mut) # .
 
         logging.info('Defining pp parameters')
         _df = self.df_plant_encar.copy()
