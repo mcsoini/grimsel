@@ -538,9 +538,11 @@ if __name__ == '__main__':
     self = AutoCompleteFuelTrns(ml.m)
     self = AutoCompleteFuelDmnd(ml.m)
     self = AutoCompletePlantTrns(ml.m)
-    self = AutoCompletePlantDmnd(ml.m)
     self = AutoCompletePlantCons(ml.m)
     self = AutoCompletePpCaFlex(ml.m)
+
+    ml.m.df_def_plant = ml.m.df_def_plant.loc[~ml.m.df_def_plant.pp.str.contains('DMND')]
+    self = AutoCompletePlantDmnd(ml.m)
 
 # %%
 
