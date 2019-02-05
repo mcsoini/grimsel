@@ -167,12 +167,9 @@ class ModelLoop(parameter_changes.ParameterChanges):
         self.cols_step = [ist[0] for ist in _nsteps]
         self.cols_id = [c + '_id' for c in self.cols_step]
         self.cols_val = [c + '_vl' for c in self.cols_step]
-        self.cols_all = self.cols_id + self.cols_step + self.cols_val
+        cols_all = self.cols_id + self.cols_step + self.cols_val
 
-        self._df_def_loop = pd.DataFrame(full_all, columns=self.cols_all)
-        self._df_def_loop = self._df_def_loop.reset_index()
-        col_dict = {'index': 'run_id'}
-        self._df_def_loop = self._df_def_loop.rename(columns=col_dict)
+        self.df_def_loop = pd.DataFrame(full_all, columns=cols_all)
 
         if not self.io.resume_loop:
             self.init_loop_table()
