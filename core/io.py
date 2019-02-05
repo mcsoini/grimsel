@@ -377,7 +377,6 @@ class DmndIO(ParamIO):
         return df
 
     def _translate_dmnd(self, df):
-
         ''''''
 
         dict_ndpp = self._node_to_plant('DMND')
@@ -767,12 +766,12 @@ class DataReader():
                      'def_encar': _flt_ca}
         tbrd.df_from_dict(dict_tb_3)
 
-        self.model.slct_node_id = self.model.df_def_node.nd_id.tolist()
-        self.model.slct_encar_id = self.model.df_def_encar.ca_id.tolist()
-        self.model.slct_pp_type_id = self.model.df_def_pp_type.pt_id.tolist()
 
         # update filters in case the keyword argument slct_node_id holds more
         # nodes than present in the table
+        self.model.slct_node_id = self.model.df_def_node.nd_id.tolist()
+        self.model.slct_encar_id = self.model.df_def_encar.ca_id.tolist()
+        self.model.slct_pp_type_id = self.model.df_def_pp_type.pt_id.tolist()
         _flt_nd = [('nd_id', self.model.slct_node_id)]
         _flt_ca = [('ca_id', self.model.slct_encar_id)]
         _flt_nd_2 = [('nd_2_id', self.model.df_def_node.nd_id.tolist())]
