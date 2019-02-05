@@ -129,11 +129,19 @@ class TimeMap():
 
         self.df_hoy_soy = df_time_map[['sy', 'hy']]
 
-        slct_col = [c for c in df_time_map.columns if not c in ['year', 'sy']]
-        self.df_time_red = (df_time_map.reset_index()
-                              .pivot_table(index=['year', 'sy'],
-                                           values=slct_col,
-                                           aggfunc=np.min).reset_index())
+        if nhours == 1:
+            self.df_time_red = df_time_map
+        else:
+
+            df_time_map_num = df_time_map.select_dtypes(['int', 'float'])
+            col_nonnum = [c for c in df_time_map.columns
+                          if not c in df_time_map_num.columns]
+            df_time_map_oth = df_time_map[col_nonnum + ['hy']].set_index('hy')
+
+            self.df_time_red = (df_time_map_num.groupby(['year', 'sy'])
+                                               .apply(min))
+            self.df_time_red = self.df_time_red.join(df_time_map_oth, on='hy')
+
 
 
     def get_dst_days(self, list_months=['MAR', 'OCT']):
