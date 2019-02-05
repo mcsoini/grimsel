@@ -114,7 +114,7 @@ class ModelLoop(parameter_changes.ParameterChanges):
 
         self.io = io.IO(**self.iokwargs)
 
-#        return
+        return
 
         self.io.read_model_data()
 
