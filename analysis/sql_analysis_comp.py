@@ -229,7 +229,8 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
 
 
 
-    def analysis_production_comparison_hourly(self, stats_years=['2015']):
+    def analysis_production_comparison_hourly(self, stats_years=['2015'],
+                                              sy_only=False):
 
         # generating model data time series
         self.generate_analysis_time_series(False)
@@ -241,130 +242,135 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
 
                     ALTER TABLE {sc_out}.analysis_time_series
                     RENAME TO analysis_time_series_soy;
-
-                    SELECT
-                    run_id, bool_out, fl, nd, {sw_year_col}, hy AS sy, value,
-                    value_posneg,
-                    dow, dow_type, hom, hour, how, mt_id,
-                    season, wk_id, wom, 'model'::VARCHAR AS sta_mod, pwrerg_cat
-                    INTO {sc_out}.analysis_time_series
-                    FROM {sc_out}.hoy_soy AS hs
-                    LEFT JOIN {sc_out}.analysis_time_series_soy AS ts
-                    ON hs.sy = ts.sy;
                     '''.format(**self.format_kw)
         aql.exec_sql(exec_strg, db=self.db)
 
-        # insert rows of entsoe data after adding some convenience columns
-        exec_strg = '''
-                    ALTER TABLE {sc_out}.analysis_time_series
-                    DROP CONSTRAINT IF EXISTS analysis_time_series_fl_fkey;
+        if not sy_only:
 
-                    DELETE FROM {sc_out}.analysis_time_series
-                    WHERE sta_mod <> 'model';
-
-                    INSERT INTO
-                        {sc_out}.analysis_time_series(run_id, bool_out, fl, nd,
-                                                     {sw_year_col}, sy, value,
-                                                     value_posneg, dow,
-                                                     dow_type, hom, hour,
-                                                     how, mt_id, season, wk_id,
-                                                     wom, sta_mod, pwrerg_cat)
-                    SELECT -1::SMALLINT AS run_id, False::BOOLEAN AS bool_out, --'EL' AS ca,
-                        fl_id AS fl, nd_id AS nd,
-                        'yr' || tm.year::VARCHAR AS {sw_year_col},
-                        tm.hy AS sy, value, value AS value_posneg,
-                        dow, dow_type, hom, hour, how, mt_id,
-                        season, wk_id, wom, 'stats_entsoe'::VARCHAR AS sta_mod,
-                        'pwr'::VARCHAR AS pwrerg_cat
-                    FROM profiles_raw.entsoe_generation AS ent
-                    LEFT JOIN {sc_out}.tm_soy_full AS tm ON tm.sy = ent.hy
-                    WHERE ent.year IN ({st_yr})
-                        AND ent.nd_id IN {in_nd};
-
-                    INSERT INTO
-                        {sc_out}.analysis_time_series(run_id, bool_out, fl, nd,
-                                                     {sw_year_col}, sy, value,
-                                                     value_posneg, dow,
-                                                     dow_type, hom, hour,
-                                                     how, mt_id, season, wk_id,
-                                                     wom, sta_mod, pwrerg_cat)
-                    SELECT -1::SMALLINT AS run_id, False::BOOLEAN AS bool_out, --'EL' AS ca,
-                        fl_id AS fl, nd_id AS nd,
-                        'yr' || tm.year::VARCHAR AS {sw_year_col},
-                        tm.hy AS sy, value, value AS value_posneg,
-                        dow, dow_type, hom, hour, how, ent.mt_id,
-                        season, wk_id, wom, 'stats_rte_eco2mix'::VARCHAR AS sta_mod,
-                        'pwr'::VARCHAR AS pwrerg_cat
-                    FROM profiles_raw.rte_production_eco2mix AS ent
-                    LEFT JOIN {sc_out}.tm_soy_full AS tm ON tm.sy = ent.hy
-                    WHERE ent.year IN ({st_yr});
-
-                    INSERT INTO
-                        {sc_out}.analysis_time_series(run_id, bool_out, fl, nd,
-                                                     {sw_year_col}, sy, value,
-                                                     value_posneg, dow,
-                                                     dow_type, hom, hour,
-                                                     how, mt_id, season, wk_id,
-                                                     wom, sta_mod, pwrerg_cat)
-                    SELECT -1::SMALLINT AS run_id,
-                        False::BOOLEAN AS bool_out, --'EL' AS ca,
-                        fl_id AS fl, nd_id AS nd,
-                        'yr' || tb.year::VARCHAR AS {sw_year_col},
-                        ts.slot AS sy,
-                        CASE WHEN fl_id = 'dmnd' THEN -1 ELSE 1 END * 1000 * value,
-                        CASE WHEN fl_id = 'dmnd' THEN -1 ELSE 1 END * 1000 * value AS value_posneg,
-                        dow, dow_type, hom, hour, how, mt_id,
-                        season, wk_id, wom, 'stats_agora'::VARCHAR AS sta_mod,
-                        'pwr'::VARCHAR AS pwrerg_cat
-                    FROM profiles_raw.agora_profiles AS tb
-                    LEFT JOIN (SELECT datetime, slot
-                               FROM profiles_raw.timestamp_template
-                               WHERE year IN ({st_yr})) AS ts
-                    ON ts.datetime = tb."DateTime"
-                    LEFT JOIN {sc_out}.tm_soy_full AS tm ON tm.sy = ts.slot
-                    WHERE tb.year IN ({st_yr});
-
-                    WITH tb_raw AS (
-                        SELECT nd_to AS nd, 'import_' || nd_from AS fl,
-                                False::BOOLEAN AS bool_out, value, year, hy
-                        FROM profiles_raw.entsoe_cross_border
-                        UNION ALL
-                        SELECT nd_from AS nd, 'export_' || nd_to AS fl,
-                            True::BOOLEAN AS bool_out, -value AS value,
-                            year, hy
-                        FROM profiles_raw.entsoe_cross_border
-                    )
-                    INSERT INTO
-                        {sc_out}.analysis_time_series(run_id, bool_out, fl, nd,
-                                                     {sw_year_col}, sy, value,
-                                                     value_posneg, dow,
-                                                     dow_type, hom, hour,
-                                                     how, mt_id, season, wk_id,
-                                                     wom, sta_mod, pwrerg_cat)
-                    SELECT
-                    -1::SMALLINT AS run_is, bool_out, fl, nd,
-                                    'yr2015'::VARCHAR AS {sw_year_col}, tb_raw.hy AS sy,
-                                    value, value AS value_posneg,
-                                    dow, 'NONE'::VARCHAR AS dow_type, hom, hour, how, mt_id, season,
-                                    EXTRACT(week FROM datetime)::SMALLINT - 1 AS wk_id,
-                                    wom, 'stats_imex_entsoe'::VARCHAR AS sta_mod,
-                                    'pwr'::VARCHAR AS pwrerg_cat
-                    FROM (SELECT * FROM profiles_raw.timestamp_template WHERE year = 2015) AS ts
-                    LEFT  JOIN tb_raw ON tb_raw.year = ts.year AND tb_raw.hy = ts.slot
-                    '''.format(**self.format_kw, st_yr=', '.join(stats_years))
-        aql.exec_sql(exec_strg, db=self.db)
-
-        aql.joinon(self.db, self.sw_columns, ['run_id'],
-                   [self.sc_out, 'analysis_time_series'],
-                   [self.sc_out, 'def_loop'])
-
-        for col in self.sw_columns:
             exec_strg = '''
-                        UPDATE {sc_out}.analysis_time_series
-                        SET {col} = 'none'
-                        WHERE {col} IS NULL;
-                        '''.format(**self.format_kw, col=col)
+                        SELECT
+                        run_id, bool_out, fl, nd, {sw_year_col}, hy AS sy, value,
+                        value_posneg,
+                        dow, dow_type, hom, hour, how, mt_id,
+                        season, wk_id, wom, 'model'::VARCHAR AS sta_mod, pwrerg_cat
+                        INTO {sc_out}.analysis_time_series
+                        FROM {sc_out}.hoy_soy AS hs
+                        LEFT JOIN {sc_out}.analysis_time_series_soy AS ts
+                        ON hs.sy = ts.sy;
+                        '''.format(**self.format_kw)
             aql.exec_sql(exec_strg, db=self.db)
+
+            # insert rows of entsoe data after adding some convenience columns
+            exec_strg = '''
+                        ALTER TABLE {sc_out}.analysis_time_series
+                        DROP CONSTRAINT IF EXISTS analysis_time_series_fl_fkey;
+
+                        DELETE FROM {sc_out}.analysis_time_series
+                        WHERE sta_mod <> 'model';
+
+                        INSERT INTO
+                            {sc_out}.analysis_time_series(run_id, bool_out, fl, nd,
+                                                         {sw_year_col}, sy, value,
+                                                         value_posneg, dow,
+                                                         dow_type, hom, hour,
+                                                         how, mt_id, season, wk_id,
+                                                         wom, sta_mod, pwrerg_cat)
+                        SELECT -1::SMALLINT AS run_id, False::BOOLEAN AS bool_out, --'EL' AS ca,
+                            fl_id AS fl, nd_id AS nd,
+                            'yr' || tm.year::VARCHAR AS {sw_year_col},
+                            tm.hy AS sy, value, value AS value_posneg,
+                            dow, dow_type, hom, hour, how, mt_id,
+                            season, wk_id, wom, 'stats_entsoe'::VARCHAR AS sta_mod,
+                            'pwr'::VARCHAR AS pwrerg_cat
+                        FROM profiles_raw.entsoe_generation AS ent
+                        LEFT JOIN {sc_out}.tm_soy_full AS tm ON tm.sy = ent.hy
+                        WHERE ent.year IN ({st_yr})
+                            AND ent.nd_id IN {in_nd};
+
+                        INSERT INTO
+                            {sc_out}.analysis_time_series(run_id, bool_out, fl, nd,
+                                                         {sw_year_col}, sy, value,
+                                                         value_posneg, dow,
+                                                         dow_type, hom, hour,
+                                                         how, mt_id, season, wk_id,
+                                                         wom, sta_mod, pwrerg_cat)
+                        SELECT -1::SMALLINT AS run_id, False::BOOLEAN AS bool_out, --'EL' AS ca,
+                            fl_id AS fl, nd_id AS nd,
+                            'yr' || tm.year::VARCHAR AS {sw_year_col},
+                            tm.hy AS sy, value, value AS value_posneg,
+                            dow, dow_type, hom, hour, how, ent.mt_id,
+                            season, wk_id, wom, 'stats_rte_eco2mix'::VARCHAR AS sta_mod,
+                            'pwr'::VARCHAR AS pwrerg_cat
+                        FROM profiles_raw.rte_production_eco2mix AS ent
+                        LEFT JOIN {sc_out}.tm_soy_full AS tm ON tm.sy = ent.hy
+                        WHERE ent.year IN ({st_yr});
+
+                        INSERT INTO
+                            {sc_out}.analysis_time_series(run_id, bool_out, fl, nd,
+                                                         {sw_year_col}, sy, value,
+                                                         value_posneg, dow,
+                                                         dow_type, hom, hour,
+                                                         how, mt_id, season, wk_id,
+                                                         wom, sta_mod, pwrerg_cat)
+                        SELECT -1::SMALLINT AS run_id,
+                            False::BOOLEAN AS bool_out, --'EL' AS ca,
+                            fl_id AS fl, nd_id AS nd,
+                            'yr' || tb.year::VARCHAR AS {sw_year_col},
+                            ts.slot AS sy,
+                            CASE WHEN fl_id = 'dmnd' THEN -1 ELSE 1 END * 1000 * value,
+                            CASE WHEN fl_id = 'dmnd' THEN -1 ELSE 1 END * 1000 * value AS value_posneg,
+                            dow, dow_type, hom, hour, how, mt_id,
+                            season, wk_id, wom, 'stats_agora'::VARCHAR AS sta_mod,
+                            'pwr'::VARCHAR AS pwrerg_cat
+                        FROM profiles_raw.agora_profiles AS tb
+                        LEFT JOIN (SELECT datetime, slot
+                                   FROM profiles_raw.timestamp_template
+                                   WHERE year IN ({st_yr})) AS ts
+                        ON ts.datetime = tb."DateTime"
+                        LEFT JOIN {sc_out}.tm_soy_full AS tm ON tm.sy = ts.slot
+                        WHERE tb.year IN ({st_yr});
+
+                        WITH tb_raw AS (
+                            SELECT nd_to AS nd, 'import_' || nd_from AS fl,
+                                    False::BOOLEAN AS bool_out, value, year, hy
+                            FROM profiles_raw.entsoe_cross_border
+                            UNION ALL
+                            SELECT nd_from AS nd, 'export_' || nd_to AS fl,
+                                True::BOOLEAN AS bool_out, -value AS value,
+                                year, hy
+                            FROM profiles_raw.entsoe_cross_border
+                        )
+                        INSERT INTO
+                            {sc_out}.analysis_time_series(run_id, bool_out, fl, nd,
+                                                         {sw_year_col}, sy, value,
+                                                         value_posneg, dow,
+                                                         dow_type, hom, hour,
+                                                         how, mt_id, season, wk_id,
+                                                         wom, sta_mod, pwrerg_cat)
+                        SELECT
+                        -1::SMALLINT AS run_is, bool_out, fl, nd,
+                                        'yr2015'::VARCHAR AS {sw_year_col}, tb_raw.hy AS sy,
+                                        value, value AS value_posneg,
+                                        dow, 'NONE'::VARCHAR AS dow_type, hom, hour, how, mt_id, season,
+                                        EXTRACT(week FROM datetime)::SMALLINT - 1 AS wk_id,
+                                        wom, 'stats_imex_entsoe'::VARCHAR AS sta_mod,
+                                        'pwr'::VARCHAR AS pwrerg_cat
+                        FROM (SELECT * FROM profiles_raw.timestamp_template WHERE year = 2015) AS ts
+                        LEFT  JOIN tb_raw ON tb_raw.year = ts.year AND tb_raw.hy = ts.slot
+                        '''.format(**self.format_kw, st_yr=', '.join(stats_years))
+            aql.exec_sql(exec_strg, db=self.db)
+
+            aql.joinon(self.db, self.sw_columns, ['run_id'],
+                       [self.sc_out, 'analysis_time_series'],
+                       [self.sc_out, 'def_loop'])
+
+            for col in self.sw_columns:
+                exec_strg = '''
+                            UPDATE {sc_out}.analysis_time_series
+                            SET {col} = 'none'
+                            WHERE {col} IS NULL;
+                            '''.format(**self.format_kw, col=col)
+                aql.exec_sql(exec_strg, db=self.db)
 
 
     def analysis_production_comparison(self):
