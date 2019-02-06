@@ -1,6 +1,3 @@
-nd_id,nd,discount_rate,charging,share_ws_set,chp_cap_pwr_leg,color,price_co2
-0,AT0,0.04,0.0,1.0,1.0,#80A06F,7.67916666666667
-1,CH0,0.04,0.0,1.0,1.0,#FF624C,60.0
-2,DE0,0.04,0.0,1.0,1.0,#B57CE5,7.67916666666667
-3,FR0,0.04,0.0,1.0,1.0,#AAFF90,7.67916666666667
-4,IT0,0.04,0.0,1.0,1.0,#E5853B,7.67916666666667
+version https://git-lfs.github.com/spec/v1
+oid sha256:d070f103e4510bebba5a5e4068a692da80687109832d8ef8e805e6a497d7bf88
+size 305
