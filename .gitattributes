@@ -1,2 +1,23 @@
 build_input_data.py ours
 call_model.py ours
+input_data/def_node.csv filter=lfs diff=lfs merge=lfs -text
+input_data/hydro.csv filter=lfs diff=lfs merge=lfs -text
+input_data/imex_comp.csv filter=lfs diff=lfs merge=lfs -text
+input_data/node_connect.csv filter=lfs diff=lfs merge=lfs -text
+input_data/profprice_comp.csv filter=lfs diff=lfs merge=lfs -text
+input_data/profsupply.csv filter=lfs diff=lfs merge=lfs -text
+input_data/def_fuel.csv filter=lfs diff=lfs merge=lfs -text
+input_data/def_pp_type.csv filter=lfs diff=lfs merge=lfs -text
+input_data/node_encar.csv filter=lfs diff=lfs merge=lfs -text
+input_data/plant_encar.csv filter=lfs diff=lfs merge=lfs -text
+input_data/plant_month.csv filter=lfs diff=lfs merge=lfs -text
+input_data/profchp.csv filter=lfs diff=lfs merge=lfs -text
+input_data/def_encar.csv filter=lfs diff=lfs merge=lfs -text
+input_data/def_month.csv filter=lfs diff=lfs merge=lfs -text
+input_data/def_plant.csv filter=lfs diff=lfs merge=lfs -text
+input_data/fuel_node_encar.csv filter=lfs diff=lfs merge=lfs -text
+input_data/parameter_month.csv filter=lfs diff=lfs merge=lfs -text
+input_data/profdmnd.csv filter=lfs diff=lfs merge=lfs -text
+input_data/profprice.csv filter=lfs diff=lfs merge=lfs -text
+input_data/def_week.csv filter=lfs diff=lfs merge=lfs -text
+input_data/profinflow.csv filter=lfs diff=lfs merge=lfs -text
