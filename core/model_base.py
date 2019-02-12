@@ -126,11 +126,11 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
         self._check_contraint_groups()
 
-        print('self.slct_encar=' + str(self.slct_encar))
-        print('self.slct_pp_type=' + str(self.slct_pp_type))
-        print('self.slct_node=' + str(self.slct_node))
-        print('self.nhours=' + str(self.nhours))
-        print('self.constraint_groups=' + str(self.constraint_groups))
+        logger.info('self.slct_encar=' + str(self.slct_encar))
+        logger.info('self.slct_pp_type=' + str(self.slct_pp_type))
+        logger.info('self.slct_node=' + str(self.slct_node))
+        logger.info('self.nhours=' + str(self.nhours))
+        logger.info('self.constraint_groups=' + str(self.constraint_groups))
 
         self.warmstartfile = self.solutionfile = None
 
