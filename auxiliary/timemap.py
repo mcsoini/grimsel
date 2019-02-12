@@ -161,6 +161,12 @@ class TimeMap(metaclass=UniqueInstancesMeta):
             AssertionError: If nhours is not a multiple of freq.
         '''
 
+
+        assert (self.nhours / self.num_freq)%1 == 0, \
+                ('TimeMap.gen_soy_timemap: The time slot duration nhours must '
+                 'be a multiple of the original time map frequency freq. '
+                 'num_freq=%f, nhours=%f'%(self.num_freq, self.nhours))
+
         if self.df_time_map.empty:
             self.gen_hoy_timemap()
 
