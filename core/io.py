@@ -17,6 +17,8 @@ import grimsel
 
 import grimsel.core.autocomplete as ac
 
+import logging
+logger = logging.Logger('grimsel')
 
 import grimsel.core.table_struct as table_struct
 
@@ -996,7 +998,7 @@ class DataReader():
             if hasattr(self.model, 'df_' + tb_name):
                 df = getattr(self.model, 'df_' + tb_name)
 
-                print('Writing runtime table ' + tb_name)
+                logger.info('Writing runtime table ' + tb_name)
 
                 cols = []
                 c = 'DateTime'#df.columns[0]
