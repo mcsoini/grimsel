@@ -16,8 +16,9 @@ class Variables:
         self.vadd('pwr_st_ch',       (self.sy_st_ca,))               #
         self.vadd('erg_st',          (self.sy_st_ca | self.sy_hyrs_ca,)) # Hourly energy stored
 
-        self.vadd('erg_mt',          (self.mt, self.hyrs_ca | self.pp_ca,))             #
         self.vadd('trm',             (self.symin_ndcnn), (None, None))  # Positive or negative power sent through cross-border connections
+
+        self.vadd('erg_mt',          (self.mt, self.hyrs_ca | self.pp_ca,)) #
 
         self.vadd('erg_fl_yr',       (self.ppall_ndcafl,))                 # Yearly energy production in MWh per year
         self.vadd('erg_yr',          (self.ppall_ca,))                     # Yearly energy production in MWh per year
