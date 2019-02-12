@@ -597,7 +597,7 @@ coldict = {
            # FORMAT:
            # 'set_name': ('DATATYPE', )
            'sy': ('SMALLINT', '{sc}.tm_soy(sy)'),
-           'hy': ('SMALLINT', '{sc}.hoy_soy(hy)'),
+           'hy': ('FLOAT', '{sc}.hoy_soy(hy)'),
            'pp_id': ('SMALLINT', '{sc}.def_plant(pp_id)'),
            'pp': ('VARCHAR', '{sc}.def_plant(pp)'),
            'pt_id': ('SMALLINT', '{sc}.def_pp_type(pt_id)'),
