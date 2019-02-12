@@ -11,9 +11,37 @@ SEASON_DICT = {'JAN': 'WINTER', 'FEB': 'WINTER', 'DEC': 'WINTER',
 DOW_DICT = {0: 'MON', 1: 'TUE', 2: 'WED', 3: 'THU', 4: 'FRI', 5: 'SAT', 6: 'SUN'}
 DOW_TYPE_DICT = {**{d: 'WEEKDAY' for d in range(5)}, **{5: 'SAT', 6: 'SUN'}}
 
-class TimeMap():
+TM_DICT = {}
 
-    def __init__(self, nhours=False, tm_filt=False, keep_datetime=False):
+def tm_hash(nhours, freq, start, stop, tm_filt):
+
+    hash_val = hash((nhours, freq, start, stop, str(tm_filt)))
+    return hash_val
+
+class UniqueInstancesMeta(type):
+
+    def __call__(cls, nhours=1, freq=1,
+                 start='2015-1-1 00:00', stop='2015-12-31 23:59',
+                 tm_filt=False, *args, **kwargs):
+
+        key = tm_hash(nhours, freq, start, stop, tm_filt)
+
+        if key in TM_DICT:
+            return TM_DICT[key]
+        else:
+            return super().__call__(nhours, freq, start, stop, tm_filt,
+                                    *args, **kwargs)
+
+class TimeMap(metaclass=UniqueInstancesMeta):
+
+    def __hash__(self):
+
+        return tm_hash(self.nhours, self.freq, self.start,
+                       self.stop, self.tm_filt)
+
+    def __init__(self, nhours=1, freq=1,
+                 start='2015-1-1 00:00', stop='2015-12-31 23:59',
+                 tm_filt=False, keep_datetime=False, minimum=False):
 
         self.tm_filt = tm_filt
         self.keep_datetime = keep_datetime
@@ -22,6 +50,7 @@ class TimeMap():
         self.df_hoy_soy = pd.DataFrame()
         self.df_time_map = pd.DataFrame()
 
+        TM_DICT[hash(self)] = self
         if nhours:
             self.gen_soy_timemap(nhours)
 
