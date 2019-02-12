@@ -5,7 +5,7 @@ import numpy as np
 
 class Variables:
     '''
-    Mixin class containing all constraints.
+    Mixin class containing all variables.
     '''
 
     def define_variables(self):
