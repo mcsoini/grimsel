@@ -79,7 +79,7 @@ class CompIO():
         self.coldict = aql.get_coldict()
 
     def post_processing(self, df):
-        ''' Child-specific method called prior to writing. '''
+        ''' Child-specific method called after reading. '''
         return df
 
     def to_df(self):
