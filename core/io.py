@@ -10,11 +10,9 @@ import itertools
 import os
 
 import pandas as pd
-from pyomo.core.base.param import _ParamData # required if params are mutable
 
 import grimsel.auxiliary.sqlutils.aux_sql_func as aql
 import grimsel
-
 import grimsel.core.autocomplete as ac
 
 import logging
@@ -282,7 +280,6 @@ class TransmIO(VariabIO):
     def post_processing(self, df):
         ''' Write aggregated transmission table to pwr. '''
 
-
         dfagg = self.aggregate_nd2(df)
         self._translate_trm(dfagg)
 
@@ -295,7 +292,6 @@ class TransmIO(VariabIO):
         Aggregates trm table over all secondary nodes for simplification and
         to append to the pwr table.
         '''
-
         # mirror table to get both directions
         dfall = pd.concat([dfall,
                            dfall.assign(nd_2_id = dfall.nd_id,
@@ -313,7 +309,6 @@ class TransmIO(VariabIO):
         dfimp['bool_out'] = False
 
         dfagg = pd.concat([dfexp, dfimp], axis=0)
-
 
         return dfagg
 
@@ -782,7 +777,10 @@ class DataReader():
                      }
         tbrd.df_from_dict(dict_pf_0)
 
-        _flt_pf = [('pf_id', _flt_pf_price[-1][-1] + _flt_pf_dmnd[-1][-1] + _flt_pf_supply[-1][-1])]
+
+
+        _flt_pf = [('pf_id', (_flt_pf_price[-1][-1] + _flt_pf_dmnd[-1][-1]
+                              + _flt_pf_supply[-1][-1]))]
         dict_pf_1 = {'def_profile': _flt_pf}
         tbrd.df_from_dict(dict_pf_1)
 
@@ -799,13 +797,15 @@ class DataReader():
         # filter table by special index name/id columns
         self.model.df_parameter_month = self.filter_by_name_id_cols(
                                             'df_parameter_month',
-                                            _flt_fl + _flt_nd + _flt_pp + _flt_ca)
+                                            _flt_fl + _flt_nd
+                                            + _flt_pp + _flt_ca)
+
+        self._split_profprice()
 
         # autocomplete input tables
         self.data_autocompletion()
 
         self.fix_df_node_connect()
-
 
         input_table_list = (list(dict_tb_1) + list(dict_tb_2)
                             + list(dict_tb_0)+ list(dict_tb_3))
