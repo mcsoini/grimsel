@@ -78,49 +78,18 @@ class TimeMap(metaclass=UniqueInstancesMeta):
         df_time_map = (df_time_map.reset_index()
                                   .rename(columns={'index': 'DateTime'}))
 
-        df_time_map['month'] = df_time_map['DateTime'].dt.month
-        df_time_map['mt_id'] = df_time_map['DateTime'].dt.month - 1
-        df_time_map['mt'] = df_time_map['mt_id'].map(MONTH_DICT)
-        df_time_map['season'] = df_time_map['mt'].map(SEASON_DICT)
-        df_time_map['year'] = df_time_map['DateTime'].dt.year
-        df_time_map['day'] = df_time_map['DateTime'].dt.day
         df_time_map['hour'] = df_time_map['DateTime'].dt.hour
         df_time_map['doy'] = df_time_map['DateTime'].dt.dayofyear
-        df_time_map['wk_id'] = df_time_map['DateTime'].dt.week - 1
-        df_time_map['wk'] = df_time_map['wk_id']
+        df_time_map['mt_id'] = df_time_map['DateTime'].dt.month - 1
+        df_time_map['day'] = df_time_map['DateTime'].dt.day
+        df_time_map['year'] = df_time_map['DateTime'].dt.year
         df_time_map['dow'] = df_time_map['DateTime'].dt.weekday
         df_time_map['how'] = df_time_map['dow'] * 24 + df_time_map['hour']
         df_time_map['hom'] = (df_time_map['day'] - 1) * 24 + df_time_map['hour']
-        df_time_map['dow_name'] = df_time_map['dow'].replace(DOW_DICT)
-        df_time_map['dow_type'] = df_time_map['dow'].replace(DOW_TYPE_DICT)
-
-        # week of the month
-        dfwom = df_time_map[['wk_id', 'mt_id']]
-        dfwkmt = df_time_map[['wk_id', 'mt_id']].pivot_table(index='wk_id', values=['mt_id'], aggfunc=np.median)
-        dfwkmt = dfwkmt.rename(columns={'mt_id': 'wk_mt'})
-        dfwom = dfwom.drop('mt_id', axis=1).drop_duplicates().join(dfwkmt, on=dfwkmt.index.names)
-        dfwk_max = dfwom.pivot_table(index='wk_mt', values=['wk_id'], aggfunc=max).rename(columns={'wk_id': 'wk_max'}).reset_index() + 1
-        dfwk_max = dfwk_max.set_index('wk_mt')
-        dfwom = dfwom.join(dfwk_max, on=dfwk_max.index.names).fillna(0)
-        dfwom['wom'] = dfwom['wk_id'] - dfwom['wk_max']
-        dfwom = dfwom.set_index('wk_id')['wom']
-        df_time_map = df_time_map.join(dfwom, on=dfwom.index.names)
-
-        # add number of hours per week
-        df_time_map = df_time_map \
-                .join(df_time_map.pivot_table(values=['how'], index='wk',
-                                              aggfunc=len).rename(columns={'how': 'wk_weight'}), on='wk')
-
-        df_time_map_ndays = pd.DataFrame(df_time_map.loc[:,['mt', 'year', 'day']]
-                                        .drop_duplicates()
-                                        .pivot_table(values='day',
-                                                     index=['year','mt'],
-                                                           aggfunc=len))['day'].rename('ndays')
-        df_time_map = df_time_map.join(df_time_map_ndays,
-                                       on=df_time_map_ndays.index.names)
+        df_time_map['wk_id'] = df_time_map['DateTime'].dt.week - 1
 
         # remove February 29
-        mask_feb29 = ((df_time_map.mt == 'FEB') & (df_time_map.day == 29))
+        mask_feb29 = ((df_time_map.mt_id == 1) & (df_time_map.day == 29))
         df_time_map = df_time_map.loc[-mask_feb29].reset_index(drop=True)
 
 
@@ -130,6 +99,47 @@ class TimeMap(metaclass=UniqueInstancesMeta):
                              .reset_index())
         df_time_map['hy'] = (df_time_map.groupby(['year']).apply(get_hoy)
                                         .reset_index(drop=True)['hy'])
+        if not self.minimum:
+
+            df_time_map['month'] = df_time_map['DateTime'].dt.month
+            df_time_map['mt'] = df_time_map['mt_id'].map(MONTH_DICT)
+            df_time_map['season'] = df_time_map['mt'].map(SEASON_DICT)
+            df_time_map['wk'] = df_time_map['wk_id']
+            df_time_map['dow_name'] = df_time_map['dow'].replace(DOW_DICT)
+            df_time_map['dow_type'] = df_time_map['dow'].replace(DOW_TYPE_DICT)
+
+            # week of the month
+            dfwom = df_time_map[['wk_id', 'mt_id']]
+            dfwkmt = (df_time_map[['wk_id', 'mt_id']]
+                            .pivot_table(index='wk_id', values=['mt_id'],
+                                         aggfunc=np.median))
+            dfwkmt = dfwkmt.rename(columns={'mt_id': 'wk_mt'})
+            dfwom = (dfwom.drop('mt_id', axis=1).drop_duplicates()
+                          .join(dfwkmt, on=dfwkmt.index.names))
+            dfwk_max = (dfwom.pivot_table(index='wk_mt', values=['wk_id'],
+                                         aggfunc=max)
+                             .rename(columns={'wk_id': 'wk_max'})
+                             .reset_index() + 1)
+            dfwk_max = dfwk_max.set_index('wk_mt')
+            dfwom = dfwom.join(dfwk_max, on=dfwk_max.index.names).fillna(0)
+            dfwom['wom'] = dfwom['wk_id'] - dfwom['wk_max']
+            dfwom = dfwom.set_index('wk_id')['wom']
+            df_time_map = df_time_map.join(dfwom, on=dfwom.index.names)
+
+            # add number of hours per week
+            df_time_map = (df_time_map
+                .join(df_time_map.pivot_table(values=['how'],
+                                              index='wk', aggfunc=len)
+                .rename(columns={'how': 'wk_weight'}), on='wk'))
+
+            df_time_map_ndays = pd.DataFrame(df_time_map.loc[:,['mt', 'year', 'day']]
+                                            .drop_duplicates()
+                                            .pivot_table(values='day',
+                                                         index=['year','mt'],
+                                                               aggfunc=len))['day'].rename('ndays')
+            df_time_map = df_time_map.join(df_time_map_ndays,
+                                           on=df_time_map_ndays.index.names)
+
 
         # apply filtering
         mask = df_time_map.mt_id.apply(lambda x: True).rename('mask')
