@@ -818,6 +818,74 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
 
 
+    def scale_nodes(self, nodes, comp_slct=None):
+        '''
+        Scale relevant components with a node-specific factor.
+
+        Parameters
+        ----------
+        nodes: dict
+            node: factor dictionary with types ``{str: numeric}``
+        comp_slct: list of str
+            Names of components whose values are to be scaled. Subset of
+            ``['dmnd', 'cap_pwr_leg', 'erg_inp', 'erg_chp', 'cap_trme_leg',
+               'cap_trmi_leg']``
+
+        '''
+
+        if not comp_slct:
+            comp_slct = ['dmnd', 'cap_pwr_leg', 'erg_inp', 'erg_chp',
+                         'cap_trme_leg', 'cap_trmi_leg']
+
+        for nd, scale in nodes.items():
+
+            nd_id = self.mps.dict_nd_id[nd]
+
+            list_pp_id = self.df_def_plant.loc[self.df_def_plant.nd_id
+                                               == nd_id].pp_id.tolist()
+
+            mk_ndca = self.df_node_encar.nd_id == nd_id
+            list_ndca_id = self.df_node_encar.loc[mk_ndca, ['nd_id', 'ca_id']]
+            list_ndca_id = list_ndca_id.apply(tuple, axis=1).tolist()
+
+            mk_ppca = self.df_plant_encar.pp_id.isin(list_pp_id)
+            list_ppca_id = self.df_plant_encar.loc[mk_ppca, ['pp_id', 'ca_id']]
+            list_ppca_id = list_ppca_id.apply(tuple, axis=1).tolist()
+
+            if 'dmnd' in comp_slct:
+                list_pf_id_dmnd = [self.dict_dmnd_pf[ndca]
+                                   for ndca in list_ndca_id]
+                for key in self.dmnd.sparse_keys():
+                    if key[-1] in list_pf_id_dmnd:
+                        self.dmnd[key].value *= scale
+
+            if 'cap_pwr_leg' in comp_slct:
+                for key in self.cap_pwr_leg.sparse_keys():
+                    if key in list_ppca_id:
+                        self.cap_pwr_leg[key].value *= scale
+
+            if 'erg_inp' in comp_slct:
+                for key in self.erg_inp.sparse_keys():
+                    if key[0] == nd_id:
+                        self.erg_inp[key] *=scale
+
+            if 'erg_chp' in comp_slct:
+                for key in self.erg_chp.sparse_keys():
+                    if key in list_ppca_id:
+                        self.erg_chp[key] *=scale
+
+            if 'cap_trme_leg' in comp_slct:
+                for key in self.cap_trme_leg.sparse_keys():
+                    if nd_id in key[1:3]:
+                        self.cap_trme_leg[key].value *= scale
+
+            if 'cap_trmi_leg' in comp_slct:
+                for key in self.cap_trmi_leg.sparse_keys():
+                    if nd_id in key[1:3]:
+                        self.cap_trmi_leg[key].value *= scale
+
+
+
 
 
 
