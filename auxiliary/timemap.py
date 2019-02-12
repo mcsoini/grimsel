@@ -192,7 +192,7 @@ class TimeMap(metaclass=UniqueInstancesMeta):
         # add weight column to dataframe
         df_weight = df_time_map.pivot_table(values=['hy'], index='sy',
                                             aggfunc=len)
-        df_weight = df_weight.rename(columns={'hy': 'weight'})
+        df_weight = df_weight.rename(columns={'hy': 'weight'}) * self.num_freq
         df_time_map = df_time_map.join(df_weight, on='sy')
 
         self.df_hoy_soy = df_time_map[['sy', 'hy']]
