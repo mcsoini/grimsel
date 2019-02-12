@@ -249,8 +249,11 @@ class VariabIO(CompIO):
 
 class ParamIO(CompIO):
     '''
-    Base class for parameters. Performs the data extraction of parameter
-    objects.
+    Base class for parameters.
+
+    Is inherited by :class:`DmndIO`.
+
+    Contains the parameter ``_to_df`` classmethod.
     '''
 
     @classmethod
@@ -680,7 +683,9 @@ class TableReader():
 
 
 class DataReader():
+    '''
 
+    '''
     def __init__(self, **kwargs):
 
         defaults = {'resume_loop': False,
@@ -709,7 +714,10 @@ class DataReader():
 
     def read_model_data(self):
         '''
-        Read all input data to instance attributes.
+        Read all input data and generate :class:`ModelBase` instance
+        attributes.
+
+
         '''
 
         tbrd = TableReader(self.sql_connector, self.sc_inp,
@@ -1015,7 +1023,10 @@ class DataReader():
 
 class IO:
     '''
+    Primary IO class exposing the :module:`io` module.
 
+    :ivar datrd: :class:`DataReader` instance
+    :ivar modwr: :class:`ModelWriter` instance
     '''
 
     def __init__(self, **kwargs):
