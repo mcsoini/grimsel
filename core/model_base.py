@@ -3,16 +3,9 @@ Module docstring
 '''
 
 
-'''
-BETTER WAY TO WARMSTART?
-https://github.com/Pyomo/pyomo/blob/master/doc/GettingStarted/current/examples/ipopt_warmstart.py#L65
-
-'''
-
 
 
 import tempfile
-import warnings
 import numpy as np
 
 import pandas as pd
@@ -24,65 +17,58 @@ logger = logging.Logger('grimsel')
 import pyomo.environ as po
 from pyomo.core.base.objective import SimpleObjective
 
-from grimsel.core.io import IO as IO
 
-def create_tempfile(self, suffix=None, prefix=None, text=False, dir=None):
-    """
-    Return the absolute path of a temporary filename that is
-    guaranteed to be unique.  This function generates the file and returns
-    the filename.
-    """
-
-    print('''
-          create_tempfile is monkey patched
-          ''')
-
-    if suffix is None:
-        suffix = ''
-    if prefix is None:
-        prefix = 'tmp'
-
-    ans = tempfile.mkstemp(suffix=suffix, prefix=prefix, text=text, dir=dir)
-    ans = list(ans)
-    if not os.path.isabs(ans[1]):  #pragma:nocover
-        fname = os.path.join(dir, ans[1])
-    else:
-        fname = ans[1]
-    os.close(ans[0])
-
-    dir = tempfile.gettempdir()
-
-    new_fname = os.path.join('ephemeral'
-                             + ''.join(np.random.choice(list('abcdefghi'), 4))
-                             + suffix)
-    # Delete any file having the sequential name and then
-    # rename
-    if os.path.exists(new_fname):
-        os.remove(new_fname)
-    fname = new_fname
-
-    self._tempfiles[-1].append(fname)
-    return fname
-
-import pyutilib.component.config.tempfiles as tempfiles
-tempfiles.TempfileManagerPlugin.create_tempfile = create_tempfile
+#def create_tempfile(self, suffix=None, prefix=None, text=False, dir=None):
+#    """
+#    Return the absolute path of a temporary filename that is
+#    guaranteed to be unique.  This function generates the file and returns
+#    the filename.
+#    """
+#
+#    print('''
+#          create_tempfile is monkey patched
+#          ''')
+#
+#    if suffix is None:
+#        suffix = ''
+#    if prefix is None:
+#        prefix = 'tmp'
+#
+#    ans = tempfile.mkstemp(suffix=suffix, prefix=prefix, text=text, dir=dir)
+#    ans = list(ans)
+#    if not os.path.isabs(ans[1]):  #pragma:nocover
+#        fname = os.path.join(dir, ans[1])
+#    else:
+#        fname = ans[1]
+#    os.close(ans[0])
+#
+#    dir = tempfile.gettempdir()
+#
+#    new_fname = os.path.join(dir, 'grimsel', 'grimsel_temp_'
+#                             + ''.join(np.random.choice(list('abcdefghi'), 4))
+#                             + suffix)
+#    # Delete any file having the sequential name and then
+#    # rename
+#    if os.path.exists(new_fname):
+#        os.remove(new_fname)
+#    fname = new_fname
+#
+#    self._tempfiles[-1].append(fname)
+#    return fname
+#
+#import pyutilib.component.config.tempfiles as tempfiles
+#tempfiles.TempfileManagerPlugin.create_tempfile = create_tempfile
 
 
 import sys
 import os
 from importlib import reload
 
-import numpy as np
-import pandas as pd
-import pyomo.environ as po
 from pyomo.opt import SolverFactory
-from datetime import datetime
 
 # auxiliary modules
-import grimsel.auxiliary.sqlutils.aux_sql_func as aql
 import grimsel.auxiliary.maps as maps
 import grimsel.auxiliary.timemap as timemap
-from grimsel.auxiliary.aux_m_func import pdef, set_to_list
 
 # model components
 import grimsel.core.constraints as constraints
@@ -123,7 +109,6 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
         super(ModelBase, self).__init__() # init of po.ConcreteModel
 
-        # define instance attributes and update with kwargs
         defaults = {'slct_node': [],
                     'slct_pp_type': [],
                     'slct_encar': ['EL'],
@@ -140,11 +125,6 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         self.__dict__.update(kwargs)
 
         self._check_contraint_groups()
-
-        # translate node and energy carrier selection to ids
-#        self.slct_node_id = [self.mps.dict_nd_id[x] for x in self.slct_node]
-#        self.slct_encar_id = [self.mps.dict_ca_id[x] for x in self.slct_encar]
-#        self.slct_pp_type_id = [self.mps.dict_pt_id[x] for x in self.slct_pp_type]
 
         print('self.slct_encar=' + str(self.slct_encar))
         print('self.slct_pp_type=' + str(self.slct_pp_type))
@@ -250,64 +230,6 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
         if len(self.chp) > 0:
             self.limit_prof_to_cap()
-
-#    def limit_prof_to_cap(self):
-#        '''
-#        Make sure CHP profiles don't ask for more power than feasible.
-#
-#        This operates on the parameters and is called before each model run.
-#        '''
-#
-#        df_prf = self.df_profchp_soy.copy().rename(columns={'value': 'prof'})
-#        df_prf = df_prf.join(self.df_tm_soy.set_index(['sy'])['weight'], on='sy')
-#        df_prf['prof'] *= df_prf.weight
-#        df_erg = IO.param_to_df(self.erg_chp, ('nd_id', 'ca_id', 'fl_id')).rename(columns={'value': 'erg'})
-#        df_erg = df_erg.loc[df_erg.erg > 0]
-#        df_cap = IO.param_to_df(self.cap_pwr_leg, ('pp_id', 'ca_id')).rename(columns={'value': 'cap'})
-#
-#        cap_scale = IO.param_to_df(self.cap_avlb, ('mt_id', 'pp_id', 'ca_id')).rename(columns={'value': 'cap_scale'})
-#        df_cap = cap_scale.join(df_cap.set_index(['pp_id', 'ca_id']), on=['pp_id', 'ca_id'])
-#        df_cap['cap'] *= df_cap.cap_scale
-#
-#        df_cap = df_cap.join(self.df_def_plant.set_index('pp_id')[['fl_id', 'nd_id']], on='pp_id')
-#
-#        df_cap = df_cap.pivot_table(index=['nd_id', 'fl_id', 'mt_id'],
-#                           values='cap', aggfunc=sum)
-#
-#        df_exp = pd.merge(df_prf, df_erg, on=['nd_id', 'ca_id'], how='outer')
-#
-#        df_exp['prof_scaled'] = df_exp.prof * df_exp.erg
-#        df_exp = df_exp.join(self.df_tm_soy_full.set_index('sy')['mt_id'], on='sy')
-#
-#        df_exp.pivot_table(values='prof', aggfunc=sum, index=['nd_id', 'fl_id'])
-#        df_exp.pivot_table(values='erg', aggfunc=[np.min, max], index=['nd_id', 'fl_id'])
-#
-#
-#
-#
-#        df_exp = df_exp.join(df_cap, on=df_cap.index.names)
-#
-#        mask_viol = df_exp.prof_scaled > df_exp.cap
-#        df_exp.loc[mask_viol, 'prof_scaled'] = df_exp.loc[mask_viol, 'cap'] * 0.999
-#
-#        df_exp['prof_new'] = df_exp.prof_scaled / df_exp.erg
-#
-#        df_exp.pivot_table(index='sy', values=['prof_new', 'prof'], columns=['fl_id', 'nd_id'], aggfunc=sum).plot()
-#
-#
-#        df_prf_new = df_exp.pivot_table(index=['sy', 'nd_id', 'ca_id'], values='prof_new', aggfunc=min).reset_index()
-#
-#
-#        print('New sum of profile')
-#        df_print = df_prf_new.pivot_table(index='nd_id', values='prof_new', aggfunc=sum).reset_index()
-#        df_print['nd_id'] = df_print.nd_id.replace(self.mps.dict_nd)
-#        print(df_print)
-#
-#
-#        dict_prf_new = df_prf_new.set_index(['sy', 'nd_id', 'ca_id'])['prof_new'].to_dict()
-#
-#        for key, val in dict_prf_new.items():
-#            self.chpprof[key].value = val
 
 
     def limit_prof_to_cap(self, param_mod='cap_pwr_leg'):
@@ -438,7 +360,6 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
                    (self.df_plant_encar,
                     ['pp_id', 'ca_id'], 'supply')]
 
-
         df, ind, name = list_pf[-1]
         for df, ind, name in list_pf:
 
@@ -552,7 +473,6 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
             df_dmd_params[['nd_id', 'ca_id']] = pd.DataFrame(ndca)
             df_dmd_params = df_dmd_params.set_index('nd_id')[['dmnd_max']]
 
-
             self.df_def_node.drop([c for c in self.df_def_node.columns
                                    if c in df_dmd_params.columns],
                                   axis=1, inplace=True)
@@ -578,6 +498,9 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
     def init_solver(self):
         '''
         Create pyomo Solverfactory instance and adjust parameters.
+
+
+
         '''
         self.dual = po.Suffix(direction=po.Suffix.IMPORT)
 
@@ -588,7 +511,8 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
                         +'x86-64_linux/cplex')
             self.solver = SolverFactory("cplex", executable=exec_str)
         elif sys.platform == 'darwin':
-            exec_str = ('/Applications/CPLEX_Studio128/cplex/bin/x86-64_osx/cplex')
+            exec_str = ('/Applications/CPLEX_Studio128/cplex/bin/'
+                        'x86-64_osx/cplex')
             self.solver = SolverFactory("cplex", executable=exec_str)
 
         if self.nthreads:
@@ -610,7 +534,6 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         Parameters:
         index: tuple of pyomo sets
         '''
-
 
         is_empty = [pi.name for pi in index if (not pi is None) and not pi]
         is_none = [pi is None for pi in index]
@@ -784,96 +707,6 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
                     getattr(self, iattr)[kk] = vv
 
 
-#    def presolve_fixed_capacities(self, run_id,
-#                                  list_vars=list_vars,
-#                                  list_constr_deact=list_constr_deact):
-#        '''
-#        Runs the model using fixed capacities (or other variables).
-#        This is to obtain starting conditions which are closer to the
-#        expected solution. Presolve variable values are taken from
-#        the schema self.sc_warmstart
-#        Keyword arguments:
-#        run_id -- which run_id to use from the sc_warmstart schema
-#        list_vars -- list of tuples [(table, attribute_name)] defining the
-#                     variables to be fixed
-#        list_constr_deact -- constraints to be deactivated to avoid
-#                             infeasibilitiess
-#        '''
-#        if self.sc_warmstart: # check presolve schema name is set to value
-#
-#            # Set variable values from init model run and run
-#            # without investments to get the electricity production right
-#            filt = [('run_id', [run_id])]
-#
-#
-#
-#            # load data from sc_warmstart after filtering by run_id and save in
-#            # dictionary of dataframes
-#            ws_var_0 = dict()
-#            flag_not_empty = True
-#            for ivar in list_vars:
-#                ws_var_0[ivar[1]] = aql.read_sql(ModelBase.db,
-#                                                 self.sc_warmstart,
-#                                                 ivar[0], filt=filt)
-#                if not ws_var_0[ivar[1]]:
-#                    flag_not_empty = False
-#
-#            if flag_not_empty: # run_id exists for all input variables
-#
-#                # save current state of constraint activation
-#                dict_constr_active = {const: getattr(self, const).active
-#                                      for const in list_constr_deact}
-#                # deactivate constraints
-#                for const in list_constr_deact:
-#                    getattr(self, const).deactivate()
-#
-#                # get some peaker plants to avoid infeasibilities due to
-#                # fixed capacities
-#                self.fill_peaker_plants(from_variable=True)
-#
-#                # transform dict of dataframes to dictionary of dictionaries
-#                ws_dict = {}
-#                for itb in ws_var_0:
-#                    idx = [c for c in ws_var_0[itb].columns
-#                           if not c in ['value', 'bool_chg', 'run_id']]
-#                    ws_dict[itb] = ws_var_0[itb].set_index(idx)['value']
-#                    ws_dict[itb] = ws_dict[itb].to_dict()
-#
-#                # set self self model variables and fix them
-#                for itb in ws_dict:
-#                    getattr(self, itb).set_values(ws_dict[itb])
-#                    getattr(self, itb).fix()
-#
-#                # check whether they are fixed as they should be
-#                for itb in ws_var_0_dict:
-#                    self.print_is_fixed(itb)
-#
-#
-#                tstr = '** Presolve using run_id={run_id} from {sc} **'
-#                tstr = tstr.format(run_id=run_id, sc=self.sc_warmstart)
-#                print('*'*len(tstr) + '\n' + tstr + '\n' + '*'*len(tstr))
-#                print('Using solutionfile: ', self.solutionfile)
-#                self.run(warmstart=True)
-#
-#                # Get rid of peaker plants
-#                self.fill_peaker_plants(reset_to_zero=True)
-#
-#                # unfix all variables
-#                for itb in ws_dict:
-#                    getattr(self, itb).unfix()
-#
-#                # reset constraint activation
-#                for const in list_constr_deact:
-#                    if dict_constr_active[const]:
-#                        getattr(self, const).activate()
-#                    else:
-#                        getattr(self, const).deactivate()
-#            else:
-#                print('''
-#                      Warning in presolve_fixed_capacities: run_id={run_id}
-#                      in schema {sc} doesn't seem to be available. Skipping.
-#                      '''.format(run_id=run_id, sc=self.sc_warmstart))
-
     def fix_scenario_plants(self):
         '''
         Make sure exogenously defined capacities cannot be optimized.
@@ -924,8 +757,6 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
                     getattr(self, iconst)[ii].activate()
                 else:
                     getattr(self, iconst)[ii].deactivate()
-#                if verbose:
-#                    print(iconst + ' ' + str(ii) + ' active? -> ' + str(getattr(self, iconst)[ii].active))
 
             if verbose:
                 if type(verbose) == bool:
