@@ -14,8 +14,10 @@ def get_ols(df, add_constant=True, verbose=False):
     '''
     Get a simple linear regression, based on a two-columns dataframe.
 
-    Parameter:
-    add_constant -- boolean
+    Parameters
+    ----------
+        add_constant: bool
+
     '''
 
 
