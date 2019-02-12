@@ -88,6 +88,12 @@ class TimeMap(metaclass=UniqueInstancesMeta):
         df_time_map['hom'] = (df_time_map['day'] - 1) * 24 + df_time_map['hour']
         df_time_map['wk_id'] = df_time_map['DateTime'].dt.week - 1
 
+        # add number of hours per week
+        df_time_map = (df_time_map
+            .join(df_time_map.pivot_table(values='how', index='wk_id', aggfunc=len)
+            .rename(columns={'how': 'wk_weight'}), on='wk_id'))
+
+
         # remove February 29
         mask_feb29 = ((df_time_map.mt_id == 1) & (df_time_map.day == 29))
         df_time_map = df_time_map.loc[-mask_feb29].reset_index(drop=True)
@@ -125,12 +131,6 @@ class TimeMap(metaclass=UniqueInstancesMeta):
             dfwom['wom'] = dfwom['wk_id'] - dfwom['wk_max']
             dfwom = dfwom.set_index('wk_id')['wom']
             df_time_map = df_time_map.join(dfwom, on=dfwom.index.names)
-
-            # add number of hours per week
-            df_time_map = (df_time_map
-                .join(df_time_map.pivot_table(values=['how'],
-                                              index='wk', aggfunc=len)
-                .rename(columns={'how': 'wk_weight'}), on='wk'))
 
             df_time_map_ndays = pd.DataFrame(df_time_map.loc[:,['mt', 'year', 'day']]
                                             .drop_duplicates()
