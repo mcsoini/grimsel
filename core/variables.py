@@ -23,7 +23,7 @@ class Variables:
         self.vadd('erg_fl_yr',       (self.ppall_ndcafl,))                 # Yearly energy production in MWh per year
         self.vadd('erg_yr',          (self.ppall_ca,))                     # Yearly energy production in MWh per year
         self.vadd('dmnd_flex_yr',    (self.ndca,))                         # Yearly amount of flexible loads
-        self.vadd('pwr_ramp_yr',     (self.pprp_ca,))                      # Yearly amount of ramping MW/yr
+        self.vadd('pwr_ramp_yr',     (self.rp_ca,))                      # Yearly amount of ramping MW/yr
         self.vadd('erg_ch_yr',       (self.st_ca,))                        # Yearly amount of charging energy MWh/yr
 
         self.vadd('vc_fl_pp_yr',     (self.ppall_cafl - self.lin_cafl,), (None, None))     # Yearly variable cost of fuel
@@ -33,7 +33,7 @@ class Variables:
         self.vadd('fc_dc_pp_yr',     (self.ppall_ca | self.st_ca,))        # Decommissioning cost
         self.vadd('vc_co2_pp_yr',    (self.pp_ca,))                        # Yearly variable cost of CO2 emissions
         self.vadd('vc_dmnd_flex_yr', (self.ndca,))                         # Yearly variable cost of flexible loads
-        self.vadd('vc_ramp_yr',      (self.pprp_ca,))                      # Yearly variable cost of ramping
+        self.vadd('vc_ramp_yr',      (self.rp_ca,))                      # Yearly variable cost of ramping
         self.vadd('cap_pwr_tot',     (self.ppall_ca,))                     # Total capacity
         self.vadd('cap_pwr_new',     (self.add_ca,), (0, self.capchnge_max))   # New capacity
         self.vadd('cap_pwr_rem',     (self.rem_ca,), (0, self.capchnge_max))   # Retired capacity

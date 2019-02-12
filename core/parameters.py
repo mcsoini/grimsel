@@ -60,8 +60,8 @@ class Parameters:
 
         logging.info('Defining ramping parameters')
         _df = self.df_plant_encar.set_index(['pp_id', 'ca_id'])
-        list_pprp_ca = set_to_list(self.pprp_ca, [None, None])
-        _df = _df.loc[list_pprp_ca, 'vc_ramp'].reset_index()
+        list_rp_ca = set_to_list(self.rp_ca, [None, None])
+        _df = _df.loc[list_rp_ca, 'vc_ramp'].reset_index()
         self.padd('vc_ramp', (self.ppall, self.ca), _df, **mut) # .
 
         logging.info('Defining pp parameters')

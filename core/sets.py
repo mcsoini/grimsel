@@ -160,10 +160,6 @@ class Sets:
         # all plants with ramping costs
         vcrp_pos = (self.df_plant_encar.loc[self.df_plant_encar.vc_ramp > 0]
                         .set_index(['pp_id', 'ca_id']).index.values)
-        pprp = self.setlst['pp'] + self.setlst['ror'] + self.setlst['hyrs']
-        pprp = [ppca for ppca in vcrp_pos if ppca[0] in pprp]
-        self.pprp_ca = po.Set(within=self.ppall_ca, initialize=pprp, ordered=True)
-
         # fuels with cost profiles
         mask_prf = ~self.df_fuel_node_encar.price_pf_id.isna()
         df = self.df_fuel_node_encar.loc[mask_prf, ['nd_id', 'fl_id']]
@@ -172,6 +168,8 @@ class Sets:
         lst = [tuple(c) for c in df[slct_cols_ppndcafl].values]
         self.pp_ndcafl_prof = po.Set(within=self.pp_ndcafl, initialize=lst,
                                      ordered=True)
+        rp = [ppca for ppca in vcrp_pos if ppca[0] in self.setlst['rp']]
+        self.rp_ca = po.Set(within=self.ppall_ca, initialize=rp, ordered=True)
 
         # set pf_id for profiles
         for pf_set in ['dmnd_pf', 'supply_pf', 'price_pf']:
@@ -216,6 +214,11 @@ class Sets:
 
         self.setlst['pf'] = (self.setlst['dmnd_pf'] + self.setlst['price_pf']
                              + self.setlst['supply_pf'])
+
+        self.setlst['rp'] = (self.setlst['pp']
+                             + self.setlst['ror']
+                             + self.setlst['hyrs'])
+
 
         # hydro and storage together
         self.setlst['sthyrs'] = self.setlst['st'] + self.setlst['hyrs']
