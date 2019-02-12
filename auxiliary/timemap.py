@@ -187,7 +187,7 @@ class TimeMap(metaclass=UniqueInstancesMeta):
 
         self.df_hoy_soy = df_time_map[['sy', 'hy']]
 
-        if nhours == 1:
+        if self.nhours == self.num_freq:
             self.df_time_red = df_time_map
         else:
 
