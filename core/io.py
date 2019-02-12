@@ -957,6 +957,7 @@ class DataReader():
             self.model.df_node_connect = dfn.reset_index()
 
     @skip_if_resume_loop
+    @skip_if_no_output
     def write_input_tables_to_output_schema(self, tb_list):
         '''
         TODO: Input tables in output schema are required even if no_output.
