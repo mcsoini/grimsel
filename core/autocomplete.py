@@ -240,7 +240,7 @@ class AutoCompletePpType(AutoComplete):
     def get_row_list(self):
         ''' Static pt names plus one for each energy carrier in def_encar. '''
 
-        self.lst_add = ['TRNS_ST', 'TRNS_RV'] + self._get_dmnd_list('plant')
+        self.lst_add = ['TRNS'] + self._get_dmnd_list('plant')
         self.lst_add += ['CONS_' + ca for ca in self.m.df_def_encar.ca]
 
 #        print('Potential additions: {}'.format(', '.join(self.lst_add)))
@@ -300,7 +300,7 @@ class AutoCompleteFuelTrns(AutoCompleteFuel, AutoCompleteTrns):
     def get_row_list(self):
         ''' Static fl names. '''
 
-        self.lst_add = ['import', 'export']
+        self.lst_add = ['exchange']
 
     def filter_rows(self):
 
@@ -387,15 +387,9 @@ class AutoCompletePlantTrns(AutoCompletePlant, AutoCompleteTrns):
                                  on='nd_id')[['imex', 'nd_id', 'nd']]
                            .drop_duplicates())
 
-        pt_dict = {'nd_id': 'TRNS_ST',
-                   'nd_2_id': 'TRNS_RV'}
-        fl_dict = {'nd_id': 'export',
-                   'nd_2_id': 'import'}
-
-        self.df_add['pt'] = self.df_add['imex'].replace(pt_dict)
-        self.df_add['fl'] = self.df_add['imex'].replace(fl_dict)
-        self.df_add['pp'] = (self.df_add['nd'].apply(lambda x: x[:2] + '_')
-                             + self.df_add['pt'])
+        self.df_add['pt'] = 'TRNS'
+        self.df_add['fl'] = 'exchange'
+        self.df_add['pp'] = self.df_add['nd'] + '_' + self.df_add['pt']
 
         self.lst_add = self.df_add['pp'].tolist()
 
