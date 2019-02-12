@@ -206,8 +206,10 @@ class TimeMap(metaclass=UniqueInstancesMeta):
                           if not c in df_time_map_num.columns]
             df_time_map_oth = df_time_map[col_nonnum + ['hy']].set_index('hy')
 
-            self.df_time_red = (df_time_map_num.groupby(['year', 'sy'])
-                                               .apply(min))
+            self.df_time_red = (df_time_map_num
+                        .pivot_table(aggfunc=min, index=['year', 'sy'])
+                        .reset_index())
+
             self.df_time_red = self.df_time_red.join(df_time_map_oth, on='hy')
 
 
