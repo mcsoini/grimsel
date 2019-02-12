@@ -150,6 +150,19 @@ class TimeMap(metaclass=UniqueInstancesMeta):
 
 
     def gen_soy_timemap(self):
+        '''
+        Reduces the original timemap to a lower time resolution.
+
+
+        The *weight* is the number of hours per reduced time slot. It is used
+        to calculate energy from average power.
+
+        Args:
+            nhours (float): final time resolution in hours
+
+        Raises:
+            AssertionError: If nhours is not a multiple of freq.
+        '''
 
         if self.df_time_map.empty:
             self.gen_hoy_timemap()
