@@ -9,6 +9,7 @@ import time
 import itertools
 import os
 
+import numpy as np
 import pandas as pd
 
 import grimsel.auxiliary.sqlutils.aux_sql_func as aql
