@@ -810,11 +810,26 @@ class DataReader():
         input_table_list = (list(dict_tb_1) + list(dict_tb_2)
                             + list(dict_tb_0)+ list(dict_tb_3))
 
-
-
-
         self.write_input_tables_to_output_schema(input_table_list)
 
+    def _split_profprice(self):
+        '''
+        Make two separate DataFrames for profprice buying and selling.
+
+        Having both in the same table gets too complicated down the line.
+
+        '''
+
+        for bs in ['buy', 'sll']:
+
+            tb_name = 'df_profprice%s'%bs
+
+            mask = self.model.df_def_profile.pf.str.contains('price' + bs)
+            list_pd_id = self.model.df_def_profile.loc[mask].pf_id.tolist()
+            setattr(self.model, tb_name,
+                    self.model.df_profprice.loc[self.model.df_profprice
+                                                          .price_pf_id
+                                                          .isin(list_pd_id)])
 
     def data_autocompletion(self):
 
