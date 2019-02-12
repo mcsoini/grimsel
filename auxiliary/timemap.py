@@ -62,15 +62,12 @@ class TimeMap(metaclass=UniqueInstancesMeta):
         self.df_time_map = pd.DataFrame()
 
         TM_DICT[hash(self)] = self
+
         if nhours:
             self.gen_soy_timemap()
 
     def gen_hoy_timemap(self):
 
-#        if __name__ == '__main__':
-#            start='2015-1-1 00:00'
-#            stop='2017-12-31 23:59'
-#            freq='H'
 
         print('Generating time map with freq='
               '{} nhours={} from {} to {}'.format(self.freq, self.nhours,
@@ -213,6 +210,7 @@ class TimeMap(metaclass=UniqueInstancesMeta):
 
 
         return dict_dst
+# %%
 
 if __name__ == '__main__':
     pass
