@@ -42,7 +42,7 @@ class Variables:
     def vadd(self, variable_name, variable_index, bounds=(0, None),
              domain=po.Reals):
         if not type(variable_index) is tuple:
-            variable_index = tuple(variable_index)
+            variable_index = (variable_index,)
 
         print('Defining variable ', variable_name, end='... ')
 
