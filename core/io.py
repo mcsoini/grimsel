@@ -989,10 +989,10 @@ class DataReader():
         engine = self.sql_connector.get_sqlalchemy_engine()
         con_cur = self.sql_connector.get_pg_con_cur()
 
-        tb_name, pk = ('tm_soy', ['sy'])
-        for tb_name, pk in [('tm_soy', ['sy']),
-                            ('hoy_soy', ['hy']),
-                            ('tm_soy_full', ['sy']),
+        tb_name, pk = ('hoy_soy', ['hy', 'tm_id'])
+        for tb_name, pk in [('tm_soy', ['sy', 'tm_id']),
+                            ('hoy_soy', ['hy', 'tm_id']),
+                            ('tm_soy_full', ['sy', 'tm_id']),
                             ]:
 
             if hasattr(self.model, 'df_' + tb_name):
