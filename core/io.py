@@ -289,11 +289,9 @@ class TransmIO(VariabIO):
         ''' Write aggregated transmission table to pwr. '''
 
         dfagg = self.aggregate_nd2(df)
-        self._translate_trm(dfagg)
+        dfagg = self._translate_trm(dfagg)
 
-        self._finalize(dfagg, 'var_sy_pwr')
-
-        return self.add_bool_out_col(df)
+        return self.add_bool_out_col(dfagg)
 
     def aggregate_nd2(self, dfall):
         '''
