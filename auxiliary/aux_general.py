@@ -4,28 +4,10 @@ import pandas as pd
 import numpy as np
 import statsmodels.api as sm
 
-
-
-
-
 def print_full(x):
     pd.set_option('display.max_rows', len(x))
     print(x)
     pd.reset_option('display.max_rows')
-
-
-
-
-
-def get_config(prop):
-    fn_conf = os.path.join(os.path.dirname(__file__), '..', 'db_config.json')
-
-    with open(fn_conf) as config_file:
-        data_loaded = json.load(config_file)
-
-    return data_loaded[prop]
-
-
 
 
 def get_ols(df, add_constant=True, verbose=False):
@@ -56,11 +38,6 @@ def get_ols(df, add_constant=True, verbose=False):
                       ]).T
 
     return dfres
-
-
-
-
-
 
 def expand_rows(df, all_cols, val_cols, asindex=False):
 #    df = df_ren_spec_energy_slct_0
