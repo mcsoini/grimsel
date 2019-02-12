@@ -125,9 +125,9 @@ class TimeMap(metaclass=UniqueInstancesMeta):
 
 
         # add hour of the year column
-        get_hoy = lambda x: (x.reset_index(drop=True)
-                              .reset_index()
-                              .rename(columns={'index': 'hy'})[['hy']])
+        get_hoy = lambda x: ((x.hour + 24 * (x.doy - 1)
+                             + x.DateTime.dt.minute / 60).rename('hy')
+                             .reset_index())
         df_time_map['hy'] = (df_time_map.groupby(['year']).apply(get_hoy)
                                         .reset_index(drop=True)['hy'])
 
