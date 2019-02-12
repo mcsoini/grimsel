@@ -10,13 +10,14 @@ class Variables:
 
     def define_variables(self):
 
-        self.vadd('pwr',             (self.sy, self.ppall_ca,))
-        self.vadd('pwr_ramp',        (self.sy, self.pprp_ca), (None, None))
-        self.vadd('pwr_ramp_abs',    (self.sy, self.pprp_ca))              # Absolute value ramp rates for cost calculation
-        self.vadd('pwr_st_ch',       (self.sy, self.st_ca,))               #
-        self.vadd('erg_st',          (self.sy, self.st_ca | self.hyrs_ca,)) # Hourly energy stored
+        self.vadd('pwr',             (self.sy_ppall_ca,))
+        self.vadd('pwr_ramp',        (self.sy_rp_ca), (None, None))
+        self.vadd('pwr_ramp_abs',    (self.sy_rp_ca))              # Absolute value ramp rates for cost calculation
+        self.vadd('pwr_st_ch',       (self.sy_st_ca,))               #
+        self.vadd('erg_st',          (self.sy_st_ca | self.sy_hyrs_ca,)) # Hourly energy stored
 
         self.vadd('erg_mt',          (self.mt, self.hyrs_ca | self.pp_ca,))             #
+        self.vadd('trm',             (self.symin_ndcnn), (None, None))  # Positive or negative power sent through cross-border connections
 
         self.vadd('erg_fl_yr',       (self.ppall_ndcafl,))                 # Yearly energy production in MWh per year
         self.vadd('erg_yr',          (self.ppall_ca,))                     # Yearly energy production in MWh per year
@@ -32,7 +33,6 @@ class Variables:
         self.vadd('vc_co2_pp_yr',    (self.pp_ca,))                        # Yearly variable cost of CO2 emissions
         self.vadd('vc_dmnd_flex_yr', (self.ndca,))                         # Yearly variable cost of flexible loads
         self.vadd('vc_ramp_yr',      (self.pprp_ca,))                      # Yearly variable cost of ramping
-        self.vadd('trm',             (self.sy, self.ndcnn), (None, None))  # Positive or negative power sent through cross-border connections
         self.vadd('cap_pwr_tot',     (self.ppall_ca,))                     # Total capacity
         self.vadd('cap_pwr_new',     (self.add_ca,), (0, self.capchnge_max))   # New capacity
         self.vadd('cap_pwr_rem',     (self.rem_ca,), (0, self.capchnge_max))   # Retired capacity
