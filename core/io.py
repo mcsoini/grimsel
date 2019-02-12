@@ -770,7 +770,8 @@ class DataReader():
 
         _flt_pf_supply = [('supply_pf_id', list(self.model.dict_supply_pf.values()))]
         _flt_pf_dmnd = [('dmnd_pf_id', list(self.model.dict_dmnd_pf.values()))]
-        _flt_pf_price = [('price_pf_id', list(self.model.dict_price_pf.values()))]
+        _flt_pf_price = [('price_pf_id', list(self.model.dict_pricebuy_pf.values())
+                                       + list(self.model.dict_pricesll_pf.values()))]
         dict_pf_0 = {'profsupply': _flt_pf_supply,
                      'profdmnd': _flt_pf_dmnd,
                      'profprice': _flt_pf_price,
