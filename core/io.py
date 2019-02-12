@@ -305,6 +305,35 @@ class TransmIO(VariabIO):
                                         nd_id = dfall.nd_2_id,
                                         value = -dfall.value)])
 
+        dict_nhours = {nd_id: self.model.dict_nd_tm[nd_id][1]
+                       for nd_id in dfall.nd_id.unique()}
+
+
+
+        def avg_to_nhours(x):
+
+            if self.model.is_min_node[x.name]:
+                return x.reset_index()
+            else: # reduce time resolution
+                nhours = dict_nhours[x.name[0]]
+                nhours_2 = dict_nhours[x.nd_2_id.iloc[0]]
+
+                x['sy'] = np.repeat(np.arange(
+                                    np.ceil(len(x) / (nhours / nhours_2))),
+                                    nhours / nhours_2)
+
+                idx = [c for c in x.columns if not c == 'value']
+                x = x.pivot_table(index=idx, values='value', aggfunc=np.mean)
+                return x.reset_index()
+
+#        x = dfall.groupby(['nd_id', 'nd_2_id']).get_group((1, 5))
+#        x.name = (1, 5)
+
+
+        dfall = (dfall.groupby(['nd_id', 'nd_2_id'], as_index=True)
+                      .apply(avg_to_nhours)
+                      .reset_index(drop=True))
+
         dfexp = dfall.loc[dfall.value > 0]
         dfexp = dfexp.groupby(['sy', 'nd_id', 'ca_id'])['value'].sum()
         dfexp = dfexp.reset_index()
