@@ -150,12 +150,19 @@ class CompIO():
         self.columns = list(self.index + ('value',))
         self.columns = [c for c in self.columns if not c == 'bool_out']
 
+
+    def get_df(self):
+
+        df = self.to_df()
+        df = self.post_processing(df)
+
+        return df
+
     def write(self, run_id):
 
         self.run_id = run_id
 
-        df = self.to_df()
-        df = self.post_processing(df)
+        df = self.get_df()
 
         self._finalize(df)
 
