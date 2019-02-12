@@ -194,7 +194,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         '''
         Verification and completion of the constraint group selection.
 
-        Verifies constraint groups if the `constraint_groups` argument
+        Verifies constraint groups if the ``constraint_groups`` argument
         is not None. Otherwise it gathers all accordingly named
         methods from the class attributes and populates the list thusly.
         '''
@@ -340,7 +340,8 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         This results in dictionaries which are assigned as :class:`ModelBase`
         instance attributes:
 
-        * ``dict_price_pf``: (fl_id, nd_id, ca_id) |rarr| (price_pf_id)
+        * ``dict_pricesll_pf``: (fl_id, nd_id, ca_id) |rarr| (pricesll_pf_id)
+        * ``dict_pricebuy_pf``: (fl_id, nd_id, ca_id) |rarr| (pricebuy_pf_id)
         * ``dict_dmnd_pf``: (nd_id, ca_id) |rarr| (dmnd_pf_id)
         * ``dict_supply_pf``: (pp_id, ca_id) |rarr| (supply_pf_id)
 
@@ -457,7 +458,9 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         '''
         Calculation of maximum demand (in MW) with adjusted time resolution.
 
-        Note: Database table def_node is updated in io.write_runtime_tables
+        Note: Database table def_node is updated in the
+        :func:`io.write_runtime_tables` method.
+
         '''
 
         if (hasattr(self, 'df_profdmnd_soy')
@@ -568,9 +571,10 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         Run the model. Then switch solution/warmstartfile.
 
         Unless skip_runs is True. Then just create a pro-forma results object.
-        '''
 
-#        self.fix_scenario_plants() # is this too specific here??
+        Args:
+            warmstart (bool): passed to the Solver solve call
+        '''
 
         if self.skip_runs:
             class Result: pass # ad-hoc class mimicking the results object
@@ -592,10 +596,10 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
     def _get_objective_value(self):
         '''
-        Making the objective value a ModelBase instance attribute.
+        Makes the objective value a :class:`ModelBase` instance attribute.
 
-        This assumes that among the objects defined by list_obj_name
-        only one is
+        This assumes that among the objects defined by ``list_obj_name``
+        only one actually exists.
         '''
 
         list_name_obj = ['objective_lin', 'objective_quad', 'objective']
