@@ -53,15 +53,6 @@ def get_table_dicts():
 DICT_IDX, DICT_TABLE, DICT_GROUP = get_table_dicts()
 
 
-# %%
-
-
-if __name__ == '__main__':
-
-    DICT_IDX = io.DICT_IDX
-    DICT_TABLE = io.DICT_TABLE
-    DICT_GROUP = io.DICT_GROUP
-
 
 class CompIO():
     '''
@@ -164,7 +155,6 @@ class CompIO():
         self.run_id = run_id
 
         df = self.to_df()
-
         df = self.post_processing(df)
 
         self._finalize(df)
@@ -223,13 +213,6 @@ class VariabIO(CompIO):
     def _to_df(cls, obj, cols):
         ''' Converts pyomo variable to DataFrame.'''
 
-#        # replace none with zeros
-#        for v in obj.iteritems():
-#            if v[1].value is None:
-#                v[1].value = 0
-#
-#        dat = [v[0] + (v[1].value,) for v in obj.iteritems()]
-
         df = pd.Series(obj.extract_values()).fillna(0).reset_index()
         df.columns = list(cols) + ['value']
 
@@ -282,27 +265,8 @@ class ParamIO(CompIO):
                 df = df[[0]].rename(columns={0: 'value'})
             else:
                 df.columns = list(cols) + ['value']
-##
-#        dat = []
-#        for v in obj.iteritems():
-#            v = list(v)
-#            if not v[0] == None:
-#                if isinstance(v[1], _ParamData):
-#                    # if parameter is mutable v[1] is a _ParamData;
-#                    # requires manual extraction of value
-#                    v[1] = v[1].value
-#                if v[1] == None:
-#                    v[1] = 0
-#                if not type(v[0]) == tuple:
-#                    v_sets = [v[0]]
-#                else:
-#                    v_sets = [iv for iv in v[0]]
-#                dat += [v_sets + [v[1]]]
-#            else:
-#                dat = [v[1].extract_values()[None]]
 
-        return df#pd.DataFrame(dat, columns=list(cols) + ['value'])
-
+        return df
 
 class TransmIO(VariabIO):
     '''
@@ -1047,14 +1011,14 @@ class DataReader():
                               if_exists='append', engine=engine,
                               con_cur=con_cur)
 
+
+
 class IO:
     '''
 
     '''
 
     def __init__(self, **kwargs):
-
-
 
         defaults = {'sc_warmstart': False,
                     'resume_loop': False,
