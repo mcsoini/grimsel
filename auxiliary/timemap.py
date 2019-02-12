@@ -183,8 +183,8 @@ class TimeMap(metaclass=UniqueInstancesMeta):
         df_time_map = self.df_time_map
 
         # add soy column to dataframe, based on nhours
-        len_rge = np.ceil(len(df_time_map)/nhours)
-        len_rep = nhours
+        len_rep = self.nhours / self.num_freq
+        len_rge = np.ceil(len(df_time_map)/ len_rep)
         df_tm = pd.DataFrame(np.repeat(np.arange(len_rge), [len_rep]),
                              columns=['sy']).iloc[:len(df_time_map)]
         df_time_map['sy'] = df_tm
