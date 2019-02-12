@@ -72,7 +72,7 @@ class CompIO():
         self.columns = None # set in index setter
         self.run_id = None  # set in call to self.write_run
 
-        self.index = idx
+        self.index = tuple(idx) if not isinstance(idx, tuple) else idx
 
         self.coldict = aql.get_coldict()
 
