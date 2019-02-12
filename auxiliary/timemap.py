@@ -43,8 +43,19 @@ class TimeMap(metaclass=UniqueInstancesMeta):
                  start='2015-1-1 00:00', stop='2015-12-31 23:59',
                  tm_filt=False, keep_datetime=False, minimum=False):
 
+        self.freq = freq
+        self.num_freq = (float(self.freq[:-1])
+                         if isinstance(self.freq, str) else self.freq)
+        self.str_freq = '%sH'%self.num_freq
+
+        self.nhours = nhours
+
+        self.start, self.stop = start, stop
+
         self.tm_filt = tm_filt
         self.keep_datetime = keep_datetime
+
+        self.minimum = minimum
 
         self.df_time_red = pd.DataFrame()
         self.df_hoy_soy = pd.DataFrame()
@@ -52,19 +63,21 @@ class TimeMap(metaclass=UniqueInstancesMeta):
 
         TM_DICT[hash(self)] = self
         if nhours:
-            self.gen_soy_timemap(nhours)
+            self.gen_soy_timemap()
 
-    def gen_hoy_timemap(self, start='2015-1-1 00:00', stop='2015-12-31 23:59',
-                        freq='H', tm_filt=False):
+    def gen_hoy_timemap(self):
 
 #        if __name__ == '__main__':
 #            start='2015-1-1 00:00'
 #            stop='2017-12-31 23:59'
 #            freq='H'
 
-        print('Generating time map from {} to {}'.format(start, stop))
+        print('Generating time map with freq='
+              '{} nhours={} from {} to {}'.format(self.freq, self.nhours,
+                                                  self.start, self.stop))
 
-        df_time_map = pd.DataFrame(index=pd.date_range(start, stop, freq=freq))
+        df_time_map = pd.DataFrame(index=pd.date_range(self.start, self.stop,
+                                                       freq=self.str_freq))
         df_time_map = (df_time_map.reset_index()
                                   .rename(columns={'index': 'DateTime'}))
 
@@ -123,8 +136,8 @@ class TimeMap(metaclass=UniqueInstancesMeta):
 
         # apply filtering
         mask = df_time_map.mt_id.apply(lambda x: True).rename('mask')
-        if tm_filt:
-            for ifilt in tm_filt:
+        if self.tm_filt:
+            for ifilt in self.tm_filt:
                 mask &= df_time_map[ifilt[0]].isin(ifilt[1])
 
         self.tm_filt_weight = mask.size / mask.sum()
@@ -136,10 +149,10 @@ class TimeMap(metaclass=UniqueInstancesMeta):
             self.df_time_map = self.df_time_map.drop('DateTime', axis=1)
 
 
-    def gen_soy_timemap(self, nhours):
+    def gen_soy_timemap(self):
 
         if self.df_time_map.empty:
-            self.gen_hoy_timemap(tm_filt=self.tm_filt)
+            self.gen_hoy_timemap()
 
         df_time_map = self.df_time_map
 
