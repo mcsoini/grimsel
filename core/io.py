@@ -87,6 +87,7 @@ class CompIO():
         Calls classmethods _to_df.
 
         Is overwritten in DualIO, where _to_df is not used as classmethod.
+
         '''
 
         return self._to_df(self.comp_obj,
@@ -97,8 +98,11 @@ class CompIO():
         '''
         Initialization of output table.
 
-        Note: Keys need to be added in post-processing due to table
+        Note
+        ----
+        Keys need to be added in post-processing due to table
         writing performance.
+
         '''
 
         print('Initializing output table ', self.tb)
@@ -282,8 +286,9 @@ class ParamIO(CompIO):
 
 class TransmIO(VariabIO):
     '''
-    Special methods related to the translation of nodes to plant names and
-    the simplified representation after aggregating secondary nodes.
+    Special methods related to the translation of nodes to
+    transmission plant names and
+    to the simplified representation after aggregating secondary nodes.
     '''
 
     def post_processing(self, df):
@@ -377,7 +382,13 @@ class DmndIO(ParamIO):
         return df
 
     def _translate_dmnd(self, df):
-        ''''''
+        '''
+        Translate the demand ``pf_id`` to the corresponding ``pp_id``s
+
+        This is based on a mapping ``pf_id`` |rarr| ``nd_id`` |rarr| ``pp_id``.
+        The ``pp_id`` definition for demand is retrieved from the
+        ``ModelBase.df_def_plant`` table.
+        '''
 
         dict_ndpp = self._node_to_plant('DMND')
 
