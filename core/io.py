@@ -11,6 +11,7 @@ import os
 
 import numpy as np
 import pandas as pd
+import psycopg2 as pg
 
 import grimsel.auxiliary.sqlutils.aux_sql_func as aql
 import grimsel
