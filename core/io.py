@@ -141,10 +141,6 @@ class CompIO():
                   schema=self.sc, if_exists='append', index=False)
         print('done in %.3f sec'%(time.time() - t))
 
-        if 'bool_out' in df.columns:
-            print('Unique bool: ', df.bool_out.unique())
-        print(df.head())
-
     @property
     def index(self):
         return self._index
@@ -1121,6 +1117,16 @@ class IO:
         self.sql_connector = defaults['sql_connector']
         self.replace_runs_if_exist = defaults['replace_runs_if_exist']
         self.db = self.sql_connector.db
+
+#
+#    @wrapt.decorator
+#    def _get_index(f, cls, py_obj, **sets):
+#        print(py_obj, sets)
+#        print(py_obj, type(kwargs['py_obj']))
+#        if not kwargs['sets']:
+#            sets = table_struct.dict_table_index[kwargs['py_obj'].name]
+#        return f(kwargs['py_obj'], sets)
+
 
     @classmethod
     def variab_to_df(cls, py_obj, sets):
