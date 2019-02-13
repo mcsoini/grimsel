@@ -1129,14 +1129,20 @@ class IO:
 
 
     @classmethod
-    def variab_to_df(cls, py_obj, sets):
+    def variab_to_df(cls, py_obj, sets=None):
         ''' Wrapper for backward compatibility. '''
+
+        if not sets:
+            sets = table_struct.dict_table_index[py_obj.name]
 
         return VariabIO._to_df(py_obj, sets)
 
     @classmethod
-    def param_to_df(cls, py_obj, sets):
+    def param_to_df(cls, py_obj, sets=None):
         ''' Wrapper for backward compatibility. '''
+
+        if not sets:
+            sets = table_struct.dict_table_index[py_obj.name]
 
         return ParamIO._to_df(py_obj, sets)
 
