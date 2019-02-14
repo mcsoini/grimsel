@@ -390,14 +390,12 @@ class DmndIO(ParamIO):
 
         dict_ndpp = self._node_to_plant('DMND')
 
-        dict_pfpp = {val: dict_ndpp[key[0]] for key, val
+        dict_pfpp = {val: (dict_ndpp[key[0]], key[1]) for key, val
                      in self.model.dict_dmnd_pf.items()}
 
-        df['pp_id'] = df.dmnd_pf_id.replace(dict_pfpp)
-
-        df.drop('dmnd_pf_id', axis=1, inplace=True)
-
-        return df
+        return df.join(pd.DataFrame.from_dict(dict_pfpp, orient='index',
+                                              columns=['pp_id', 'ca_id']),
+                       on='pf_id').drop('pf_id', axis=1)
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
