@@ -466,23 +466,35 @@ class Constraints:
     def add_yearly_cost_rules(self):
         def calc_vc_fl_pp_rule(self, pp, nd, ca, fl):
 
+            tm = self.dict_nd_tm_id[nd]
+            list_sy = self.dict_tm_sy[tm]
+
             sign = -1 if pp in self.setlst['sll'] else 1
 
             # Case 1: fuel has price profile
-            if (fl, nd, ca) in self.dict_price_pf:
+            if (fl, nd, ca) in {**self.dict_pricebuy_pf,
+                                **self.dict_pricesll_pf}:
 
-                pf = self.dict_price_pf[(fl, nd, ca)]
-                sums = (sign * sum(self.weight[sy]
-                                   * self.priceprof[sy, pf]
+                pprf = (self.pricesllprof if sign is -1 else self.pricebuyprof)
+
+                pf = (self.dict_pricesll_pf[(fl, nd, ca)] if sign is -1 else
+                      self.dict_pricebuy_pf[(fl, nd, ca)])
+
+                sums = (sign * sum(self.weight[tm, sy]
+                                   * pprf[sy, pf]
                                    / self.pp_eff[pp, ca]
-                                   * self.pwr[sy, pp, ca] for sy in self.sy))
+                                   * self.pwr[sy, pp, ca]
+                                   for sy in list_sy))
+
             # Case 2: monthly adjustment factors have been applied to vc_fl
             elif 'vc_fl' in self.parameter_month_list:
-                sums = (sign * sum(self.weight[sy] * self.vc_fl[mt, fl, nd]
-                                                   / self.pp_eff[pp, ca]
-                                                   * self.pwr[sy, pp, ca]
-                                   for (sy, mt) in set_to_list(self.sy_mt,
-                                                               [None, None])))
+                sums = (sign * sum(self.weight[tm, sy]
+                                   * self.vc_fl[self.dict_soy_month[(tm, sy)], fl, nd]
+                                   / self.pp_eff[pp, ca]
+                                   * self.pwr[sy, pp, ca] for (sy, _pp, _ca)
+                                   in set_to_list(self.sy_pp_ca,
+                                                  [None, pp, ca])))
+
             # Case 3: ordinary single fuel price
             else:
                 sums = (sign * self.erg_fl_yr[pp, nd, ca, fl]
