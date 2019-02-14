@@ -279,15 +279,20 @@ class Constraints:
 
     def add_ramp_rate_rules(self):
 
-        def calc_ramp_rate_rule(self, pp, ca, sy):
         logger.info('Calculation of ramp rates rule')
+        def calc_ramp_rate_rule(self, sy, pp, ca):
+
+            tm = self.dict_pp_tm_id[pp]
+
+            list_sy = self.dict_tm_sy[tm]
+
             this_soy = sy
-            last_soy = (sy - 1) if this_soy != self.sy[1] else self.sy[-1]
+            last_soy = (sy - 1) if this_soy != list_sy[0] else list_sy[-1]
 
             return (self.pwr_ramp[sy, pp, ca]
                     == self.pwr[this_soy, pp, ca]
                      - self.pwr[last_soy, pp, ca])
-        self.calc_ramp_rate = po.Constraint(self.pprp_ca, self.sy,
+        self.calc_ramp_rate = po.Constraint(self.sy_rp_ca,
                                             rule=calc_ramp_rate_rule)
 
         def ramp_rate_abs_rule(self, pp, ca, sy):
