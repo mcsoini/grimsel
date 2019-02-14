@@ -369,6 +369,28 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
             setattr(self, 'dict_%s_pf'%name, dct)
 
+    def translate_pf_id(self, df):
+        '''
+        Adds model id columns for the profile ids in the input DataFrame.
+
+        Searches vars(self) for the pf_dict corresponding to the pf_ids
+        in the input DataFrame. Then uses this dictionary to add additional
+        columns to the output table.
+
+        Parameters
+        ----------
+        df (DataFrame): DataFrame with pf_id column.
+
+        Returns
+        -------
+        :obj:`pandas.DataFrame`
+            Input DataFrame with added model ids corresponding to the pf_id.
+
+        Raises
+        ------
+        IndexError: If multiple pf dictionaries correspond to the pf_id
+                    values in the input DataFrame.
+        IndexError: If no pf dictionary can be found for the pf_id values.
 
     def map_to_time_res(self):
         '''
@@ -377,6 +399,41 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         timemap.TimeMap. Then maps relevant input data from hours to slots.
         Also generates dictionaries which contain all slot ids for each
         week/month and vice versa.
+
+        # identify corresponding pf dict
+        list_pf_id = set(df.pf_id.unique().tolist())
+
+        pf_arrs = {name_dict:
+                    list_pf_id
+                        .issubset(set(getattr(self, name_dict).values()))
+                    for name_dict in vars(self)
+                    if name_dict.startswith('dict_')
+                    and name_dict.endswith('_pf')}
+
+        if sum(pf_arrs.values()) > 1:
+            raise IndexError('Ambiguous pf array in translate_pf_id.')
+        elif sum(pf_arrs.values()) == 0:
+            raise IndexError('No pf array found for table with columns '
+                             '%s'%df.columns.tolist())
+        else:
+            pf_dict = {val: key for key, val in pf_arrs.items()}[True]
+
+            new_cols = {'dict_pricesll_pf': ['fl_id', 'nd_id', 'ca_id'],
+                        'dict_pricebuy_pf': ['fl_id', 'nd_id', 'ca_id'],
+                        'dict_price_pf': ['fl_id', 'nd_id', 'ca_id'],
+                        'dict_dmnd_pf': ['nd_id', 'ca_id'],
+                        'dict_supply_pf': ['pp_id', 'ca_id']}[pf_dict]
+
+            pf_dict = getattr(self, pf_dict)
+
+
+            df_new = pd.Series(pf_dict).reset_index()
+            df_new.columns = new_cols + ['pf_id']
+
+            df_new = pd.merge(df_new, df, on='pf_id')
+
+            return df_new
+
         '''
 
         # get time maps and dicts
