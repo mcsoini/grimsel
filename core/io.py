@@ -293,7 +293,9 @@ class TransmIO(VariabIO):
         dfagg = self.aggregate_nd2(df)
         dfagg = self._translate_trm(dfagg)
 
-        return self.add_bool_out_col(dfagg)
+        self._finalize(dfagg, 'var_sy_pwr')
+
+        return self.add_bool_out_col(df)
 
     def aggregate_nd2(self, dfall):
         '''
