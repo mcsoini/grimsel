@@ -1,7 +1,5 @@
 
-import warnings
 import pyomo.environ as po
-import numpy as np
 
 import logging
 logger = logging.Logger(__name__)
