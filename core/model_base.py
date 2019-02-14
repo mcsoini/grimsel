@@ -690,7 +690,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         self.solutionfile, self.isolnfile = self.switch_soln_file(1)
         self.warmstartfile = None
 
-    def check_valid_indices(self, index):
+    def check_valid_indices(self, index, log_str=''):
         '''
         Used in parameter and variable definitions.
 
@@ -701,7 +701,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         is_empty = [pi.name for pi in index if (not pi is None) and not pi]
         is_none = [pi is None for pi in index]
         if any(is_empty) + any(is_none):
-            print(('failed: set(s) {} is/are '
+            print((log_str + 'failed: set(s) {} is/are '
                    + 'empty or None.').format(str(is_empty)))
             return False
         else:
