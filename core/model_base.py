@@ -827,16 +827,13 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         '''
 
         if (hasattr(self, 'df_profdmnd_soy')
-            _df = self.df_profdmnd_soy
-            df_dmd_params = _df.pivot_table(values=['value'],
-                                            index='dmnd_pf_id', aggfunc=[max])
-            df_dmd_params.columns = ['dmnd_max']
-
-
-            ndca = [{val: key for key, val in self.dict_dmnd_pf.items()}[pf]
-                    for pf in df_dmd_params.reset_index().dmnd_pf_id]
-            df_dmd_params[['nd_id', 'ca_id']] = pd.DataFrame(ndca)
             and not self.df_profdmnd_soy.empty):
+            df = self.df_profdmnd_soy
+            df_dmd_params = df.pivot_table(values=['value'],
+                                           index='dmnd_pf_id',
+                                           aggfunc=[max]).reset_index()
+            df_dmd_params.columns = ['pf_id', 'dmnd_max']
+            df_dmd_params = self.translate_pf_id(df_dmd_params)
             df_dmd_params = df_dmd_params.set_index('nd_id')[['dmnd_max']]
 
             self.df_def_node.drop([c for c in self.df_def_node.columns
