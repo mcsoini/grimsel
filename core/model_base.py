@@ -484,26 +484,188 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
         self.mps = maps.Maps.from_dicts(dct)
 
+    def _init_time_map_connect(self):
 
-        _df = self.df_tm_soy.copy()
+        df_ndcnn = self.df_node_connect[['nd_id', 'nd_2_id', 'ca_id']].drop_duplicates()
+
+        df_ndcnn['freq'] = df_ndcnn.nd_id.apply(lambda x: {key: frnh[0] for key, frnh in self.dict_nd_tm.items()}[x])
+        df_ndcnn['nhours'] = df_ndcnn.nd_id.apply(lambda x: {key: frnh[1] for key, frnh in self.dict_nd_tm.items()}[x])
+        df_ndcnn['freq_2'] = df_ndcnn.nd_2_id.apply(lambda x: {key: frnh[0] for key, frnh in self.dict_nd_tm.items()}[x])
+        df_ndcnn['nhours_2'] = df_ndcnn.nd_2_id.apply(lambda x: {key: frnh[1] for key, frnh in self.dict_nd_tm.items()}[x])
+        df_ndcnn['tm_id'] = df_ndcnn.nd_id.replace(self.dict_nd_tm_id)
+        df_ndcnn['tm_2_id'] = df_ndcnn.nd_2_id.replace(self.dict_nd_tm_id)
+
+        # make dict_sy_ndnd_min
+        is_min_node = pd.concat([df_ndcnn,
+                                 df_ndcnn.assign(nd_id = df_ndcnn.nd_2_id,
+                                                 nd_2_id = df_ndcnn.nd_id,
+                                                 nhours = df_ndcnn.nhours_2,
+                                                 nhours_2 = df_ndcnn.nhours)])
+        self.is_min_node = (
+                is_min_node.assign(is_min=is_min_node.nhours
+                                   <= is_min_node.nhours_2)
+                                   .set_index(['nd_id', 'nd_2_id'])
+                                   .is_min).to_dict()
+
+        def get_map_sy(x):
+            tm = timemap.TimeMap(tm_filt=self.tm_filt, minimum=True,
+                                 freq=x[['freq', 'freq_2']].min(axis=1).values[0],
+                                 nhours=x.nhours.iloc[0])
+            tm_2 = timemap.TimeMap(tm_filt=self.tm_filt, minimum=True,
+                                   freq=x[['freq', 'freq_2']].min(axis=1).values[0],
+                                   nhours=x.nhours_2.iloc[0])
+            return pd.merge(tm.df_hoy_soy,
+                            tm_2.df_hoy_soy.rename(columns={'sy': 'sy2'}),
+                            on='hy')[['sy', 'sy2']]
+
+        self.dict_ndnd_tm_id =  df_ndcnn.set_index(['nd_id', 'nd_2_id']).copy()
+        self.dict_ndnd_tm_id['tm_min_id'] = self.dict_ndnd_tm_id.apply(lambda x: x.tm_id if x.nhours <= x.nhours_2 else x.tm_2_id, axis=1)
+        self.dict_ndnd_tm_id = self.dict_ndnd_tm_id.tm_min_id.to_dict()
+        self.dict_ndnd_tm_id = {**self.dict_ndnd_tm_id,
+                                **{(key[1], key[0]): val
+                                   for key, val
+                                   in self.dict_ndnd_tm_id.items()}}
+
+        sysymap = df_ndcnn[[c for c in df_ndcnn.columns if not 'nd' in c]]
+        sysymap = df_ndcnn.drop_duplicates()
+        sysymap = df_ndcnn.groupby(['tm_id', 'tm_2_id']).apply(get_map_sy).reset_index()
+        sysymap = sysymap.drop('level_2', axis=1)
+
+        self.df_sysy_ndcnn = pd.merge(
+                df_ndcnn[['nd_id', 'nd_2_id', 'ca_id', 'tm_id', 'tm_2_id']],
+                sysymap, on=['tm_id', 'tm_2_id'], how='outer')
+
+        self.dict_sysy = {**self.df_sysy_ndcnn.groupby(['nd_id', 'nd_2_id', 'sy']).sy2.apply(lambda x: set((*x,))).to_dict(),
+                          **self.df_sysy_ndcnn.groupby(['nd_2_id', 'nd_id', 'sy2']).sy.apply(lambda x: set((*x,))).to_dict()}
+
+        self.df_symin_ndcnn = self.df_sysy_ndcnn.join(df_ndcnn.set_index(['nd_id', 'nd_2_id'])[['nhours', 'nhours_2']], on=['nd_id', 'nd_2_id'])
+
+        idx = ['nd_id', 'nd_2_id']
+        cols = ['sy', 'sy2', 'tm_2_id', 'ca_id', 'tm_id', 'nhours', 'nhours_2']
+        list_df = []
+        for nd_id, nd_2_id in set(self.df_symin_ndcnn.set_index(idx).index.values):
+            df = self.df_symin_ndcnn.set_index(idx).loc[(nd_id, nd_2_id), cols]
+
+            nd_smaller = df.nhours.iloc[0] <= df.nhours_2.iloc[0]
+            list_df.append(df.assign(symin = df.sy if nd_smaller else df.sy2,
+                                     tm_min_id = df.tm_id if nd_smaller
+                                                 else df.tm_2_id))
+
+        cols = ['tm_min_id', 'symin', 'nd_id', 'nd_2_id', 'ca_id']
+        self.df_symin_ndcnn = pd.concat(list_df).reset_index()[cols]
+
+
+    def _init_time_map(self):
+        '''
+        Create a TimeMap instance and obtain derived attributes.
+
+        Generated attributes:
+            * ``tm`` (``TimeMap``): TimeMap object
+            * ``df_tm_soy_full`` (``DataFrame``): full timemap table
+            * ``df_tm_soy_full`` (``DataFrame``): full timemap table
+        '''
+
+
+        self.dict_nd_tm = self._get_nhours_nodes(self.nhours)
+
+        self.dict_tm = {ntm: frnh for ntm, frnh
+                        in enumerate(set(self.dict_nd_tm.values()))}
+
+        self.dict_nd_tm_id = {nd: {val: key for key, val
+                                   in self.dict_tm.items()}[tm]
+                              for nd, tm in self.dict_nd_tm.items()}
+
+        self.tm_objs = {tm_id: timemap.TimeMap(tm_filt=self.tm_filt,
+                                       nhours=frnh[1], freq=frnh[0])
+                        for tm_id, frnh in self.dict_tm.items()}
+
+        self.df_def_node['tm_id'] = (self.df_def_node.reset_index().nd_id
+                                               .replace(self.dict_nd_tm_id))
+
+        cols_red = ['wk_id', 'mt_id', 'sy', 'weight', 'wk_weight']
+        list_tm_soy = [tm.df_time_red[cols_red].assign(tm_id=tm_id) for
+                       tm_id, tm in self.tm_objs.items()]
+
+        self.df_tm_soy = pd.concat(list_tm_soy, axis=0)
+        list_tm_soy_full = [tm.df_time_red.assign(tm_id=tm_id)
+                            for tm_id, tm in self.tm_objs.items()]
+        self.df_tm_soy_full = pd.concat(list_tm_soy_full, axis=0)
+        list_hoy_soy = [tm.df_hoy_soy.assign(tm_id=tm_id)
+                        for tm_id, tm in self.tm_objs.items()]
+        self.df_hoy_soy = pd.concat(list_hoy_soy, axis=0)
+
+        _df = self.df_tm_soy
 
         # get dictionaries month/week <-> time slots;
         # these are used in the constraint definitions
+        cl, nm = ('wk_id', 'week')
         for cl, nm in [('wk_id', 'week'), ('mt_id', 'month')]:
-            d = {mm: _df.loc[_df[cl] == mm, 'sy']
-                     .get_values().tolist() for mm in _df[cl].unique()}
-            setattr(self, 'dict_' + nm + '_soy', d)
-            setattr(self, 'dict_soy_' + nm, {s: w for w in d for s in d[w]})
+
+            dct = _df.pivot_table(index=['tm_id', cl],
+                                  values='sy', aggfunc=list).sy.to_dict()
+            setattr(self, 'dict_' + nm + '_soy', dct)
+
+            dct = _df.set_index(['tm_id', 'sy'])[cl].to_dict()
+            setattr(self, 'dict_soy_' + nm, dct)
+
+
+        # dict pp_id -> tm
+        self.dict_pp_tm_id = (
+            self.df_def_plant.assign(tm_id=self.df_def_plant.nd_id
+                                               .replace(self.dict_nd_tm_id))
+                             .set_index('pp_id').tm_id.to_dict())
+
+
+        # dict tm_id -> sy
+        unq_list = lambda x: list(set(x))
+        pv_kws = dict(index='tm_id', values='sy', aggfunc=unq_list)
+        self.dict_tm_sy = self.df_hoy_soy.pivot_table(**pv_kws).sy.to_dict()
+
+
+    def _soy_map_hydro_bcs(self):
+        ''' Map hydro boundary conditions (which refer to the beginning
+            of the month) to time slots
+        '''
 
         if not self.df_plant_month is None:
-            _df = self.df_def_month[['mt_id', 'month_min_hoy']].set_index('mt_id')
-            self.df_plant_month = self.df_plant_month.join(_df, on=_df.index.name)
+            _df = self.df_def_month[['mt_id', 'month_min_hoy']]
+            _df = _df.set_index('mt_id')
+            self.df_plant_month = self.df_plant_month.join(_df,
+                                                           on=_df.index.name)
+            self.df_plant_month['tm_id'] = (
+                    self.df_plant_month.pp_id
+                        .replace(self.mps.dict_plant_2_node_id)
+                        .replace(self.dict_nd_tm_id))
             _df = self.df_hoy_soy.rename(columns={'hy': 'month_min_hoy'})
-            _df = _df.set_index('month_min_hoy')
-            self.df_plant_month = self.df_plant_month.join(_df, on=_df.index.names)
+            _df = _df.set_index(['month_min_hoy', 'tm_id'])
+            self.df_plant_month = self.df_plant_month.join(_df,
+                                                           on=_df.index.names)
 
             sy_null = self.df_plant_month.sy.isnull()
             self.df_plant_month = self.df_plant_month.loc[-sy_null]
+
+
+    def map_to_time_res(self):
+        '''
+        Generates a map between hours-of-the-year and time slots-of-the-year
+        based on the fixed time resolution self.nhours, using the class
+        timemap.TimeMap. Then maps relevant input data from hours to slots.
+        Also generates dictionaries which contain all slot ids for each
+        week/month and vice versa.
+
+        Raises:
+            ValueError: If multiple tm_ids correspond to the pf_ids in any
+                selected profile tables. This could be fixed by splitting up
+                the profile table, but we rather have this avoided on the
+                input data side.
+        '''
+
+        self._init_time_map()
+        self._init_time_map_connect()
+
+        print('+++++++++++++++++++++++++ SKIPPING adjust_cost_time +++++++++++++++++++++++++++')
+#        self.adjust_cost_time()
+        self._soy_map_hydro_bcs()
 
 
         # Map profiles and bc to soy
@@ -520,17 +682,62 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
                   .format(name_df, self.nhours))
 
             df_tbsoy = getattr(self, name_df)
-            if not df_tbsoy is None:
-                df_tbsoy = df_tbsoy.join(self.df_hoy_soy.set_index('hy'), on='hy')
-                val = [c for c in df_tbsoy.columns if not c in idx + ['hy']]
-                df_tbsoy[val] = df_tbsoy[val].astype(float)
-                df_tbsoy = df_tbsoy.pivot_table(values=val, index=idx,
-                                                aggfunc=np.mean).reset_index()
 
-                if df_tbsoy.empty:
-                    df_tbsoy = pd.DataFrame(columns=idx+val)
+            self._map_profile_to_time_resolution(df=df_tbsoy, itb=itb, idx=idx)
 
-                setattr(self, 'df_prof' + itb + '_soy', df_tbsoy)
+
+    def _add_tm_columns(self, df):
+        '''
+        Adds a ``tm_id`` column to ``df`` based on suitable other indices.
+
+        Depending on availability, the profile (``pf_id``), plant(``pp_id``)
+        or node (``nd_id``) column is used to obtain a timemap (``tm_id``)
+        column.
+
+        Parameters
+        ----------
+        df: DataFrame
+            Input table
+
+        Returns
+        -------
+        DataFrame
+            table with additional ``tm_id`` column,
+
+        Raises
+        ------
+        IndexError
+            When ``df`` has neither a ``nd_id`` column nor a ``pp_id`` column
+            nor a ``pf_id`` column.
+        '''
+
+        cols = df.columns.tolist()
+
+        if not any(col_slct in cols
+                   for col_slct in ['pp_id', 'nd_id']):
+
+
+            list_pf_col = [c for c in cols if 'pf_id' in c]
+            if list_pf_col:
+                pf_id = df[list_pf_col[0]]
+                df = self.translate_pf_id(df.assign(pf_id=pf_id))
+            else:
+                raise IndexError('_add_tm_columns: '
+                                 'no nd_id, pf_id, or pp_id column '
+                                 'in table with columns%s.'%cols)
+
+        if 'pp_id' in df.columns:
+
+            dct_p2tm = self.dict_pp_tm_id
+            df['tm_id'] = df.pp_id.replace(dct_p2tm)
+
+        elif 'nd_id' in df.columns:
+
+            dct_n2tm = self.dict_nd_tm_id
+            df['tm_id'] = df.nd_id.replace(dct_n2tm)
+
+        return df[cols + ['tm_id']]
+
 
     def _map_profile_to_time_resolution(self, df, itb, idx):
         ''' Maps a single profile table to the selected nodal time resolution.
