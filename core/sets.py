@@ -94,7 +94,6 @@ class Sets:
                        initialize=
                        cols2tuplelist(df.loc[df.pp_id.isin(self.setlst['sll'])])))
 
-        ''' SPECIAL SETS '''
         # temporal
         self.sy = po.Set(initialize=list(self.df_tm_soy.sy.unique()),
                          ordered=True)
@@ -197,8 +196,6 @@ class Sets:
                                initialize=cols2tuplelist(
                                     self.df_tm_soy[['tm_id', 'sy', 'mt_id']]))
                         if not self.mt is None else None)
-
-
 
         df = pd.merge(self.df_def_plant, self.df_plant_encar,
                       on='pp_id', how='outer')[['nd_id', 'ca_id']]
