@@ -679,8 +679,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
                         ]:
 
             name_df = 'df_prof' + itb
-            print('Averaging table {} to time resolution {} hours.'
-                  .format(name_df, self.nhours))
+            print('Averaging {}; nhours={}.'.format(name_df, self.nhours))
 
             df_tbsoy = getattr(self, name_df)
 
