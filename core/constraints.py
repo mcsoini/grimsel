@@ -295,16 +295,16 @@ class Constraints:
         self.calc_ramp_rate = po.Constraint(self.sy_rp_ca,
                                             rule=calc_ramp_rate_rule)
 
-        def ramp_rate_abs_rule(self, pp, ca, sy):
         logger.info('Calculation of absolute ramp rates rule')
+        def ramp_rate_abs_rule(self, sy, pp, ca):
             return (flag_abs * self.pwr_ramp[sy, pp, ca]
                     <= self.pwr_ramp_abs[sy, pp, ca])
 
         flag_abs = 1
-        self.ramp_rate_abs_pos = po.Constraint(self.pprp_ca, self.sy,
+        self.ramp_rate_abs_pos = po.Constraint(self.sy_rp_ca,
                                                rule=ramp_rate_abs_rule)
         flag_abs = -1
-        self.ramp_rate_abs_neg = po.Constraint(self.pprp_ca, self.sy,
+        self.ramp_rate_abs_neg = po.Constraint(self.sy_rp_ca,
                                                rule=ramp_rate_abs_rule)
 
     def add_energy_constraint_rules(self):
