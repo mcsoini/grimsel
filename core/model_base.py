@@ -476,6 +476,11 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
         return nhours_dict
 
+
+    def init_maps(self):
+        '''
+        Uses the input DataFrames to initialize a :class:Maps instance.
+
         '''
 
         # get time maps and dicts
@@ -484,6 +489,10 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         self.df_hoy_soy = self.tm.df_hoy_soy
         self.df_tm_soy = self.tm.df_time_red[['wk_id', 'mt_id', 'sy',
                                               'weight', 'wk_weight']]
+        dct = {var.replace('df_def_', ''): getattr(self, var)
+               for var in vars(self) if 'df_def_' in var}
+
+        self.mps = maps.Maps.from_dicts(dct)
 
         # scale fixed costs to account for less than full year
         self.adjust_cost_time()
