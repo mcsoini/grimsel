@@ -214,7 +214,7 @@ class Sets:
         df = df.loc[-df.pricebuy_pf_id.isna(), 'pricebuy_pf_id']
         self.setlst['pricebuy_pf'] = df.drop_duplicates().get_values().tolist()
 
-        df = self.df_node_encar.copy()
+        df = self.df_node_encar
         df = df.loc[-df.dmnd_pf_id.isna(), 'dmnd_pf_id']
         self.setlst['dmnd_pf'] = df.drop_duplicates().get_values().tolist()
 
