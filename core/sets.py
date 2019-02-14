@@ -163,7 +163,7 @@ class Sets:
         self.rp_ca = po.Set(within=self.ppall_ca, initialize=rp, ordered=True)
 
         # set pf_id for profiles
-        for pf_set in ['dmnd_pf', 'supply_pf', 'price_pf']:
+        for pf_set in ['dmnd_pf', 'supply_pf', 'pricesll_pf', 'pricebuy_pf']:
             setattr(self, pf_set,
                     po.Set(within=self.pf, initialize=self.setlst[pf_set],
                            ordered=True))
