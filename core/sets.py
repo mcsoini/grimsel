@@ -126,8 +126,17 @@ class Sets:
             df = self.df_node_connect[['nd_id', 'nd_2_id', 'ca_id']]
             self.ndcnn = po.Set(within=self.nd * self.nd * self.ca,
                              initialize=cols2tuplelist(df), ordered=True)
+
+            df = self.df_symin_ndcnn[['symin', 'nd_id', 'nd_2_id', 'ca_id']]
+            self.symin_ndcnn = po.Set(within=self.sy * self.nd
+                                             * self.nd * self.ca,
+                                      initialize=cols2tuplelist(df),
+                                      ordered=True)
         else:
             self.ndcnn = po.Set(within=self.nd * self.nd * self.ca)
+            self.symin_ndcnn = po.Set(within=self.sy * self.nd
+                                             * self.nd * self.ca)
+
 
         # ndca for electricity only; mainly used for flexible demand;
         # then again: why would only EL have flexible demand?
