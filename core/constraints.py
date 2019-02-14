@@ -528,7 +528,7 @@ class Constraints:
 
             return (self.vc_ramp_yr[pp, ca]
                     == self.pwr_ramp_yr[pp, ca] * self.vc_ramp[pp, ca])
-        self.calc_vc_ramp = po.Constraint(self.pprp_ca, rule=calc_vc_ramp_rule)
+        self.calc_vc_ramp = po.Constraint(self.rp_ca, rule=calc_vc_ramp_rule)
 
         logger.info('Fixed O&M cost calculation rule')
         def calc_fc_om_rule(self, pp, ca):
@@ -584,7 +584,7 @@ class Constraints:
 #                  + sum(self.vc_dmnd_flex_yr[nd, ca]
 #                        for (nd, ca) in set_to_list(self.ndca_EL, nn))
                   + sum(self.vc_ramp_yr[pp, ca]
-                        for (pp, ca) in set_to_list(self.pprp_ca, nn))
+                        for (pp, ca) in set_to_list(self.rp_ca, nn))
                   + sum(self.fc_om_pp_yr[pp, ca]
                         for (pp, ca) in set_to_list(self.ppall_ca, nn))
                   + sum(self.fc_cp_pp_yr[pp, ca]
