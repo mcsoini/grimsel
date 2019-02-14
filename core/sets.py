@@ -18,8 +18,6 @@ class Sets:
         self.ca = po.Set(initialize=self.setlst['ca'], doc='Energy carriers')
         self.fl = po.Set(initialize=self.setlst['fl'], doc='Sub-fuels')
         self.pf = po.Set(initialize=self.setlst['pf'], doc='Profiles')
-#        self.fcl = po.Set(initialize=self.setlst['scf'],
-#                          doc='Sub-fuels from energy carriers')
 
         df_ndca = self.df_def_plant[['pp_id', 'nd_id']].set_index('pp_id')
         df_ndca = self.df_plant_encar[['pp_id', 'ca_id']].join(df_ndca,
@@ -95,7 +93,8 @@ class Sets:
 
         ''' SPECIAL SETS '''
         # temporal
-        self.sy = po.Set(initialize=list(self.df_tm_soy['sy']), ordered=True)
+        self.sy = po.Set(initialize=list(self.df_tm_soy.sy.unique()),
+                         ordered=True)
         self.sy_hydbc = po.Set(within=self.sy,
                                initialize=self.df_plant_month.sy.tolist())
 
