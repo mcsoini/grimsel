@@ -1133,6 +1133,7 @@ class IO:
 
         if not sets:
             sets = table_struct.dict_table_index[py_obj.name]
+            sets = [st for st in sets if not st == 'bool_out']
 
         return VariabIO._to_df(py_obj, sets)
 
