@@ -711,19 +711,25 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         Drop a component of the pyomo model.
 
         A single component object is associated with various index objects.
-        Because of this, some looping over self.__dict__ is required
+        Because of this, some looping over the vars is required
         to catch 'em all.
+
+        Parameters
+        ----------
+        comp_name (str): base name of the model component (variable, etc)
+
         '''
 
-        list_del = []
-        for kk in self.__dict__.keys():
-            if ((comp_name == kk)
-                or (comp_name + '_index' in kk)
-                or (comp_name + '_domain' in kk)):
-                list_del.append(kk)
-        print('Deleting model components ({}).'.format(', '.join(list_del)))
+        list_del = [vr for vr in vars(self)
+                    if comp_name == vr
+                    or vr.startswith(comp_name + '_index')
+                    or vr.startswith(comp_name + '_domain')]
+
+        list_del_str = ', '.join(list_del)
+        logger.info('Deleting model components ({}).'.format(list_del_str))
+
         for kk in list_del:
-            self.__dict__.pop(kk, None)
+            self.del_component(kk)
 
     def run(self, warmstart=False):
         '''
