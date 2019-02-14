@@ -222,7 +222,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         methods in the :class:`.Constraints` mixing class.
         '''
 
-        for cg in self.constraint_groups:
+        for cg in set(self.constraint_groups):
             getattr(self, 'add_%s_rules'%cg)()
 
 
