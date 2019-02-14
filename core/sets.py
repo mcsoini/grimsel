@@ -109,12 +109,6 @@ class Sets:
         self.wk = (po.Set(initialize=list(self.df_def_week['wk_id']))
                    if not self.df_def_week is None else None)
 
-        # only constructed if self.mt exists
-        self.sy_mt = (po.Set(within=self.sy * self.mt,
-                            initialize=cols2tuplelist(
-                                    self.df_tm_soy_full[['sy', 'mt_id']]))
-                      if not self.mt is None else None)
-
         # pp_cacafcl; used to account for conversions of ca in the supply rule
         df_cafl = self.df_def_encar.set_index('fl_id')['ca_id']
         df_cafl = df_cafl.rename('ca_fl_id')
@@ -165,14 +159,6 @@ class Sets:
         # all plants with ramping costs
         vcrp_pos = (self.df_plant_encar.loc[self.df_plant_encar.vc_ramp > 0]
                         .set_index(['pp_id', 'ca_id']).index.values)
-        # fuels with cost profiles
-        mask_prf = ~self.df_fuel_node_encar.price_pf_id.isna()
-        df = self.df_fuel_node_encar.loc[mask_prf, ['nd_id', 'fl_id']]
-        df = pd.merge(df, self.df_def_plant[['pp_id', 'fl_id', 'nd_id']])
-        df = pd.merge(df, self.df_plant_encar[['pp_id', 'ca_id']])
-        lst = [tuple(c) for c in df[slct_cols_ppndcafl].values]
-        self.pp_ndcafl_prof = po.Set(within=self.pp_ndcafl, initialize=lst,
-                                     ordered=True)
         rp = [ppca for ppca in vcrp_pos if ppca[0] in self.setlst['rp']]
         self.rp_ca = po.Set(within=self.ppall_ca, initialize=rp, ordered=True)
 
