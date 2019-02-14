@@ -1,8 +1,11 @@
 import pyomo.environ as po
 import pandas as pd
 import numpy as np
+import logging
 
 from grimsel.auxiliary.aux_m_func import cols2tuplelist
+
+logger = logging.Logger('grimsel')
 
 class Sets:
     '''
