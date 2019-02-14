@@ -536,6 +536,8 @@ class Constraints:
 
         self.calc_vc_co2_pp = po.Constraint(self.pp_ndcafl - self.lin_ndcafl,
                                             rule=calc_vc_co2_pp_rule)
+
+        logger.info('Ramp VC calculation rule')
         def calc_vc_ramp_rule(self, pp, ca):
 
             return (self.vc_ramp_yr[pp, ca]
