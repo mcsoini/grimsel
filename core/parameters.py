@@ -143,7 +143,6 @@ class Parameters:
         mutable -- like the pyomo parameter keyword argument
         default -- like the pyomo parameter keyword argument
         '''
-#        parameter_name, parameter_index, source_dataframe, value_col = 'dmnd', (self.sy, self.dmnd_pf), 'df_profdmnd_soy', 'value'
 
         log_str = 'Assigning parameter {par} ...'.format(par=parameter_name)
         logging.info(log_str)
@@ -161,12 +160,10 @@ class Parameters:
                     logging.warn(log_str + ' failed (source_dataframe is None).')
                     _df = pd.DataFrame()
                     flag_empty = True
-#                    return None
             else:
                 logging.warn(log_str + ' failed (source_dataframe does not exist).')
                 _df = pd.DataFrame()
                 flag_empty = True
-#                return None
 
         elif type(source_dataframe) is pd.DataFrame:
             _df = source_dataframe
