@@ -78,7 +78,7 @@ class Parameters:
         self.padd('erg_chp', (self.pp, self.ca), df, **mut)
 
         logging.info('Defining fuel parameters')
-        self.padd('erg_inp', (self.nd, self.ca, self.fl), 'df_fuel_node_encar', **mut)
+        self.padd('erg_inp', (self.ndcafl), 'df_fuel_node_encar', **mut)
         self.padd('vc_fl', (self.fl, self.nd), 'df_fuel_node_encar', default=0, **mut) # EUR/MWh_el
 
         _df = self.df_plant_encar.copy()
