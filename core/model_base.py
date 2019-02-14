@@ -354,7 +354,9 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         '''
 
         list_pf = [(self.df_fuel_node_encar,
-                    ['fl_id', 'nd_id', 'ca_id'], 'price'),
+                    ['fl_id', 'nd_id', 'ca_id'], 'pricebuy'),
+                   (self.df_fuel_node_encar,
+                    ['fl_id', 'nd_id', 'ca_id'], 'pricesll'),
                    (self.df_node_encar,
                     ['nd_id', 'ca_id'], 'dmnd'),
                    (self.df_plant_encar,
