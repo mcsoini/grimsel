@@ -201,8 +201,9 @@ class Parameters:
                     'ndcnn': ['nd_id', 'nd_2_id', 'ca_id'],
                     'st': 'pp_id', 'lin': 'pp_id',
                     'ndfl_prof': ['nd_id', 'fl_id'],
-                    'dmnd_pf': 'dmnd_pf_id',
+                    'ndcafl': ['nd_id', 'ca_id', 'fl_id'],
                     'pricesll_pf': 'price_pf_id', 'pricebuy_pf': 'price_pf_id',
+                    'dmnd_pf': 'dmnd_pf_id', 'tmsy': ['tm_id', 'sy'],
                     'supply_pf': 'supply_pf_id'}
 
         # apply filter to dataframe
