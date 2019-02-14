@@ -175,7 +175,7 @@ class Constraints:
             return self.erg_ch_yr[pp, ca] == agg_erg_chg_yr
         self.yearly_charging = po.Constraint(self.st_ca, rule=yearly_chg_rule)
 
-    def add_capacity_rules(self):
+    def add_capacity_calculation_rules(self):
 
         logger.info('Calculate total capacity')
         def calc_cap_pwr_tot_rule(self, pp, ca):
@@ -196,6 +196,8 @@ class Constraints:
         self.calc_cap_erg_tot = po.Constraint(self.st_ca | self.hyrs_ca,
                                               rule=calc_cap_erg_tot_rule)
 
+
+    def add_capacity_constraint_rules(self):
 
         logger.info('Capacity constraints rules...')
         logger.info('- Power capacity pps')
