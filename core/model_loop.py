@@ -15,7 +15,6 @@ logger = logging.Logger(__name__)
 import grimsel.core.model_base as model_base
 import grimsel.core.io as io
 import grimsel.core.model_loop_modifier as model_loop_modifier
-import grimsel.core.parameter_changes as parameter_changes
 
 import grimsel.auxiliary.sqlutils.aux_sql_func as aql
 import grimsel.auxiliary.maps as maps
@@ -23,9 +22,8 @@ import grimsel.auxiliary.maps as maps
 reload(model_base)
 reload(io)
 reload(model_loop_modifier)
-reload(parameter_changes)
 
-class ModelLoop(parameter_changes.ParameterChanges):
+class ModelLoop():
     '''
     Defines the model loop framework. Main attribute is the dataframe
     df_def_loop.
