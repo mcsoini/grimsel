@@ -671,10 +671,11 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         # Map profiles and bc to soy
         for itb, idx in [
                          ('dmnd', ['dmnd_pf_id', 'sy']),
-                         ('price', ['price_pf_id', 'sy']),
                          ('inflow', ['pp_id', 'ca_id', 'sy']),
                          ('supply', ['supply_pf_id', 'sy']),
                          ('chp', ['nd_id', 'ca_id', 'sy']),
+                         ('pricesll', ['price_pf_id', 'sy']),
+                         ('pricebuy', ['price_pf_id', 'sy']),
                         ]:
 
             name_df = 'df_prof' + itb
