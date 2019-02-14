@@ -400,10 +400,9 @@ class Constraints:
                      * self.erg_inp[nd, ca, fl])
         self.hy_month_min = po.Constraint(self.mt, self.hyrs_ndcafl,
                                           rule=hy_month_min_rule)
-        #### MINIMUM RESERVOIR LEVEL HYDRO
-        def hy_erg_min_rule(self, pp, ca, sy):
 
         logger.info('Hydro minimum stored energy as a fraction of energy capacitiy')
+        def hy_erg_min_rule(self, sy, pp, ca):
             if not pp in [h for h in self.min_erg_share]:
                 return po.Constraint.Skip
             else:
@@ -411,7 +410,9 @@ class Constraints:
                         >=
                         self.min_erg_share[pp]
                         * self.cap_erg_tot[pp, ca])
-        self.hy_erg_min = po.Constraint(self.hyrs_ca, self.sy,
+
+        self.delete_component('hy_erg_min')
+        self.hy_erg_min = po.Constraint(self.sy_hyrs_ca,
                                         rule=hy_erg_min_rule)
 
 #    def add_ror_rules(self):
