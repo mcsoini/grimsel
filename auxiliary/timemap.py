@@ -37,6 +37,10 @@ class UniqueInstancesMeta(type):
 
 class TimeMap(metaclass=UniqueInstancesMeta):
 
+    def __repr__(self):
+
+        return 'TimeMap (%s)'%hash(self)
+
     def __hash__(self):
 
         return tm_hash(self.nhours, self.freq, self.start,
