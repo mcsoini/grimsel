@@ -92,3 +92,13 @@ chg_dict = {'var_sy_pwr': False,
              'var_tr_erg_trm_sd_yr': True,
              'dmnd': True,
              'var_sy_dmnd_flex': True}
+
+def _make_dict(lst):
+    return {comp[0]: comp[1] for comp in lst}
+
+
+
+dict_table_index = {**_make_dict(par), **_make_dict(var_mt),
+                    **_make_dict(var_sy),
+                    **_make_dict(var_tr), **_make_dict(var_yr)}
+
