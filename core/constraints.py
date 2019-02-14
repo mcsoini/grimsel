@@ -165,11 +165,15 @@ class Constraints:
 
         logger.info('Yearly charging rule')
         def yearly_chg_rule(self, pp, ca):
-            agg_erg_chg_yr = sum(self.pwr_st_ch[sy, pp, ca] * self.weight[sy]
-                                 for sy in self.sy)
+
+            tm = self.dict_pp_tm_id[pp]
+            tmsy_list = set_to_list(self.tmsy, [tm, None])
+
+            agg_erg_chg_yr = sum(self.pwr_st_ch[sy, pp, ca]
+                                 * self.weight[tm, sy]
+                                 for tm, sy in tmsy_list)
             return self.erg_ch_yr[pp, ca] == agg_erg_chg_yr
-        self.yrstcg = po.Constraint(self.st_ca, rule=yearly_chg_rule)
-        self.yrstcg.doc = 'Yearly storage charging energy.'
+        self.yearly_charging = po.Constraint(self.st_ca, rule=yearly_chg_rule)
 
     def add_capacity_rules(self):
 
