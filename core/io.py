@@ -18,7 +18,7 @@ import grimsel
 import grimsel.core.autocomplete as ac
 
 import logging
-logger = logging.Logger('grimsel')
+logger = logging.Logger(__name__)
 
 import grimsel.core.table_struct as table_struct
 

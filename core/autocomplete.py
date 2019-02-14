@@ -14,7 +14,7 @@ import abc
 
 import logging
 
-logging.getLogger().setLevel(logging.INFO)
+logging.getLogger(__name__)
 
 
 class AutoComplete(abc.ABC):

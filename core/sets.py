@@ -5,7 +5,7 @@ import logging
 
 from grimsel.auxiliary.aux_m_func import cols2tuplelist
 
-logger = logging.Logger('grimsel')
+logger = logging.Logger(__name__)
 
 class Sets:
     '''

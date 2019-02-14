@@ -3,6 +3,9 @@ import warnings
 import pyomo.environ as po
 import numpy as np
 
+import logging
+logger = logging.Logger(__name__)
+
 class Variables:
     '''
     Mixin class containing all variables.
@@ -45,12 +48,12 @@ class Variables:
         if not type(variable_index) is tuple:
             variable_index = (variable_index,)
 
-        print('Defining variable ', variable_name, end='... ')
+        logger.info('Defining variable ', variable_name, end='... ')
 
         if not self.check_valid_indices(variable_index):
             return None
         else:
-            print('ok.')
+            logger.info('ok.')
 
         setattr(self, variable_name, po.Var(*variable_index, bounds=bounds,
                                             domain=domain))

@@ -7,6 +7,7 @@ import itertools
 import pandas as pd
 
 import logging
+logger = logging.Logger(__name__)
 
 from grimsel.auxiliary.aux_m_func import pdef, set_to_list
 import grimsel.core.io as io
@@ -145,8 +146,6 @@ class Parameters:
         '''
 
         log_str = 'Assigning parameter {par} ...'.format(par=parameter_name)
-        logging.info(log_str)
-
 
         flag_empty = False
 

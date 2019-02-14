@@ -10,7 +10,7 @@ from importlib import reload
 import datetime
 import logging
 
-logger = logging.Logger('grimsel')
+logger = logging.Logger(__name__)
 
 import grimsel.core.model_base as model_base
 import grimsel.core.io as io
