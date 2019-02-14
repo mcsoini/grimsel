@@ -132,17 +132,20 @@ class Parameters:
         '''
         Parameter definition based on input dataframes
 
-        Keyword arguments:
-        parameter_name -- used as model attribute, also assumed to be the
-                          column name in case value_col=False
-        parameter_index -- tuple of pyomo sets to define the parameter index
-        source_dataframe -- input dataframe containing the parameter values
+        Args:
+        parameter_name (str): used as model attribute, also assumed to be the
+                          column name in case ``value_col=False``
+        parameter_index (tuple): tuple of pyomo sets to define the parameter index
+        source_dataframe (str) or (DataFrame): input dataframe containing the
+            parameter values
         value_col -- column name in the source_dataframe, is set to the
                      parameter name if no value is provided
         filt_col -- column of source_dataframe for filtering
         filt_vals -- values of filt_col for filtering
-        mutable -- like the pyomo parameter keyword argument
-        default -- like the pyomo parameter keyword argument
+        mutable (bool): like the pyomo parameter keyword argument
+        default (numeric): like the pyomo parameter keyword argument
+
+        Raises
         '''
 
         log_str = 'Assigning parameter {par} ...'.format(par=parameter_name)
