@@ -1029,9 +1029,7 @@ class DataReader():
 
         for itb in tb_list:
             df = getattr(self.model, 'df_' + itb)
-            if (df is not None
-                and not ((not 'def_' in itb) and self.no_output)
-                and not 'prof' in itb):
+            if (df is not None and ('def_' in itb or not 'prof' in itb)):
                 print('Writing table {} to output schema.'.format(itb))
                 engine = self.sql_connector.get_sqlalchemy_engine()
                 db = self.sql_connector.db
