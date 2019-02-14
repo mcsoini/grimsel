@@ -336,11 +336,18 @@ class Constraints:
 
     def add_charging_level_rules(self):
 
-        def erg_store_level_rule(self, pp, nd, ca, fl, sy):
         logger.info('Storage level rule')
+        def erg_store_level_rule(self, sy, pp, ca):
             ''' Charging state for storage and hydro. '''
+
+            nd = self.mps.dict_plant_2_node_id[pp]
+            fl = self.mps.dict_plant_2_fuel_id[pp]
+            tm = self.dict_nd_tm_id[nd]
+
+            list_sy = self.dict_tm_sy[tm]
+
             this_soy = sy
-            last_soy = (sy - 1) if this_soy != self.sy[1] else self.sy[-1]
+            last_soy = (sy - 1) if this_soy != list_sy[0] else list_sy[-1]
 
             left = 0
             right = 0
@@ -354,21 +361,23 @@ class Constraints:
             if pp in self.setlst['st']:
                 right += ((- self.pwr[this_soy, pp, ca]
                            / (1 - self.st_lss_rt[pp, ca])**(1/2)
-                           * self.weight[sy]
+                           * self.weight[tm, sy]
                          ) + (
                            self.pwr_st_ch[this_soy, pp, ca]
                            * (1 - self.st_lss_rt[pp, ca])**(1/2)
-                           * self.weight[sy]))
+                           * self.weight[tm, sy]))
             elif pp in self.setlst['hyrs'] + self.setlst['ror']:
                 right += (
                           # inflowprof profiles are normalized to one!!
                           (self.inflowprof[this_soy, pp, ca]
                            * self.erg_inp[nd, ca, fl]
-                          - self.pwr[sy, pp, ca]) * self.weight[sy]
+                          - self.pwr[sy, pp, ca]) * self.weight[tm, sy]
                          )
             return left == right
-        self.erg_store_level = po.Constraint(self.st_ndcafl | self.hyrs_ndcafl | self.ror_ndcafl,
-                                             self.sy, rule=erg_store_level_rule)
+
+        self.erg_store_level = po.Constraint(self.sy_st_ca | self.sy_hyrs_ca
+                                             | self.sy_ror_ca,
+                                             rule=erg_store_level_rule)
 
     def add_hydro_rules(self):
 
