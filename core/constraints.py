@@ -556,26 +556,28 @@ class Constraints:
 
     def get_vc_fl(self):
         return \
-        sum(sum(self.pwr[sy, lin, ca] * self.weight[sy]
-                * self.vc_fl[self.dict_soy_month[sy], fl, nd]
-                * (self.factor_lin_0[lin, ca]
-                   + 0.5 * self.pwr[sy, lin, ca]
-                         * self.factor_lin_1[lin, ca])
-                for sy in self.sy)
-            for (lin, nd, ca, fl) in set_to_list(self.lin_ndcafl, nnnn))
+        sum(self.pwr[sy, lin, ca]
+            * self.weight[self.dict_pp_tm_id[lin], sy]
+            * self.vc_fl[self.dict_soy_month[(self.dict_pp_tm_id[lin], sy)],
+                         self.mps.dict_plant_2_fuel_id[lin],
+                         self.mps.dict_plant_2_node_id[lin]]
+            * (self.factor_lin_0[lin, ca]
+               + 0.5 * self.pwr[sy, lin, ca]
+                     * self.factor_lin_1[lin, ca])
+            for (sy, lin, ca) in set_to_list(self.sy_lin_ca, nnnn))
 
     def get_vc_co(self):
         return \
-        sum(sum(self.pwr[sy, lin, ca] * self.weight[sy]
-                * (self.price_co2[mt, nd]
-                   if 'price_co2' in self.parameter_month_list
-                   else self.price_co2[nd])
-                * self.co2_int[fl]
+        sum(self.pwr[sy, lin, ca] * self.weight[self.dict_pp_tm_id[lin], sy]
+            * (self.price_co2[self.dict_soy_month[(self.dict_pp_tm_id[lin], sy)],
+                              self.mps.dict_plant_2_node_id[lin]]
+               if 'price_co2' in self.parameter_month_list
+               else self.price_co2[self.mps.dict_plant_2_node_id[lin]])
+            * self.co2_int[self.mps.dict_plant_2_fuel_id[lin]]
                 * (self.factor_lin_0[lin, ca]
                    + 0.5 * self.pwr[sy, lin, ca]
                    * self.factor_lin_1[lin, ca])
-                for (sy, mt) in set_to_list(self.sy_mt, nn))
-            for (lin, nd, ca, fl) in set_to_list(self.lin_ndcafl, nnnn))
+            for (sy, lin, ca) in set_to_list(self.sy_lin_ca, nnnn))
 
     def add_objective_rules(self):
         print('Objective rule quadratic')
