@@ -629,10 +629,11 @@ coldict = {
            'pwrerg_cat': ('VARCHAR',),
            'tm_id': ('SMALLINT',),
            'run_id': ('SMALLINT', '{sc}.def_loop(run_id)'),
-           'supply_pf_id': ('SMALLINT', '{sc}.def_profile(pf_id)'),
-           'dmnd_pf_id': ('SMALLINT', '{sc}.def_profile(pf_id)'),
-           'pricesll_pf_id': ('SMALLINT', '{sc}.def_profile(pf_id)'),
-           'pricebuy_pf_id': ('SMALLINT', '{sc}.def_profile(pf_id)')
+#           'supply_pf_id': ('SMALLINT', '{sc}.def_profile(pf_id)'),
+#           'dmnd_pf_id': ('SMALLINT', '{sc}.def_profile(pf_id)'),
+#           'pricesll_pf_id': ('SMALLINT', '{sc}.def_profile(pf_id)'),
+#           'pricebuy_pf_id': ('SMALLINT', '{sc}.def_profile(pf_id)'),
+           'pf_id': ('SMALLINT', '{sc}.def_profile(pf_id)'),
           }
 
 def get_coldict(sc=None, db=None, fk_include_missing=False):
