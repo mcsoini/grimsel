@@ -205,14 +205,20 @@ class Sets:
         self.setlst['supply_pf'] = df.drop_duplicates().get_values().tolist()
 
         df = self.df_fuel_node_encar.copy()
-        df = df.loc[-df.price_pf_id.isna(), 'price_pf_id']
-        self.setlst['price_pf'] = df.drop_duplicates().get_values().tolist()
+        df = df.loc[-df.pricesll_pf_id.isna(), 'pricesll_pf_id']
+        self.setlst['pricesll_pf'] = df.drop_duplicates().get_values().tolist()
+
+        df = self.df_fuel_node_encar.copy()
+        df = df.loc[-df.pricebuy_pf_id.isna(), 'pricebuy_pf_id']
+        self.setlst['pricebuy_pf'] = df.drop_duplicates().get_values().tolist()
 
         df = self.df_node_encar.copy()
         df = df.loc[-df.dmnd_pf_id.isna(), 'dmnd_pf_id']
         self.setlst['dmnd_pf'] = df.drop_duplicates().get_values().tolist()
 
-        self.setlst['pf'] = (self.setlst['dmnd_pf'] + self.setlst['price_pf']
+        self.setlst['pf'] = (self.setlst['dmnd_pf']
+                             + self.setlst['pricesll_pf']
+                             + self.setlst['pricebuy_pf']
                              + self.setlst['supply_pf'])
 
         self.setlst['rp'] = (self.setlst['pp']
