@@ -253,16 +253,18 @@ class Constraints:
         logger.info('Calculation of monthly totals rule')
         def monthly_totals_rule(self, mt, pp, ca):
             ''' Monthly sums hydro. '''
-            return (self.erg_mt[mt, pp, ca]
-                    == sum(self.pwr[sy, pp, ca]
-                       * self.weight[sy]
-                       for sy in self.dict_month_soy[mt]))
-        self.monthly_totals = po.Constraint(self.mt, self.hyrs_ca,
-                                            rule=monthly_totals_rule)
 
+            tm = self.dict_pp_tm_id[pp]
 
+            if (tm, mt) in self.dict_month_soy:
+                list_sy = self.dict_month_soy[(tm, mt)]
+                return (self.erg_mt[mt, pp, ca]
+                        == sum(self.pwr[sy, pp, ca] * self.weight[tm, sy]
+                               for sy in list_sy))
             else:
                 return po.Constraint.Skip
+        self.monthly_totals = po.Constraint(self.mt, self.hyrs_ca,
+                                            rule=monthly_totals_rule)
 
     def add_variables_rules(self):
         def variables_prof_rule(self, sy, pp, nd, ca):
