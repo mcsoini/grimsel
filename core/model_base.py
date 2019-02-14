@@ -434,6 +434,47 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
             return df_new
 
+
+    def _get_nhours_nodes(self, nhours):
+        '''
+        Generates the nhours dictionary ``nhours``.
+
+        Returns
+        -------
+            nhours_dict (dict): ``{node: (original time res,
+                                          target time res)}``
+
+        '''
+
+
+        if isinstance(nhours, dict):
+
+            nhours_dict = {}
+
+            for nd in self.slct_node:
+
+                nd_id = self.mps.dict_nd_id[nd]
+
+                if nd in nhours:
+
+                    if isinstance(nhours[nd], tuple):
+                        # all there
+                        nhours_dict[nd_id] = nhours[nd]
+
+                    elif isinstance(nhours[nd], (float, int)):
+                        # assuming original time resolution 1 hour
+                        nhours_dict[nd_id] = (1, nhours[nd])
+
+                else:
+                    # assuming default
+                    nhours_dict[nd_id] = (1, 1)
+
+        elif isinstance(nhours, (float, int)):
+
+            nhours_dict = {nd: (1, nhours) for nd in self.slct_node_id}
+
+        return nhours_dict
+
         '''
 
         # get time maps and dicts
