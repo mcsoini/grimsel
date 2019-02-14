@@ -34,7 +34,9 @@ class Constraints:
         if hasattr(self, 'trm'):
             for sy, nd1, nd2, ca in self.trm:
 
-                mt = self.dict_soy_month[sy]
+                tm = self.dict_ndnd_tm_id[nd1, nd2]
+
+                mt = self.dict_soy_month[(tm, sy)]
                 ub = self.cap_trme_leg[mt, nd1, nd2, ca]
                 lb = - self.cap_trmi_leg[mt, nd1, nd2, ca]
                 self.trm[(sy, nd1, nd2, ca)].setub(ub)
