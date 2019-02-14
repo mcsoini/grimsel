@@ -366,7 +366,9 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         for df, ind, name in list_pf:
 
             col = '%s_pf_id'%name
-            dct = df.loc[~df[col].isna()].set_index(ind)[col].to_dict()
+            ind_df = df.loc[~df[col].isna()].set_index(ind)[col]
+
+            dct = ind_df.to_dict()
 
             setattr(self, 'dict_%s_pf'%name, dct)
 
@@ -393,13 +395,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
                     values in the input DataFrame.
         IndexError: If no pf dictionary can be found for the pf_id values.
 
-    def map_to_time_res(self):
         '''
-        Generates a map between hours-of-the-year and time slots-of-the-year
-        based on the fixed time resolution self.nhours, using the class
-        timemap.TimeMap. Then maps relevant input data from hours to slots.
-        Also generates dictionaries which contain all slot ids for each
-        week/month and vice versa.
 
         # identify corresponding pf dict
         list_pf_id = set(df.pf_id.unique().tolist())
@@ -483,19 +479,11 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
         '''
 
-        # get time maps and dicts
-        self.tm = timemap.TimeMap(self.nhours, self.tm_filt)
-        self.df_tm_soy_full = self.tm.df_time_red # save to output database
-        self.df_hoy_soy = self.tm.df_hoy_soy
-        self.df_tm_soy = self.tm.df_time_red[['wk_id', 'mt_id', 'sy',
-                                              'weight', 'wk_weight']]
         dct = {var.replace('df_def_', ''): getattr(self, var)
                for var in vars(self) if 'df_def_' in var}
 
         self.mps = maps.Maps.from_dicts(dct)
 
-        # scale fixed costs to account for less than full year
-        self.adjust_cost_time()
 
         _df = self.df_tm_soy.copy()
 
@@ -507,8 +495,6 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
             setattr(self, 'dict_' + nm + '_soy', d)
             setattr(self, 'dict_soy_' + nm, {s: w for w in d for s in d[w]})
 
-        # map hydro boundary conditions (which refer to the beginning
-        # of the month) to time slots
         if not self.df_plant_month is None:
             _df = self.df_def_month[['mt_id', 'month_min_hoy']].set_index('mt_id')
             self.df_plant_month = self.df_plant_month.join(_df, on=_df.index.name)
