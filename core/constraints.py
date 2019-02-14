@@ -55,25 +55,59 @@ class Constraints:
 
         '''
 
+# %%
+
+        def get_transmission(sy, nd, nd_2, ca, export=True):
+            '''
+            If called by supply rule, the order nd, nd_2 is always the ndcnn
+            order, therefore also trm order.
+
+            Case 1: nd has higher time resolution (min) -> just use
+                    trm[tm, sy, nd, nd_2, ca]
+            Case 2: nd has lower time resolution (not min) -> average
+                    avg(trm[tm, all the sy, nd, nd_2, ca])
+
+                    self.dict_sysy[nd, nd_2, sy]
+
+            Args:
+                - sy (int): current time slot in nd
+                - nd (int): outgoing node
+                - nd_2 (int): incoming node
+                - ca (int): energy carrier
+                - export (bool): True if export else False
+
+            '''
+            if self.is_min_node[(nd if export else nd_2,
+                                 nd_2 if export else nd)]:
+                trm = self.trm[sy, nd, nd_2, ca]
+                return trm
+
+            else: # average over all of the other sy
+                list_sy2 = self.dict_sysy[nd if export else nd_2,
+                                          nd_2 if export else nd, sy]
+
+                avg = 1/len(list_sy2) * sum(self.trm[_sy, nd, nd_2, ca]
+                                            for _sy in list_sy2)
+                return avg
+
         logger.info('Supply rule')
         def supply_rule(self, sy, nd, ca):
 
+            list_neg = self.setlst['sll'] + self.setlst['curt']
             prod = (# power output; negative if energy selling plant
                     sum(self.pwr[sy, pp, ca]
-                        * (-1 if pp in self.setlst['sll']
-                                     + self.setlst['curt']
-                                     else 1)
+                        * (-1 if pp in list_neg else 1)
                         for (pp, nd, ca)
-                        in set_to_list(self.ppall_ndca,
-                                       [None, nd, ca]))
+                        in set_to_list(self.ppall_ndca, [None, nd, ca]))
                     # incoming inter-node transmission
-                    + sum(self.trm[sy, nd, nd_2, ca] for (nd, nd_2, ca)
+                    + sum(get_transmission(sy, nd, nd_2, ca,    False)
+                          for (nd, nd_2, ca)
                           in set_to_list(self.ndcnn, [None, nd, ca]))
                    )
-            dmnd = (#self.dmnd[sy, nd, ca]
-                    self.dmnd[sy, self.dict_dmnd_pf[(nd, ca)]]
-                    + sum(self.trm[sy, nd, nd_2, ca] for (nd, nd_2, ca)
+            exports = sum(get_transmission(sy, nd, nd_2, ca, True)
+                          for (nd, nd_2, ca)
                           in set_to_list(self.ndcnn, [nd, None, ca]))
+            dmnd = (self.dmnd[sy, self.dict_dmnd_pf[(nd, ca)]]
                     + sum(self.pwr_st_ch[sy, st, ca] for (st, nd, ca)
                           in set_to_list(self.st_ndca, [None, nd, ca]))
                     # demand of plants using ca as an input
@@ -82,8 +116,8 @@ class Constraints:
                           in set_to_list(self.pp_ndcaca,
                                          [None, nd, None, ca]))
                     )
-            return prod == dmnd * (1 + self.grid_losses[nd, ca])
-        self.supply = po.Constraint(self.sy, self.ndca, rule=supply_rule)
+            return prod == dmnd * (1 + self.grid_losses[nd, ca]) + exports
+        self.supply = po.Constraint(self.sy_ndca, rule=supply_rule)
 
 
     def add_energy_aggregation_rules(self):
