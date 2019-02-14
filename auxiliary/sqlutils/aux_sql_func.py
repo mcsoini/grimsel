@@ -596,7 +596,7 @@ def slct_str(lst, exclude=[], pl='', pr='', sl='', sr='', commas=['','']):
 coldict = {
            # FORMAT:
            # 'set_name': ('DATATYPE', )
-           'sy': ('SMALLINT', '{sc}.tm_soy(sy)'),
+           'sy': ('INTEGER', '{sc}.tm_soy(sy)'),
            'hy': ('FLOAT', '{sc}.hoy_soy(hy)'),
            'pp_id': ('SMALLINT', '{sc}.def_plant(pp_id)'),
            'pp': ('VARCHAR', '{sc}.def_plant(pp)'),
@@ -613,7 +613,7 @@ coldict = {
            'nd': ('VARCHAR', '{sc}.def_node(nd)'),
            'nd_2_id': ('SMALLINT', '{sc}.def_node(nd_id)'),
            'bool_out': ('BOOLEAN',),
-           'weight': ('SMALLINT',),
+           'weight': ('FLOAT',),
            'min_hoy': ('SMALLINT',), 'year': ('SMALLINT',),
            'day': ('SMALLINT',),
            'dow': ('SMALLINT',), 'dow_name': ('VARCHAR',),
