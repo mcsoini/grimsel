@@ -536,6 +536,68 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
                 setattr(self, 'df_prof' + itb + '_soy', df_tbsoy)
 
+    def _map_profile_to_time_resolution(self, df, itb, idx):
+        ''' Maps a single profile table to the selected nodal time resolution.
+
+        Parameters
+        ----------
+        df: DataFrame
+            input profile table. Must have columns ``hy`` as well as one of
+            ``{tm_id, pp_id, nd_id, pf_id}``
+        itb: str
+            table name, used for ``setattr`` of new tables
+        idx: list of str
+            index columns of the old and new tables
+
+        Returns
+        -------
+        None
+            Mapped table is made an attribute of the :class:`ModelBase` class
+            instance
+
+        Raises
+        ------
+        IndexError
+            When a given ``pf_id`` is used by multiple ``tm_id``. E.g. if
+            a price profile is used by different nodes with different
+            time resolutions. Could be implemented... not done for now.
+
+        '''
+
+        df = df.copy()
+
+        val = ['value']
+
+        if df is None or df.empty:
+            setattr(self, 'df_prof' + itb + '_soy',
+                    pd.DataFrame(columns=idx + val))
+            return None
+
+        if not 'tm_id' in df.columns:
+            df = self._add_tm_columns(df)
+
+        # are there single nodes pf_ids which have more than one tm_id?
+        if 'pf_id' in df.columns:
+            df_pf = df[['pf_id', 'tm_id']].drop_duplicates()
+            tm_count = df_pf.groupby('pf_id').tm_id.count()
+            if tm_count.max() > 1:
+                raise IndexError('map_to_time_res: Multiple tm_ids '
+                                 'found for pf_ids of %s profiles.'%itb)
+
+        df['hy'] = df.hy.astype(float)
+
+        ind = ['hy', 'tm_id']
+        df = df.join(self.df_hoy_soy.set_index(ind), on=ind)
+
+        df[val] = df[val].astype(float)
+        df = df.pivot_table(values=val, index=idx,
+                            aggfunc=np.mean).reset_index()
+
+        if df.empty:
+            df = pd.DataFrame(columns=idx + val)
+
+        setattr(self, 'df_prof' + itb + '_soy', df)
+
     def adjust_cost_time(self):
         '''
         Scale fixed costs for incomplete years.
