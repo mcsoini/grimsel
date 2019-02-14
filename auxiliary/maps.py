@@ -236,13 +236,22 @@ class Maps():
         return f_new()
 
     @silence_pd_warning
-    def id_to_name(self, df, name_list):
+    def id_to_name(self, df, name_list=None, inplace=False):
+
+        if not name_list:
+            name_list = [c.replace('_id', '') for c
+                         in df.columns if c.endswith('_id')]
+
+        if not inplace:
+            df = df.copy()
 
         for iid in name_list:
-            idict = getattr(self, 'dict_' + iid)
+            idict = getattr(self, 'dict_' + iid, None)
 
-            df.loc[:, iid + '_id'] = df[iid + '_id'].replace(idict)
+            if idict:
+                df.loc[:, iid + '_id'] = df[iid + '_id'].replace(idict)
         return df
+
 
 
 if __name__ == '__main__':
