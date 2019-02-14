@@ -237,14 +237,15 @@ class Constraints:
 
     def add_chp_new_rules(self):
 
-        def chp_prof_rule(model, sy, pp, nd, ca, fl):
+        def chp_prof_rule(model, sy, pp, ca):
             '''Produced power greater than CHP output profile.'''
+
+            nd = self.mps.dict_plant_2_node_id[pp]
 
             return (self.pwr[sy, pp, ca]
                     >= self.chpprof[sy, nd, ca] * self.erg_chp[pp, ca])
 
-        self.chp_prof = po.Constraint(self.sy, self.chp_ndcafl,
-                                      rule=chp_prof_rule)
+        self.chp_prof = po.Constraint(self.sy_chp_ca, rule=chp_prof_rule)
 
 
     def add_monthly_total_rules(self):
