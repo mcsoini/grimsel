@@ -1068,7 +1068,8 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
             df_cap_peak = df_cap_peak.apply(lambda x: max(0., x))
             df_cap_peak = df_cap_peak.reset_index()
             df_cap_peak['pp_id'] = df_cap_peak['nd_id']
-            df_cap_peak = df_cap_peak.loc[df_cap_peak.nd_id.isin(list(dict_nd_pp.keys()))]
+            list_nd = list(dict_nd_pp.keys())
+            df_cap_peak = df_cap_peak.loc[df_cap_peak.nd_id.isin(list_nd)]
             df_cap_peak['pp_id'] = df_cap_peak['pp_id'].replace(dict_nd_pp)
             df_cap_peak['ca_id'] = 0
 
