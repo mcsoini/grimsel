@@ -267,14 +267,16 @@ class Constraints:
                                             rule=monthly_totals_rule)
 
     def add_variables_rules(self):
-        def variables_prof_rule(self, sy, pp, nd, ca):
+
         logger.info('Profile rule variables')
+        def variables_prof_rule(self, sy, pp, ca):
             ''' Produced power equal output profile '''
             left = self.pwr[sy, pp, ca]
             return left == (self.supprof[sy, self.dict_supply_pf[(pp, ca)]]
                             * self.cap_pwr_tot[pp, ca])
-        self.variables_prof = po.Constraint(self.sy, self.pr_ndca,
+        self.variables_prof = po.Constraint(self.sy_pr_ca,
                                             rule=variables_prof_rule)
+
     def add_ramp_rate_rules(self):
 
         def calc_ramp_rate_rule(self, pp, ca, sy):
