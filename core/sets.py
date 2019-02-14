@@ -98,6 +98,9 @@ class Sets:
         # temporal
         self.sy = po.Set(initialize=list(self.df_tm_soy.sy.unique()),
                          ordered=True)
+        self.tm = po.Set(initialize=self.df_tm_soy.tm_id.unique(),
+                         ordered=True)
+
         self.sy_hydbc = po.Set(within=self.sy,
                                initialize=self.df_plant_month.sy.tolist())
 
