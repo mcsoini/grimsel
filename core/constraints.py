@@ -235,7 +235,7 @@ class Constraints:
                                        rule=st_capac_rule_en)
 
 
-    def add_chp_new_rules(self):
+    def add_chp_rules(self):
 
         def chp_prof_rule(model, sy, pp, ca):
             '''Produced power greater than CHP output profile.'''
@@ -260,28 +260,9 @@ class Constraints:
         self.monthly_totals = po.Constraint(self.mt, self.hyrs_ca,
                                             rule=monthly_totals_rule)
 
-    def add_chp_rules(self):
-        # TODO explicit demand for all ca --> constrain pwr-to-heat ratios
-#        pass
-        def chp_prof_rule(self, sy, pp, nd, ca):
-            '''Produced power greater than CHP output profile.'''
-            left = self.pwr[sy, pp, ca]
 
-            if ca == 0:
-                return left >= self.chpprof[sy, nd, ca] * self.cap_pwr_tot[pp, ca]
             else:
                 return po.Constraint.Skip
-
-        self.chp_prof = po.Constraint(self.sy, self.chp_ndca,
-                                      rule=chp_prof_rule)
-
-        print('CHP capacity share must not change')
-        def set_chp_cap_rule(self, nd):
-            total_chp = sum(self.cap_pwr_tot[pp, ca] for (pp, nd, ca)
-                            in set_to_list(self.chp_ndca, (None, nd, 0)))
-            return total_chp >= self.chp_cap_pwr_leg[nd]
-
-        self.set_chp_cap = po.Constraint(self.nd, rule=set_chp_cap_rule)
 
     def add_variables_rules(self):
         def variables_prof_rule(self, sy, pp, nd, ca):
