@@ -132,12 +132,15 @@ class Constraints:
         def yearly_energy_rule(self, pp, ca):
             ''' Yearly energy production consumed per power plant and output
             energy carrier. Relevant only for fuel-consuming power plants.'''
-            return (self.erg_yr[pp, ca]
-                    == sum(self.pwr[sy, pp, ca]
-                       * self.weight[sy] for sy in self.sy))
-        self.YearlyEnergy = po.Constraint(self.ppall_ca,
-                                          rule=YearlyEnergy_rule)
 
+            tm = self.dict_pp_tm_id[pp]
+
+            return (self.erg_yr[pp, ca]
+                    == sum(self.pwr[sy, pp, ca] * self.weight[tm, sy]
+                           for tm, sy in set_to_list(self.tmsy, [tm, None])))
+
+        self.yearly_energy = po.Constraint(self.ppall_ca,
+                                           rule=yearly_energy_rule)
 
         logger.info('Yearly ramping calculation rule')
         def yearly_ramp_rule(self, pp, ca):
