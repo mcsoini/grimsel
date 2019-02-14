@@ -51,7 +51,7 @@ class Parameters:
         self.padd('min_erg_share', (self.hyrs,), 'df_hydro', **mut) # minimum filling level as share of cap_erg.
 
         logging.info('Defining general parameters')
-        self.padd('weight', (self.sy,), self.df_tm_soy) # Weight per time slot.
+        self.padd('weight', (self.tmsy,), self.df_tm_soy) # Weight per time slot.
         self.padd('month_weight', (self.mt,), self.df_def_month) # Hours per month.
         self.padd('dmnd_sum', (self.nd,), self.df_node_encar, default=0) # .
         self.padd('grid_losses', (self.nd, self.ca), self.df_node_encar, **mut) # Grid losses.
