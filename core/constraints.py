@@ -145,9 +145,14 @@ class Constraints:
         logger.info('Yearly ramping calculation rule')
         def yearly_ramp_rule(self, pp, ca):
             ''' Yearly ramping in MW/yr. Up and down aggregated. '''
+            tm = self.dict_pp_tm_id[pp]
+            tmsy_list = set_to_list(self.tmsy, [tm, None])
+
             return (self.pwr_ramp_yr[pp, ca]
-                    == sum(self.pwr_ramp_abs[sy, pp, ca] for sy in self.sy))
-        self.yrrmp = po.Constraint(self.pprp_ca, rule=yearly_ramp_rule)
+                    == sum(self.pwr_ramp_abs[sy, pp, ca]
+                           for tm, sy in tmsy_list))
+
+        self.yearly_ramping = po.Constraint(self.rp_ca, rule=yearly_ramp_rule)
 
         logger.info('Yearly fuel consumption rule')
         def yearly_fuel_cons_rule(self, pp, nd, ca, fl):
