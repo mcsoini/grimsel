@@ -86,7 +86,6 @@ class Constraints:
         self.supply = po.Constraint(self.sy, self.ndca, rule=supply_rule)
 
 
-    # decorator to print function name???
     def add_energy_aggregation_rules(self):
         '''
         Calculation of yearly sums of energy from
@@ -265,30 +264,6 @@ class Constraints:
 
     def add_energy_constraint_rules(self):
 #
-#        if 'cf_max' in self.parameter_month_list:
-#
-#            print('Capacity factor limitation rule')
-#            def pp_cf_rule(self, mt, pp, ca):
-#
-#                return (self.erg_mt[mt, pp, ca]
-#                        <= self.cf_max[mt, pp, ca]
-#                           * self.cap_pwr_tot[pp, ca]
-#                           * self.month_weight[mt])
-#            self.pp_cf = po.Constraint(self.mt, self.pp_ca - self.pr_ca,
-#                                       rule=pp_cf_rule,
-#                                       doc='Capacity factor constrained.')
-#        else:
-#            print('Capacity factor limitation rule')
-#            def pp_cf_rule(self, pp, ca):
-#
-#                return (self.erg_yr[pp, ca]
-#                        <= self.cf_max[pp, ca]
-#                            * self.cap_pwr_tot[pp, ca]
-#                            * 8760)
-#            self.pp_cf = po.Constraint(self.pp_ca - self.pr_ca,
-#                                       rule=pp_cf_rule,
-#                                       doc='Capacity factor constrained.')
-
         logger.info('Fuel constraint rule')
         def pp_max_fuel_rule(self, nd, ca, fl):
             '''Maximum energy produced from a certain fuel in a certain pp.
@@ -313,21 +288,6 @@ class Constraints:
                 return po.Constraint.Skip
 
         self.pp_max_fuel = po.Constraint(self.ndcafl, rule=pp_max_fuel_rule)
-
-#        print('Fixed VRE share')
-#        def set_win_sol_rule(self, nd):
-#            'Calculation of wind and solar share rule; note: activated in loop'
-#
-#
-#
-#            prod_ws = sum(self.erg_yr[(pp, 0)] for pp in self.setlst['winsol']
-#                        if (pp, nd, 0) in [i for i in self.pr_ndca])
-#            if not self.share_ws_set[nd].value == None:
-#                return self.dmnd_sum[nd] * self.share_ws_set[nd] == prod_ws
-#            else:
-#                return po.Constraint.Skip
-#        self.set_win_sol = po.Constraint(self.nd, rule=set_win_sol_rule)
-#        self.set_win_sol.deactivate()
 
     def add_charging_level_rules(self):
 
@@ -486,40 +446,10 @@ class Constraints:
         self.calc_vc_om_pp = po.Constraint(self.ppall_ca,
                                            rule=calc_vc_om_pp_rule)
 
-        print('CO2 VC calculation rule --> OBSOLETE: Linear cost included directly in objective!!')
-#        def calc_vc_co2_pp_rule(self, pp, nd, ca, fl):
-#
-#            # Case 1: monthly adjustment factors have been applied to vc_fl
-#            if 'price_co2' in self.parameter_month_list:
-#                sums = sum(self.pwr[sy, pp, ca] # POWER!
-#                           / self.pp_eff[pp, ca] * self.weight[sy]
-#                           * self.price_co2[mt, nd] * self.co2_int[fl]
-#                           for (sy, mt) in set_to_list(self.sy_mt,
-#                                                       [None, None]))
-#            # Case 2: ordinary single CO2 price
-#            else:
-#                sums = (self.erg_fl_yr[pp, nd, ca, fl] # ENERGY!
-#                            / self.pp_eff[pp, ca]
-#                            * self.price_co2[nd] * self.co2_int[fl])
-#
-#            return self.vc_co2_pp_yr[pp, ca] == sums
-#
-#        self.calc_vc_co2_pp = po.Constraint(self.pp_ndcafl - self.lin_ppndcafl,
-#                                            rule=calc_vc_co2_pp_rule)
-#
-#        print('Flexible demand VC calculation rule')
-#        def calc_vc_flex_dmnd_rule(self, nd, ca):
-#            return (self.vc_dmnd_flex_yr[nd, ca]
-#                    == self.dmnd_flex_yr[nd, ca] * self.vc_dmnd_flex[nd, ca])
-#        self.calc_vc_flex_dmnd = po.Constraint(self.ndca,
-#                                               rule=calc_vc_flex_dmnd_rule)
 
         logger.info('CO2 VC calculation rule --> OBSOLETE: Linear cost included directly in objective!!')
         def calc_vc_ramp_rule(self, pp, ca):
 
-#            if pp == 34:
-#                return po.Constraint.Skip
-#            else:
             return (self.vc_ramp_yr[pp, ca]
                     == self.pwr_ramp_yr[pp, ca] * self.vc_ramp[pp, ca])
         self.calc_vc_ramp = po.Constraint(self.pprp_ca, rule=calc_vc_ramp_rule)
@@ -535,31 +465,6 @@ class Constraints:
             return (self.fc_cp_pp_yr[pp, ca]
                     == self.cap_pwr_new[pp, ca] * self.fc_cp_ann[pp, ca])
         self.calc_fc_cp = po.Constraint(self.add_ca, rule=calc_fc_cp_rule)
-
-#    def add_objective_rules(self):
-#        print('Objective rule')
-#        nnn = [None] * 3
-#        nn = [None] * 2
-#        def objective_rule(self):
-#            return (sum(self.vc_fl_pp_yr[pp, ca, fl]
-#                        for (pp, ca, fl) in set_to_list(self.pp_cafl, nnn))
-#                  + sum(self.vc_co2_pp_yr[pp, ca]
-#                        for (pp, ca) in set_to_list(self.pp_ca, nn))
-#                  + sum(self.vc_om_pp_yr[pp, ca]
-#                        for (pp, ca) in set_to_list(self.ppall_ca, nn))
-##                  + sum(self.vc_dmnd_flex_yr[nd, ca]
-##                        for (nd, ca) in set_to_list(self.ndca_EL, nn))
-#                  + sum(self.vc_ramp_yr[pp, ca]
-#                        for (pp, ca) in set_to_list(self.pp_ca | self.hyrs_ca
-#                                                    | self.ror_ca, nn))
-#                  + sum(self.fc_om_pp_yr[pp, ca]
-#                        for (pp, ca) in set_to_list(self.ppall_ca, nn))
-#                  + sum(self.fc_cp_pp_yr[pp, ca]
-#                        for (pp, ca) in set_to_list(self.add_ca, nn))
-#                )
-#        self.objective = po.Objective(rule=objective_rule, sense=po.minimize,
-#                                   doc='Define objective function')
-
 
     def get_vc_fl(self):
         return \
