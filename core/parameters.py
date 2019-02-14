@@ -41,7 +41,9 @@ class Parameters:
         self.padd('chpprof', (self.sy, self.nd, self.ca), 'df_profchp_soy', 'value', **mut) # Relative heat demand profile.
         self.padd('supprof', (self.sy, self.supply_pf), 'df_profsupply_soy', 'value', **mut) # Supply from variable generators.
         self.padd('inflowprof', (self.sy, self.hyrs | self.ror, self.ca), 'df_profinflow_soy', 'value', **mut) # Hydro inflow profiles.
-        self.padd('priceprof', (self.sy, self.price_pf), 'df_profprice_soy', 'value', **mut) # Relative heat demand profile.
+
+        self.padd('pricebuyprof', (self.sy, self.pricebuy_pf), 'df_profpricebuy_soy', 'value', **mut) # Relative heat demand profile.
+        self.padd('pricesllprof', (self.sy, self.pricesll_pf), 'df_profpricesll_soy', 'value', **mut) # Relative heat demand profile.
 
         logging.info('Hydro parameters')
         self.padd('min_erg_mt_out_share', (self.hyrs,), 'df_hydro') # minimum monthly production as share of max_erg_mt_in_share.
@@ -199,8 +201,8 @@ class Parameters:
                     'ndcnn': ['nd_id', 'nd_2_id', 'ca_id'],
                     'st': 'pp_id', 'lin': 'pp_id',
                     'ndfl_prof': ['nd_id', 'fl_id'],
-                    'price_pf': 'price_pf_id',
                     'dmnd_pf': 'dmnd_pf_id',
+                    'pricesll_pf': 'price_pf_id', 'pricebuy_pf': 'price_pf_id',
                     'supply_pf': 'supply_pf_id'}
 
         # apply filter to dataframe
