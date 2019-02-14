@@ -90,7 +90,8 @@ class Parameters:
         logging.info('Defining parameters for all generators')
         _df = self.df_plant_encar.copy()
         _df = _df.loc[_df['pp_id'].isin(self.setlst['ppall'])]
-        sets = (self.pp | self.pr | self.ror | self.st | self.hyrs | self.curt | self.lin, self.ca)
+        sets = (self.pp | self.pr | self.ror | self.st | self.hyrs
+                | self.curt | self.lin, self.ca)
         self.padd('cap_pwr_leg', sets, _df, **mut) # .
         self.padd('vc_om', sets, _df, **mut) # .
         self.padd('fc_om', sets, _df, **mut, default=0) # .
@@ -175,7 +176,8 @@ class Parameters:
                            if not isinstance(parameter_index, tuple)
                            else parameter_index)
 
-        if not flag_empty and not self.check_valid_indices(parameter_index):
+        if not flag_empty and not self.check_valid_indices(parameter_index,
+                                                           log_str):
             flag_empty = True
 
         # set data column to parameter name in case no other value is provided
