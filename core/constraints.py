@@ -218,13 +218,14 @@ class Constraints:
                                          | self.sy_st_ca | self.sy_hyrs_ca,
                                          rule=ppst_capac_rule)
 
-        def st_capac_rule_pw_ch(self, pp, ca, sy):
         logger.info('- Power capacity storage charging')
+        def st_chg_capac_rule(self, sy, pp, ca):
             ''' Charging power less than nominal power capacity. '''
+
             return (self.pwr_st_ch[sy, pp, ca]
                     <= self.cap_pwr_tot[pp, ca])
-        self.CapacStPwCh = po.Constraint(self.st_ca, self.sy,
-                                         rule=st_capac_rule_pw_ch)
+        self.st_chg_capac = po.Constraint(self.sy_st_ca,
+                                          rule=st_chg_capac_rule)
 
         def st_capac_rule_en(self, pp, ca, sy):
         logger.info('- Energy capacity')
