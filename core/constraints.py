@@ -503,6 +503,27 @@ class Constraints:
 
 
         logger.info('CO2 VC calculation rule --> OBSOLETE: Linear cost included directly in objective!!')
+        def calc_vc_co2_pp_rule(self, pp, nd, ca, fl):
+
+            tm = self.dict_nd_tm_id[nd]
+
+            # Case 1: monthly adjustment factors have been applied to vc_fl
+            if 'price_co2' in self.parameter_month_list:
+                sums = sum(self.pwr[sy, pp, ca] # POWER!
+                           / self.pp_eff[pp, ca] * self.weight[tm, sy]
+                           * self.price_co2[mt, nd] * self.co2_int[fl]
+                           for (_tm, sy, mt) in set_to_list(self.tmsy_mt,
+                                                       [tm, None, None]))
+            # Case 2: ordinary single CO2 price
+            else:
+                sums = (self.erg_fl_yr[pp, nd, ca, fl] # ENERGY!
+                            / self.pp_eff[pp, ca]
+                            * self.price_co2[nd] * self.co2_int[fl])
+
+            return self.vc_co2_pp_yr[pp, ca] == sums
+
+        self.calc_vc_co2_pp = po.Constraint(self.pp_ndcafl - self.lin_ndcafl,
+                                            rule=calc_vc_co2_pp_rule)
         def calc_vc_ramp_rule(self, pp, ca):
 
             return (self.vc_ramp_yr[pp, ca]
