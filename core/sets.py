@@ -179,6 +179,64 @@ class Sets:
                     po.Set(within=self.pf, initialize=self.setlst[pf_set],
                            ordered=True))
 
+        self._init_tmsy_sets()
+
+
+    def _init_tmsy_sets(self):
+        '''
+
+
+        Through the node-specific time resolution the plant ids and the
+        time slots are connected.
+        '''
+
+        list_tmsy = cols2tuplelist(self.df_tm_soy[['tm_id', 'sy']])
+        self.tmsy = po.Set(within=self.tm*self.sy, initialize=list_tmsy,
+                           ordered=True)
+
+        # only constructed if self.mt exists
+        self.tmsy_mt = (po.Set(within=self.tmsy * self.mt,
+                               initialize=cols2tuplelist(
+                                    self.df_tm_soy[['tm_id', 'sy', 'mt_id']]))
+                        if not self.mt is None else None)
+
+
+
+        df = pd.merge(self.df_def_plant, self.df_plant_encar,
+                      on='pp_id', how='outer')[['nd_id', 'ca_id']]
+        df = df.loc[~df.ca_id.isna()].drop_duplicates()
+        df['tm_id'] = df.nd_id.replace(self.dict_nd_tm_id)
+        cols = ['sy', 'nd_id', 'ca_id']
+        list_syndca = pd.merge(self.df_tm_soy[['tm_id', 'sy']],
+                                df, on='tm_id', how='outer')[cols]
+
+        self.sy_ndca = po.Set(within=self.sy * self.ndca, ordered=True,
+                           initialize=cols2tuplelist(list_syndca))
+
+        cols = ['sy', 'pp_id', 'ca_id']
+        for slct_set in ['ppall', 'rp', 'st', 'hyrs', 'pr', 'pp', 'chp',
+                         'ror', 'lin']:
+
+            set_name = 'sy_%s_ca'%slct_set
+            self.delete_component(set_name)
+
+            logger.info('Defining set ' + set_name)
+
+            mask_pp = self.df_plant_encar.pp_id.isin(self.setlst[slct_set])
+            df = self.df_plant_encar.loc[mask_pp, ['pp_id', 'ca_id']].copy()
+            df['tm_id'] = (df.pp_id.replace(self.mps.dict_plant_2_node_id)
+                             .replace(self.dict_nd_tm_id))
+
+            list_syppca = pd.merge(self.df_tm_soy[['sy', 'tm_id']],
+                                    df, on='tm_id', how='outer')[cols]
+
+            list_syppca = list_syppca.loc[~(list_syppca.pp_id.isna()
+                                            | list_syppca.ca_id.isna())]
+
+            setattr(self, set_name,
+                    po.Set(within=self.sy * self.ppall_ca, ordered=True,
+                           initialize=cols2tuplelist(list_syppca)))
+
     def get_setlst(self):
         '''
         Lists of indices for all model components are extracted from the
