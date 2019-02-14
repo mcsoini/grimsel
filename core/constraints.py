@@ -201,9 +201,12 @@ class Constraints:
 
         logger.info('Capacity constraints rules...')
         logger.info('- Power capacity pps')
+        def ppst_capac_rule(self, sy, pp, ca):
             ''' Produced power less than capacity. '''
 
-            mt = self.dict_soy_month[sy]
+            tm = self.dict_pp_tm_id[pp]
+
+            mt = self.dict_soy_month[(tm, sy)]
 
             if pp in self.setlst['pp']:
                 return (self.pwr[sy, pp, ca] <= self.cap_pwr_tot[pp, ca]
@@ -211,9 +214,9 @@ class Constraints:
             else:
                 return (self.pwr[sy, pp, ca] <= self.cap_pwr_tot[pp, ca])
 
-        self.PpStCapac = po.Constraint((self.pp_ca - self.pr_ca)
-                                       | self.st_ca | self.hyrs_ca,
-                                       self.sy, rule=ppst_capac_rule)
+        self.ppst_capac = po.Constraint((self.sy_pp_ca - self.sy_pr_ca)
+                                         | self.sy_st_ca | self.sy_hyrs_ca,
+                                         rule=ppst_capac_rule)
 
         def st_capac_rule_pw_ch(self, pp, ca, sy):
         logger.info('- Power capacity storage charging')
