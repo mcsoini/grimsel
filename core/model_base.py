@@ -861,32 +861,32 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
                                    for ndca in list_ndca_id]
                 for key in self.dmnd.sparse_keys():
                     if key[-1] in list_pf_id_dmnd:
-                        self.dmnd[key].value *= scale
+                        self.dmnd[key] *= scale
 
             if 'cap_pwr_leg' in comp_slct:
                 for key in self.cap_pwr_leg.sparse_keys():
                     if key in list_ppca_id:
-                        self.cap_pwr_leg[key].value *= scale
+                        self.cap_pwr_leg[key] *= scale
 
             if 'erg_inp' in comp_slct:
                 for key in self.erg_inp.sparse_keys():
-                    if key[0] == nd_id:
+                    if key[0] == nd_id and self.erg_inp[key].value:
                         self.erg_inp[key] *=scale
 
             if 'erg_chp' in comp_slct:
                 for key in self.erg_chp.sparse_keys():
-                    if key in list_ppca_id:
+                    if key in list_ppca_id and self.erg_chp[key].value:
                         self.erg_chp[key] *=scale
 
             if 'cap_trme_leg' in comp_slct:
                 for key in self.cap_trme_leg.sparse_keys():
                     if nd_id in key[1:3]:
-                        self.cap_trme_leg[key].value *= scale
+                        self.cap_trme_leg[key] *= scale
 
             if 'cap_trmi_leg' in comp_slct:
                 for key in self.cap_trmi_leg.sparse_keys():
                     if nd_id in key[1:3]:
-                        self.cap_trmi_leg[key].value *= scale
+                        self.cap_trmi_leg[key] *= scale
 
 
 
