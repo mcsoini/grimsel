@@ -381,15 +381,15 @@ class Constraints:
 
     def add_hydro_rules(self):
 
-        def hy_reservoir_boundary_conditions_rule(self, pp, ca, sy):
         logger.info('Reservoir boundary conditions rule')
+        def hy_reservoir_boundary_conditions_rule(self, sy, pp, ca):
             if (sy, pp) in [i for i in self.hyd_erg_bc.sparse_iterkeys()]:
                 return (self.erg_st[sy, pp, ca]
                         == self.hyd_erg_bc[sy, pp] * self.cap_erg_tot[pp, ca])
             else:
                 return po.Constraint.Skip
         self.hy_reservoir_boundary_conditions = (
-                po.Constraint(self.hyrs_ca, self.sy_hydbc,
+                po.Constraint(self.sy_hyrs_ca,
                               rule = hy_reservoir_boundary_conditions_rule))
 
         logger.info('Hydro minimum monthly generation as fraction of maximum monthly inflow')
