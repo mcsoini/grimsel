@@ -229,14 +229,14 @@ class Constraints:
 
         logger.info('Capacity constraints rules...')
         logger.info('- Power capacity pps')
+
         def ppst_capac_rule(self, sy, pp, ca):
             ''' Produced power less than capacity. '''
 
-            tm = self.dict_pp_tm_id[pp]
-
-            mt = self.dict_soy_month[(tm, sy)]
-
             if pp in self.setlst['pp']:
+
+                tm = self.dict_pp_tm_id[pp]
+                mt = self.dict_soy_month[(tm, sy)]
                 return (self.pwr[sy, pp, ca] <= self.cap_pwr_tot[pp, ca]
                                                 * self.cap_avlb[mt, pp, ca])
             else:
