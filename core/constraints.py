@@ -46,6 +46,27 @@ class Constraints:
     Mixin class containing all constraints.
     '''
 
+    def cadd(self, name, *args, objclass=po.Constraint, **kwargs):
+        '''
+        Add constraints or objectives to the model after logging.
+
+        Parameters
+        ----------
+        ``name`` - ``str``
+            name of the new component
+        ``objclass`` - pyomo class
+            probably one of ``{po.Constraint, po.Objective}``
+        ``args``, ``kwargs``
+            passed to the ``objclass`` initializiation
+        '''
+
+        ls = 'Adding {} {}: {}.'.format(name, objclass.__name__.lower(),
+                                        kwargs['rule'].__doc__)
+        logger.info(ls)
+
+        obj = objclass(*args, **kwargs)
+        setattr(self, name, obj)
+        logger.info('... length={}'.format(len(obj)))
 
     def add_transmission_bounds_rules(self):
         '''
@@ -121,8 +142,8 @@ class Constraints:
                                             for _sy in list_sy2)
                 return avg
 
-        logger.info('Supply rule')
         def supply_rule(self, sy, nd, ca):
+            '''Balance supply/demand in each node.'''
 
             list_neg = self.setlst['sll'] + self.setlst['curt']
             prod = (# power output; negative if energy selling plant
@@ -148,7 +169,8 @@ class Constraints:
                                          [None, nd, None, ca]))
                     )
             return prod == dmnd * (1 + self.grid_losses[nd, ca]) + exports
-        self.supply = po.Constraint(self.sy_ndca, rule=supply_rule)
+
+        self.cadd('supply', self.sy_ndca, rule=supply_rule)
 
 
     def add_energy_aggregation_rules(self):
@@ -158,8 +180,7 @@ class Constraints:
         '''
 
         def yearly_energy_rule(self, pp, ca):
-            ''' Yearly energy production consumed per power plant and output
-            energy carrier. Relevant only for fuel-consuming power plants.'''
+            ''' Sets variable erg_yr for fuel-consuming plants. '''
 
             tm = self.dict_pp_tm_id[pp]
 
@@ -167,12 +188,11 @@ class Constraints:
                     == sum(self.pwr[sy, pp, ca] * self.weight[tm, sy]
                            for tm, sy in set_to_list(self.tmsy, [tm, None])))
 
-        self.yearly_energy = po.Constraint(self.ppall_ca,
-                                           rule=yearly_energy_rule)
+        self.cadd('yearly_energy', self.ppall_ca, rule=yearly_energy_rule)
 
-        logger.info('Yearly ramping calculation rule')
         def yearly_ramp_rule(self, pp, ca):
-            ''' Yearly ramping in MW/yr. Up and down aggregated. '''
+            ''' Yearly ramping in MW/yrm, absolute aggregated up and down. '''
+
             tm = self.dict_pp_tm_id[pp]
             tmsy_list = set_to_list(self.tmsy, [tm, None])
 
@@ -180,58 +200,56 @@ class Constraints:
                     == sum(self.pwr_ramp_abs[sy, pp, ca]
                            for tm, sy in tmsy_list))
 
-        self.yearly_ramping = po.Constraint(self.rp_ca, rule=yearly_ramp_rule)
+        self.cadd('yearly_ramping', self.rp_ca, rule=yearly_ramp_rule)
 
-        logger.info('Yearly fuel consumption rule')
         def yearly_fuel_cons_rule(self, pp, nd, ca, fl):
-            ''' Yearly fuel consumed per power plant and
-            output energy carrier. '''
+            ''' Fuel consumed per plant and output energy carrier. '''
+
             return (self.erg_fl_yr[pp, nd, ca, fl]
                     == self.erg_yr[pp, ca])
-        self.yrflcs = po.Constraint(self.pp_ndcafl,
-                                    rule=yearly_fuel_cons_rule)
-
-        logger.info('Yearly charging rule')
-        def yearly_chg_rule(self, pp, ca):
-
-            tm = self.dict_pp_tm_id[pp]
-            tmsy_list = set_to_list(self.tmsy, [tm, None])
-
-            agg_erg_chg_yr = sum(self.pwr_st_ch[sy, pp, ca]
-                                 * self.weight[tm, sy]
-                                 for tm, sy in tmsy_list)
-            return self.erg_ch_yr[pp, ca] == agg_erg_chg_yr
-        self.yearly_charging = po.Constraint(self.st_ca, rule=yearly_chg_rule)
+        self.cadd('yearly_fuel_cons', self.pp_ndcafl,
+                  rule=yearly_fuel_cons_rule)
+#
+#        def yearly_chg_rule(self, pp, ca):
+#            ''''''
+#
+#            tm = self.dict_pp_tm_id[pp]
+#            tmsy_list = set_to_list(self.tmsy, [tm, None])
+#
+#            agg_erg_chg_yr = sum(self.pwr_st_ch[sy, pp, ca]
+#                                 * self.weight[tm, sy]
+#                                 for tm, sy in tmsy_list)
+#            return self.erg_ch_yr[pp, ca] == agg_erg_chg_yr
+#        self.yearly_charging = po.Constraint(self.st_ca, rule=yearly_chg_rule)
+#
 
     def add_capacity_calculation_rules(self):
 
-        logger.info('Calculate total capacity')
         def calc_cap_pwr_tot_rule(self, pp, ca):
+            '''Calculate total power capacity (leg + add - rem).'''
+
             cap_tot = self.cap_pwr_leg[pp, ca]
             if (pp in self.setlst['add']):
                 cap_tot += self.cap_pwr_new[pp, ca]
             if (pp in self.setlst['rem']):
                 cap_tot -= self.cap_pwr_rem[pp, ca]
             return (self.cap_pwr_tot[pp, ca] == cap_tot)
-        self.calc_cap_pwr_tot = po.Constraint(self.ppall_ca,
-                                              rule=calc_cap_pwr_tot_rule)
+        self.cadd('calc_cap_pwr_tot', self.ppall_ca,
+                  rule=calc_cap_pwr_tot_rule)
 
-        logger.info('Calculate total energy capacity from power capacity')
         def calc_cap_erg_tot_rule(self, pp, ca):
+            '''Calculate total energy capacity from total power capacity.'''
+
             return (self.cap_erg_tot[pp, ca]
                     == self.cap_pwr_tot[pp, ca]
                        * self.discharge_duration[pp, ca])
-        self.calc_cap_erg_tot = po.Constraint(self.st_ca | self.hyrs_ca,
-                                              rule=calc_cap_erg_tot_rule)
-
+        self.cadd('calc_cap_erg_tot', self.st_ca | self.hyrs_ca,
+                  rule=calc_cap_erg_tot_rule)
 
     def add_capacity_constraint_rules(self):
 
-        logger.info('Capacity constraints rules...')
-        logger.info('- Power capacity pps')
-
         def ppst_capac_rule(self, sy, pp, ca):
-            ''' Produced power less than capacity. '''
+            ''' Produced power must be less than capacity. '''
 
             if pp in self.setlst['pp']:
 
@@ -242,25 +260,26 @@ class Constraints:
             else:
                 return (self.pwr[sy, pp, ca] <= self.cap_pwr_tot[pp, ca])
 
-        self.ppst_capac = po.Constraint((self.sy_pp_ca - self.sy_pr_ca)
-                                         | self.sy_st_ca | self.sy_hyrs_ca,
-                                         rule=ppst_capac_rule)
+        self.cadd('ppst_capac',
+                  (self.sy_pp_ca - self.sy_pr_ca) | self.sy_st_ca
+                       | self.sy_hyrs_ca, rule=ppst_capac_rule)
 
         def st_chg_capac_rule(self, sy, pp, ca):
-            ''' Charging power less than nominal power capacity. '''
+            ''' Charging power must be less than capacity. '''
 
             return (self.pwr_st_ch[sy, pp, ca]
                     <= self.cap_pwr_tot[pp, ca])
-        self.st_chg_capac = po.Constraint(self.sy_st_ca,
-                                          rule=st_chg_capac_rule)
+
+        self.cadd('st_chg_capac', self.sy_st_ca, rule=st_chg_capac_rule)
 
         def st_erg_capac_rule(self, sy, pp, ca):
+            ''' Stored energy must be less than energy capacity. '''
+
             return (self.erg_st[sy, pp, ca]
                     <= self.cap_erg_tot[pp, ca])
-        self.st_erg_capac = po.Constraint(self.sy_st_ca | self.sy_hyrs_ca,
-                                          rule=st_erg_capac_rule)
 
-
+        self.cadd('st_erg_capac', self.sy_st_ca | self.sy_hyrs_ca,
+                  rule=st_erg_capac_rule)
 
     def add_chp_rules(self):
         '''
@@ -274,6 +293,7 @@ class Constraints:
            & p_\mathrm{chp} \geqslant \mathrm{prf}_\mathrm{chp} \mathrm{e}_\mathrm{chp} \\
 
         '''
+
         def chp_prof_rule(model, sy, pp, ca):
             '''Produced power greater than CHP output profile.'''
 
@@ -282,12 +302,14 @@ class Constraints:
             return (self.pwr[sy, pp, ca]
                     >= self.chpprof[sy, nd, ca] * self.erg_chp[pp, ca])
 
-        self.chp_prof = po.Constraint(self.sy_chp_ca, rule=chp_prof_rule)
+        self.cadd('chp_prof', self.sy_chp_ca, rule=chp_prof_rule)
 
 
     def add_monthly_total_rules(self):
 
         def monthly_totals_rule(self, mt, pp, ca):
+            '''Calculate monthly total production (hydro only). '''
+
             tm = self.dict_pp_tm_id[pp]
 
             if (tm, mt) in self.dict_month_soy:
@@ -297,26 +319,25 @@ class Constraints:
                                for sy in list_sy))
             else:
                 return po.Constraint.Skip
-        self.monthly_totals = po.Constraint(self.mt, self.hyrs_ca,
-                                            rule=monthly_totals_rule)
+
+        self.cadd('monthly_totals', self.mt, self.hyrs_ca,
+                  rule=monthly_totals_rule)
 
     def add_variables_rules(self):
-        '''
-        Produced power equals output profile
-
-        '''
+        '''Produced power equals output profile '''
 
         def variables_prof_rule(self, sy, pp, ca):
             ''' Produced power equal output profile '''
             left = self.pwr[sy, pp, ca]
             return left == (self.supprof[sy, self.dict_supply_pf[(pp, ca)]]
                             * self.cap_pwr_tot[pp, ca])
-        self.variables_prof = po.Constraint(self.sy_pr_ca,
-                                            rule=variables_prof_rule)
+
+        self.cadd('variables_prof', self.sy_pr_ca, rule=variables_prof_rule)
 
     def add_ramp_rate_rules(self):
 
         def calc_ramp_rate_rule(self, sy, pp, ca):
+            '''Ramp rates are power output differences.'''
 
             tm = self.dict_pp_tm_id[pp]
 
@@ -328,45 +349,45 @@ class Constraints:
             return (self.pwr_ramp[sy, pp, ca]
                     == self.pwr[this_soy, pp, ca]
                      - self.pwr[last_soy, pp, ca])
-        self.calc_ramp_rate = po.Constraint(self.sy_rp_ca,
-                                            rule=calc_ramp_rate_rule)
+
+        self.cadd('calc_ramp_rate', self.sy_rp_ca, rule=calc_ramp_rate_rule)
+
 
         def ramp_rate_abs_rule(self, sy, pp, ca):
+            '''Standard LP absolute value constraints.'''
+
             return (flag_abs * self.pwr_ramp[sy, pp, ca]
                     <= self.pwr_ramp_abs[sy, pp, ca])
 
         flag_abs = 1
-        self.ramp_rate_abs_pos = po.Constraint(self.sy_rp_ca,
-                                               rule=ramp_rate_abs_rule)
+        self.cadd('ramp_rate_abs_pos', self.sy_rp_ca, rule=ramp_rate_abs_rule)
         flag_abs = -1
-        self.ramp_rate_abs_neg = po.Constraint(self.sy_rp_ca,
-                                               rule=ramp_rate_abs_rule)
+        self.cadd('ramp_rate_abs_neg', self.sy_rp_ca, rule=ramp_rate_abs_rule)
 
     def add_energy_constraint_rules(self):
 #
-        logger.info('Fuel constraint rule')
         def pp_max_fuel_rule(self, nd, ca, fl):
-            '''Maximum energy produced from a certain fuel in a certain pp.
-               Note: this should be defined in fuels_base, not plant_fuel.'''
+            '''Constrain energy produced from certain fuels.'''
 
-            # making sure we are dealing with a constrained fuel
             is_constr = fl in self.fl_erg
-
-            # Skipping the case where erg_yr = 0 and no corresponding plants
             erg_inp_is_zero = self.erg_inp[nd, ca, fl] == 0
 
-            plant_list = set_to_list(self.ppall_ndcafl, [None, nd, ca, fl])
+            ret = po.Constraint.Skip
 
-            if is_constr and not erg_inp_is_zero and plant_list:
-                left = sum(self.erg_fl_yr[pp, nd_1, ca_1, fl_1]
-                           for (pp, nd_1, ca_1, fl_1) in plant_list)
-                right = self.erg_inp[nd, ca, fl]
+            if is_constr and not erg_inp_is_zero:
 
-                return left <= right
-            else:
-                return po.Constraint.Skip
+                plant_list = set_to_list(self.ppall_ndcafl, [None, nd, ca, fl])
 
-        self.pp_max_fuel = po.Constraint(self.ndcafl, rule=pp_max_fuel_rule)
+                if plant_list:
+
+                    left = sum(self.erg_fl_yr[pp, nd_1, ca_1, fl_1]
+                               for (pp, nd_1, ca_1, fl_1) in plant_list)
+                    right = self.erg_inp[nd, ca, fl]
+                    ret = left <= right
+
+            return ret
+
+        self.cadd('pp_max_fuel', self.ndcafl, rule=pp_max_fuel_rule)
 
     def add_charging_level_rules(self):
 
@@ -408,31 +429,38 @@ class Constraints:
                          )
             return left == right
 
-        self.erg_store_level = po.Constraint(self.sy_st_ca | self.sy_hyrs_ca
-                                             | self.sy_ror_ca,
-                                             rule=erg_store_level_rule)
+        self.cadd('erg_store_level',
+                  self.sy_st_ca | self.sy_hyrs_ca | self.sy_ror_ca,
+                  rule=erg_store_level_rule)
 
     def add_hydro_rules(self):
 
         def hy_reservoir_boundary_conditions_rule(self, sy, pp, ca):
+            '''Reservoirs stored energy boundary conditions.'''
+
             if (sy, pp) in [i for i in self.hyd_erg_bc.sparse_iterkeys()]:
                 return (self.erg_st[sy, pp, ca]
                         == self.hyd_erg_bc[sy, pp] * self.cap_erg_tot[pp, ca])
             else:
                 return po.Constraint.Skip
-        self.hy_reservoir_boundary_conditions = (
-                po.Constraint(self.sy_hyrs_ca,
-                              rule = hy_reservoir_boundary_conditions_rule))
+
+        self.cadd('hy_reservoir_boundary_conditions', self.sy_hyrs_ca,
+                  rule=hy_reservoir_boundary_conditions_rule)
 
         def hy_month_min_rule(self, mt, pp, nd, ca, fl):
+            '''Reservoirs minimum monthlyl power production.'''
+
             return (self.erg_mt[mt, pp, ca]
                     >= self.max_erg_mt_in_share[pp]
                      * self.min_erg_mt_out_share[pp]
                      * self.erg_inp[nd, ca, fl])
-        self.hy_month_min = po.Constraint(self.mt, self.hyrs_ndcafl,
-                                          rule=hy_month_min_rule)
+
+        self.cadd('hy_month_min', self.mt, self.hyrs_ndcafl,
+                  rule=hy_month_min_rule)
 
         def hy_erg_min_rule(self, sy, pp, ca):
+            '''Reservoirs minimum filling level.'''
+
             if not pp in [h for h in self.min_erg_share]:
                 return po.Constraint.Skip
             else:
@@ -441,8 +469,7 @@ class Constraints:
                         self.min_erg_share[pp]
                         * self.cap_erg_tot[pp, ca])
 
-        self.hy_erg_min = po.Constraint(self.sy_hyrs_ca,
-                                        rule=hy_erg_min_rule)
+        self.cadd('hy_erg_min', self.sy_hyrs_ca, rule=hy_erg_min_rule)
 
 #    def add_ror_rules(self):
 #
@@ -494,6 +521,7 @@ class Constraints:
     def add_yearly_cost_rules(self):
 
         def calc_vc_fl_pp_rule(self, pp, nd, ca, fl):
+            '''Yearly fuel cost calculation (constant supply curve plants).'''
 
             tm = self.dict_nd_tm_id[nd]
             list_sy = self.dict_tm_sy[tm]
@@ -532,19 +560,20 @@ class Constraints:
 
             return self.vc_fl_pp_yr[pp, ca, fl] == sums
 
-        self.calc_vc_fl_pp = po.Constraint(self.pp_ndcafl - self.lin_ndcafl,
-                                           rule=calc_vc_fl_pp_rule)
+        self.cadd('calc_vc_fl_pp', self.pp_ndcafl - self.lin_ndcafl,
+                  rule=calc_vc_fl_pp_rule)
 
-        logger.info('OM VC calculation rule')
         def calc_vc_om_pp_rule(self, pp, ca):
+            '''Yearly variable O&M cost calculation rule.'''
+
             return (self.erg_yr[pp, ca] * self.vc_om[pp, ca]
                     == self.vc_om_pp_yr[pp, ca])
-        self.calc_vc_om_pp = po.Constraint(self.ppall_ca,
-                                           rule=calc_vc_om_pp_rule)
+
+        self.cadd('calc_vc_om_pp', self.ppall_ca, rule=calc_vc_om_pp_rule)
 
 
-        logger.info('CO2 VC calculation rule --> OBSOLETE: Linear cost included directly in objective!!')
         def calc_vc_co2_pp_rule(self, pp, nd, ca, fl):
+            '''Yearly emission ncost calculation (constant supply curves).'''
 
             tm = self.dict_nd_tm_id[nd]
 
@@ -563,27 +592,32 @@ class Constraints:
 
             return self.vc_co2_pp_yr[pp, ca] == sums
 
-        self.calc_vc_co2_pp = po.Constraint(self.pp_ndcafl - self.lin_ndcafl,
-                                            rule=calc_vc_co2_pp_rule)
+        self.cadd('calc_vc_co2_pp', self.pp_ndcafl - self.lin_ndcafl,
+                  rule=calc_vc_co2_pp_rule)
 
-        logger.info('Ramp VC calculation rule')
         def calc_vc_ramp_rule(self, pp, ca):
+            '''Yearly ramping variable cost calculation rule.'''
 
             return (self.vc_ramp_yr[pp, ca]
                     == self.pwr_ramp_yr[pp, ca] * self.vc_ramp[pp, ca])
-        self.calc_vc_ramp = po.Constraint(self.rp_ca, rule=calc_vc_ramp_rule)
 
-        logger.info('Fixed O&M cost calculation rule')
+        self.cadd('calc_vc_ramp', self.rp_ca, rule=calc_vc_ramp_rule)
+
         def calc_fc_om_rule(self, pp, ca):
+            '''Fixed O&M cost calculation rule.'''
+
             return (self.fc_om_pp_yr[pp, ca]
                     == self.cap_pwr_tot[pp, ca] * self.fc_om[pp, ca])
-        self.calc_fc_om = po.Constraint(self.ppall_ca, rule=calc_fc_om_rule)
 
-        logger.info('Fixed capital cost calculation rule')
+        self.cadd('calc_fc_om', self.ppall_ca, rule=calc_fc_om_rule)
+
         def calc_fc_cp_rule(self, pp, ca):
+            '''Fixed capital cost calculation rule'''
+
             return (self.fc_cp_pp_yr[pp, ca]
                     == self.cap_pwr_new[pp, ca] * self.fc_cp_ann[pp, ca])
-        self.calc_fc_cp = po.Constraint(self.add_ca, rule=calc_fc_cp_rule)
+
+        self.cadd('calc_fc_cp', self.add_ca, rule=calc_fc_cp_rule)
 
     def get_vc_fl(self):
         return \
@@ -611,9 +645,10 @@ class Constraints:
             for (sy, lin, ca) in set_to_list(self.sy_lin_ca, nnnn))
 
     def add_objective_rules(self):
-        print('Objective rule quadratic')
 
         def objective_rule_quad(self):
+            '''Quadratic objective function.'''
+
             return (# FUEL COST CONSTANT
                     sum(self.vc_fl_pp_yr[pp, ca, fl]
                         for (pp, ca, fl)
@@ -633,10 +668,9 @@ class Constraints:
                   + sum(self.fc_om_pp_yr[pp, ca]
                         for (pp, ca) in set_to_list(self.ppall_ca, nn))
                   + sum(self.fc_cp_pp_yr[pp, ca]
-                        for (pp, ca) in set_to_list(self.add_ca, nn))
-                )
-        self.objective_quad = po.Objective(rule=objective_rule_quad,
-                                           sense=po.minimize,
-                                           doc='Quadratic objective function')
+                        for (pp, ca) in set_to_list(self.add_ca, nn)))
+
+        self.cadd('objective_quad', rule=objective_rule_quad,
+                  sense=po.minimize, objclass=po.Objective)
 
 
