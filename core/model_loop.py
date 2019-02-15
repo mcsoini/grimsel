@@ -120,8 +120,6 @@ class ModelLoop():
 
         self.io.read_model_data()
 
-        print(self.sc_out, self.db)
-
         self.m.map_to_time_res()
 
         # Write tables which are generated in dependence on the time

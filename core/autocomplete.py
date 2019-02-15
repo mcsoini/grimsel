@@ -9,7 +9,6 @@ Created on Mon May 14 07:41:11 2018
 import pandas as pd
 import itertools as it
 import matplotlib as mpl
-
 import abc
 
 from grimsel import _get_logger

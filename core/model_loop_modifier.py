@@ -4,9 +4,7 @@ Created on Fri Jul  6 11:23:06 2018
 
 @author: martin-c-s
 """
-import numpy as np
 
-from grimsel.auxiliary.aux_m_func import pdef
 
 class ModelLoopModifier():
     '''
