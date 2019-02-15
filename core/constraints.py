@@ -1,6 +1,7 @@
 
 import pyomo.environ as po
 import numpy as np
+from functools import wraps
 
 import pyomo.environ as po
 
@@ -13,6 +14,32 @@ logger = _get_logger(__name__)
 nnnn = [None] * 4
 nnn = [None] * 3
 nn = [None] * 2
+
+
+
+def _limit_max_sy(dct):
+    '''
+    Decorator limiting the constraints to a timemap-dependent range
+
+    Note: Only useful if the sy_pp_ca sets are not defined (which they will
+    probably always be, since they are required by the variables).
+
+    Parameters
+    ----------
+        dct: dict
+            maximum time slot in dependence on the other parameters
+            (typically ``{nd: sy_max}`` or ``{pp: sy_max}``)
+
+    '''
+    def wrapper(f):
+        @wraps(f)
+        def wrapped(self, *args, **kwargs):
+            if args[0] <= dct[args[1]]:
+                return f(self, *args, **kwargs)
+            else:
+                return po.Constraint.Skip
+        return wrapped
+    return wrapper
 
 
 
