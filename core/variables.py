@@ -27,7 +27,7 @@ class Variables:
         self.vadd('erg_yr',          (self.ppall_ca,))                     # Yearly energy production in MWh per year
         self.vadd('dmnd_flex_yr',    (self.ndca,))                         # Yearly amount of flexible loads
         self.vadd('pwr_ramp_yr',     (self.rp_ca,))                      # Yearly amount of ramping MW/yr
-        self.vadd('erg_ch_yr',       (self.st_ca,))                        # Yearly amount of charging energy MWh/yr
+#        self.vadd('erg_ch_yr',       (self.st_ca,))                        # Yearly amount of charging energy MWh/yr
 
         self.vadd('vc_fl_pp_yr',     (self.ppall_cafl - self.lin_cafl,), (None, None))     # Yearly variable cost of fuel
         self.vadd('vc_om_pp_yr',     (self.ppall_ca,))                     # Yearly variable cost of O&M
