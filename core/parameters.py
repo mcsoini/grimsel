@@ -129,6 +129,34 @@ class Parameters:
         if not self.df_parameter_month is None:
             self.apply_monthly_factors_all()
 
+
+    def _get_param_data(self, source_dataframe):
+        '''
+
+        '''
+
+        df = pd.DataFrame()
+        flag_empty = False
+
+        if type(source_dataframe) is str:
+
+            if hasattr(self, source_dataframe):
+                df = getattr(self, source_dataframe)
+                if df is None:
+                    logger.warn('... failed (source_dataframe is None).')
+                    df = pd.DataFrame()
+                    flag_empty = True
+            else:
+                logger.warn('... failed (source_dataframe does not exist).')
+                df = pd.DataFrame()
+                flag_empty = True
+
+        elif type(source_dataframe) is pd.DataFrame:
+            df = source_dataframe
+
+        return df, flag_empty
+
+
     def padd(self, parameter_name, parameter_index, source_dataframe=False,
              value_col=False, filt_col=False, filt_vals=[], mutable=False,
              default=None):
@@ -155,27 +183,8 @@ class Parameters:
 
         log_str = 'Assigning parameter {par} ...'.format(par=parameter_name)
 
-        flag_empty = False
+        _df, flag_empty = self._get_param_data(source_dataframe)
 
-        _df = pd.DataFrame()
-
-        if type(source_dataframe) is str:
-
-            if hasattr(self, source_dataframe):
-                _df = getattr(self, source_dataframe)
-                if _df is None:
-                    logger.warn(log_str + ' failed (source_dataframe is None).')
-                    _df = pd.DataFrame()
-                    flag_empty = True
-            else:
-                logger.warn(log_str + ' failed (source_dataframe does not exist).')
-                _df = pd.DataFrame()
-                flag_empty = True
-
-        elif type(source_dataframe) is pd.DataFrame:
-            _df = source_dataframe
-
-        # transform into tuple in case a single set is provided
         parameter_index = ((parameter_index,)
                            if not isinstance(parameter_index, tuple)
                            else parameter_index)
