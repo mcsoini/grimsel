@@ -897,8 +897,10 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         '''
         Used in parameter and variable definitions.
 
-        Parameters:
-        index: tuple of pyomo sets
+        Parameters
+        ----------
+            index: tuple of pyomo sets
+
         '''
 
         is_empty = [pi.name for pi in index if (not pi is None) and not pi]

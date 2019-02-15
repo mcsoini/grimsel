@@ -135,7 +135,9 @@ class Parameters:
         '''
         Parameter definition based on input dataframes
 
-        Args:
+        Parameters
+        ----------
+
         parameter_name (str): used as model attribute, also assumed to be the
                           column name in case ``value_col=False``
         parameter_index (tuple): tuple of pyomo sets to define the parameter index
