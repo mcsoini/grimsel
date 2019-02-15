@@ -183,24 +183,23 @@ class Parameters:
 
         log_str = 'Assigning parameter {par} ...'.format(par=parameter_name)
 
-        _df, flag_empty = self._get_param_data(source_dataframe)
+        _df, flag_infeasible = self._get_param_data(source_dataframe)
 
         parameter_index = ((parameter_index,)
                            if not isinstance(parameter_index, tuple)
                            else parameter_index)
 
-        if not flag_empty and not self.check_valid_indices(parameter_index,
-                                                           log_str):
-            flag_empty = True
+        if not flag_infeasible and not self.check_valid_indices(parameter_index):
+            flag_infeasible = True
 
         # set data column to parameter name in case no other value is provided
         if not value_col:
             value_col = parameter_name
 
         # check if column exists in table
-        if not flag_empty and value_col not in _df.columns:
+        if not flag_infeasible and value_col not in _df.columns:
             logger.warn(log_str + ' failed (column doesn\'t exist).')
-            flag_empty = True
+            flag_infeasible = True
 
         # dictionary sets -> column names
         dict_ind = {'sy': 'sy', 'sy_hydbc': 'sy', 'nd': 'nd_id', 'ca': 'ca_id',
@@ -233,7 +232,7 @@ class Parameters:
         # set parameter
         param_kwargs = dict(mutable=mutable,
                             default=default)
-        if not flag_empty:
+        if not flag_infeasible:
             param_kwargs['initialize'] = pdef(_df, index_cols, value_col)
             logger.info(log_str + ' ok.')
 
