@@ -14,13 +14,11 @@ import pandas as pd
 import psycopg2 as pg
 
 import grimsel.auxiliary.sqlutils.aux_sql_func as aql
-import grimsel
 import grimsel.core.autocomplete as ac
-
-import logging
-logger = logging.Logger(__name__)
-
 import grimsel.core.table_struct as table_struct
+from grimsel import _get_logger
+
+logger = _get_logger(__name__)
 
 dict_tables = {lst: {tb[0]: tuple(tbb for tbb in tb[1:])
                      for tb in getattr(table_struct, lst)}
@@ -105,7 +103,7 @@ class CompIO():
 
         '''
 
-        print('Initializing output table ', self.tb)
+        logger.info('Initializing output table ', self.tb)
         col_names = self.index + ('value',)
         cols = [(c,) + (self.coldict[c][0],) for c in col_names]
         cols += [('run_id', 'SMALLINT')]
@@ -129,7 +127,7 @@ class CompIO():
         ''' Add run_id column and write to database table '''
 
         tb = self.tb if not tb else tb
-        print('Writing %s to'%self.comp_obj.name, self.sc + '.' + tb, end='... ')
+        logger.info('Writing %s to'%self.comp_obj.name, self.sc + '.' + tb, end='... ')
 
         # value generally positive, directionalities expressed through bool_out
         df['value'] = df['value'].abs()
@@ -139,7 +137,7 @@ class CompIO():
         t = time.time()
         df.to_sql(tb, self.connect.get_sqlalchemy_engine(),
                   schema=self.sc, if_exists='append', index=False)
-        print('done in %.3f sec'%(time.time() - t))
+        logger.info('done in %.3f sec'%(time.time() - t))
 
     @property
     def index(self):
@@ -479,7 +477,7 @@ class ModelWriter():
         comp, idx = 'pwr_st_ch', DICT_IDX['pwr_st_ch']
         for comp, idx in DICT_IDX.items():
             if not hasattr(self.model, comp):
-                print('Component ' + comp + ' does not exist... skipping '
+                logger.warning('Component ' + comp + ' does not exist... skipping '
                       'init CompIO.')
             else:
                 comp_obj = getattr(self.model, comp)
@@ -544,7 +542,7 @@ class ModelWriter():
         if run_id:
             for itb in self.list_all_tb:
 
-                print('Deleting from ' + self.sc_out + '.' + itb
+                logger.info('Deleting from ' + self.sc_out + '.' + itb
                       + ' where run_id %s %s'%(operator, str(run_id)))
                 exec_strg = '''
                             DELETE FROM {sc_out}.{tb}
@@ -554,7 +552,7 @@ class ModelWriter():
                 try:
                     aql.exec_sql(exec_strg, db=self.db)
                 except pg.ProgrammingError as e:
-                    print(e)
+                    logger.error(e)
                     sys.exit()
 
 
@@ -572,13 +570,13 @@ class ModelWriter():
         for comp, index in dict_idx.items():
 
             if not dict_table[comp] in list_tables:
-                print('Table ' + comp + ' does not exist... skipping '
+                logger.warning('Table ' + comp + ' does not exist... skipping '
                       'index generation.')
             else:
 
                 tb_name = dict_table[comp]
 
-                print('tb_name:', tb_name)
+                logger.info('tb_name:', tb_name)
 
                 pk_list = index + ('run_id',)
 
@@ -600,7 +598,7 @@ class ModelWriter():
                                  ADD CONSTRAINT {tb}_pkey
                                  PRIMARY KEY ({pk_list})
                                  ''').format(**pk_kws)
-                print(exec_str)
+                logger.debug(exec_str)
                 aql.exec_sql(exec_str, db=db)
 
                 for fk_keys, fk_vals in fk_dict.items():
@@ -619,7 +617,7 @@ class ModelWriter():
                                      FOREIGN KEY ({fk})
                                      REFERENCES {ref}
                                      ''').format(**fk_kws)
-                    print(exec_str)
+                    logger.debug(exec_str)
                     aql.exec_sql(exec_str, db=db)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -638,7 +636,7 @@ class TableReader():
         self.model = model
 
         if not self.sc_inp and not self.data_path:
-            print('Falling back to grimsel default csv tables.')
+            logger.warning('Falling back to grimsel default csv tables.')
             self.data_path = os.path.join(grimsel.__path__[0], 'input_data')
 
 
@@ -684,14 +682,14 @@ class TableReader():
             setattr(self.model, 'df_' + kk, df)
 
             if not tb_exists:
-                print('Input table {tb} does not exist. '
+                logger.warning('Input table {tb} does not exist. '
                       + 'Setting model attribute df_{tb} '
                       + 'to None.'.format(tb=kk))
             else:
                 filt = ('filtered by ' if len(vv) > 0 else '') +\
                    ', '.join([vvv[0] + ' in ' + str(vvv[1]) for vvv in vv
                               if not len(vvv[1]) is 0])
-                print(('Reading input table {tb} {flt} from '
+                logger.info(('Reading input table {tb} {flt} from '
                        '{source_str}').format(tb=kk, flt=filt,
                                               source_str=source_str))
 
@@ -879,7 +877,7 @@ class DataReader():
     def data_autocompletion(self):
 
         if self.autocompletion:
-            print('#' * 60)
+            logger.info('#' * 60)
 
             ac.AutoCompletePpType(self.model, self.autocomplete_curtailment)
             ac.AutoCompleteFuelTrns(self.model)
@@ -888,7 +886,7 @@ class DataReader():
             ac.AutoCompletePlantDmnd(self.model, self.autocomplete_curtailment)
             ac.AutoCompletePlantCons(self.model)
             ac.AutoCompletePpCaFlex(self.model, self.autocomplete_curtailment)
-            print('#' * 60)
+            logger.info('#' * 60)
 
 
     def filter_by_name_id_cols(self, name_df, filt):
@@ -1007,7 +1005,7 @@ class DataReader():
             dfn = pd.concat([df_e, df], sort=False)
             dfn = dfn.drop('cap_trm_leg', axis=1).fillna(0)
             idx = ['nd_id', 'nd_2_id', 'ca_id', 'mt_id']
-            print('Aggregation count in fix_df_node_connect:\n',
+            logger.info('Aggregation count in fix_df_node_connect:\n',
                   dfn.pivot_table(index=idx, aggfunc=[min, max, len],
                                   values=['cap_trme_leg', 'cap_trmi_leg']))
             dfn = dfn.pivot_table(index=idx, aggfunc=sum,
@@ -1028,7 +1026,7 @@ class DataReader():
         for itb in tb_list:
             df = getattr(self.model, 'df_' + itb)
             if (df is not None and ('def_' in itb or not 'prof' in itb)):
-                print('Writing table {} to output schema.'.format(itb))
+                logger.info('Writing table {} to output schema.'.format(itb))
                 engine = self.sql_connector.get_sqlalchemy_engine()
                 db = self.sql_connector.db
                 aql.write_sql(df, db, self.sc_out, itb,

@@ -6,11 +6,11 @@ import pyomo.core.base.sets as poset
 import itertools
 import pandas as pd
 
-import logging
-logger = logging.Logger(__name__)
-
 from grimsel.auxiliary.aux_m_func import pdef, set_to_list
 import grimsel.core.io as io
+from grimsel import _get_logger
+
+logger = _get_logger(__name__)
 
 class Parameters:
     '''
@@ -36,7 +36,7 @@ class Parameters:
         mut = {'mutable': True}
         inf = {'default': float('inf')}
 
-        logging.info('Profile parameters:')
+        logger.info('Profile parameters:')
         self.padd('dmnd', (self.sy, self.dmnd_pf), 'df_profdmnd_soy', 'value', **mut, default=0) # Complete information on demand
         self.padd('chpprof', (self.sy, self.nd, self.ca), 'df_profchp_soy', 'value', **mut) # Relative heat demand profile.
         self.padd('supprof', (self.sy, self.supply_pf), 'df_profsupply_soy', 'value', **mut) # Supply from variable generators.
@@ -45,12 +45,12 @@ class Parameters:
         self.padd('pricebuyprof', (self.sy, self.pricebuy_pf), 'df_profpricebuy_soy', 'value', **mut) # Relative heat demand profile.
         self.padd('pricesllprof', (self.sy, self.pricesll_pf), 'df_profpricesll_soy', 'value', **mut) # Relative heat demand profile.
 
-        logging.info('Hydro parameters')
+        logger.info('Hydro parameters')
         self.padd('min_erg_mt_out_share', (self.hyrs,), 'df_hydro') # minimum monthly production as share of max_erg_mt_in_share.
         self.padd('max_erg_mt_in_share', (self.hyrs,), 'df_hydro') # maximum monthly inflow as share of yearly total.
         self.padd('min_erg_share', (self.hyrs,), 'df_hydro', **mut) # minimum filling level as share of cap_erg.
 
-        logging.info('Defining general parameters')
+        logger.info('Defining general parameters')
         self.padd('weight', (self.tmsy,), self.df_tm_soy) # Weight per time slot.
         self.padd('month_weight', (self.mt,), self.df_def_month) # Hours per month.
         self.padd('dmnd_sum', (self.nd,), self.df_node_encar, default=0) # .
@@ -61,13 +61,13 @@ class Parameters:
         self.padd('cap_trme_leg', (self.mt, self.ndcnn,), 'df_node_connect', **mut) # Cross-node transmission capacity.
         self.padd('cap_trmi_leg', (self.mt, self.ndcnn,), 'df_node_connect', **mut) # Cross-node transmission capacity.
 
-        logging.info('Defining ramping parameters')
+        logger.info('Defining ramping parameters')
         _df = self.df_plant_encar.set_index(['pp_id', 'ca_id'])
         list_rp_ca = set_to_list(self.rp_ca, [None, None])
         _df = _df.loc[list_rp_ca, 'vc_ramp'].reset_index()
         self.padd('vc_ramp', (self.ppall, self.ca), _df, **mut) # .
 
-        logging.info('Defining pp parameters')
+        logger.info('Defining pp parameters')
         _df = self.df_plant_encar.copy()
         _df = _df.loc[_df['pp_id'].isin(self.setlst['pp'])]
         self.padd('ca_share_min', (self.pp, self.ca), _df) # .
@@ -77,7 +77,7 @@ class Parameters:
         df = self.df_plant_encar.loc[self.df_plant_encar.pp_id.isin(self.chp)]
         self.padd('erg_chp', (self.pp, self.ca), df, **mut)
 
-        logging.info('Defining fuel parameters')
+        logger.info('Defining fuel parameters')
         self.padd('erg_inp', (self.ndcafl), 'df_fuel_node_encar', **mut)
         self.padd('vc_fl', (self.fl, self.nd), 'df_fuel_node_encar', default=0, **mut) # EUR/MWh_el
 
@@ -89,7 +89,7 @@ class Parameters:
         _df = self.df_def_fuel.loc[self.df_def_fuel.fl_id.isin(self.setlst['fl'])]
         self.padd('co2_int', (self.fl,), _df, **mut) # t/MWh_fl
 
-        logging.info('Defining parameters for all generators')
+        logger.info('Defining parameters for all generators')
         _df = self.df_plant_encar.copy()
         _df = _df.loc[_df['pp_id'].isin(self.setlst['ppall'])]
         sets = (self.pp | self.pr | self.ror | self.st | self.hyrs
@@ -102,26 +102,26 @@ class Parameters:
         _df = _df.loc[_df['pp_id'].isin(self.setlst['pp'])]
         self.padd('cap_avlb', (self.pp, self.ca), _df, **mut) # .
 
-        logging.info('Defining parameters investment')
+        logger.info('Defining parameters investment')
         _df = self.df_plant_encar.copy()
         _df = _df.loc[_df['pp_id'].isin(self.setlst['add'])]
         self.padd('fc_cp_ann', (self.add, self.ca), _df, **mut) # .
 
-        logging.info('Defining st + hybrid parameters')
+        logger.info('Defining st + hybrid parameters')
         _df = self.df_plant_encar.copy()
         _df = _df.loc[_df['pp_id'].isin(self.setlst['st'])]
         self.padd('st_lss_hr', (self.st, self.ca), _df, **mut)
         self.padd('st_lss_rt', (self.st, self.ca), _df, **mut)
 
-        logging.info('Defining hy parameters')
+        logger.info('Defining hy parameters')
         self.padd('hyd_erg_bc', (self.sy_hydbc, self.hyrs), self.df_plant_month)
 
-        logging.info('Defining st + hyrs parameters')
+        logger.info('Defining st + hyrs parameters')
         _df = self.df_plant_encar
         _df = (_df.loc[_df['pp_id'].isin(self.setlst['sthyrs'])])
         self.padd('discharge_duration', (self.st | self.hyrs, self.ca), _df, **mut)
 
-        logging.info('Defining parameter for investment and retirement control')
+        logger.info('Defining parameter for investment and retirement control')
         self.capchnge_max = po.Param(initialize=float('inf'), **mut)
 
         # applying monthly adjustment factors to some parameters as defined
@@ -162,11 +162,11 @@ class Parameters:
             if hasattr(self, source_dataframe):
                 _df = getattr(self, source_dataframe)
                 if _df is None:
-                    logging.warn(log_str + ' failed (source_dataframe is None).')
+                    logger.warn(log_str + ' failed (source_dataframe is None).')
                     _df = pd.DataFrame()
                     flag_empty = True
             else:
-                logging.warn(log_str + ' failed (source_dataframe does not exist).')
+                logger.warn(log_str + ' failed (source_dataframe does not exist).')
                 _df = pd.DataFrame()
                 flag_empty = True
 
@@ -188,7 +188,7 @@ class Parameters:
 
         # check if column exists in table
         if not flag_empty and value_col not in _df.columns:
-            logging.warn(log_str + ' failed (column doesn\'t exist).')
+            logger.warn(log_str + ' failed (column doesn\'t exist).')
             flag_empty = True
 
         # dictionary sets -> column names
@@ -224,7 +224,7 @@ class Parameters:
                             default=default)
         if not flag_empty:
             param_kwargs['initialize'] = pdef(_df, index_cols, value_col)
-            logging.info(log_str + ' ok.')
+            logger.info(log_str + ' ok.')
 
         setattr(self, parameter_name, po.Param(*parameter_index,
                                                **param_kwargs))

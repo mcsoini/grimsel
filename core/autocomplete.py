@@ -12,9 +12,10 @@ import matplotlib as mpl
 
 import abc
 
-import logging
+from grimsel import _get_logger
 
-logging.getLogger(__name__)
+logger = _get_logger(__name__)
+
 
 
 class AutoComplete(abc.ABC):
@@ -25,8 +26,8 @@ class AutoComplete(abc.ABC):
     def __init__(self, m):
 
         format_list = [self.df_name, type(self).__name__]
-        logging.info('Autocompletion '
-                     '{} in {}'.format(*format_list))
+        logger.info('Autocompletion '
+                    '{} in {}'.format(*format_list))
 
         self.m = m
 
@@ -54,13 +55,13 @@ class AutoComplete(abc.ABC):
                 self._set_pf_id_nan()
                 self.concatenate()
 
-                logging.info('done. Added: '
+                logger.info('done. Added: '
                              '{}'.format(', '.join(map(str, self.lst_add))))
             else:
-                logging.info('nothing added.')
+                logger.info('nothing added.')
         else:
-            logging.info('infeasible. Missing model DataFrames: '
-                         '{}'.format(', '.join(lst_mss_df)))
+            logger.warning('infeasible. Missing model DataFrames: '
+                           '{}'.format(', '.join(lst_mss_df)))
 
 
 

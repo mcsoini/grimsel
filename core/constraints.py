@@ -2,10 +2,13 @@
 import pyomo.environ as po
 import numpy as np
 
-import logging
-logger = logging.Logger(__name__)
+import pyomo.environ as po
 
 from grimsel.auxiliary.aux_m_func import set_to_list
+from grimsel import _get_logger
+
+logger = _get_logger(__name__)
+
 
 nnnn = [None] * 4
 nnn = [None] * 3

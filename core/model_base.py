@@ -10,12 +10,13 @@ import numpy as np
 
 import pandas as pd
 
-import logging
-
 import pyomo.environ as po
 from pyomo.core.base.objective import SimpleObjective
 
-logger = logging.Logger(__name__)
+from grimsel import _get_logger
+
+logger = _get_logger(__name__)
+
 
 #def create_tempfile(self, suffix=None, prefix=None, text=False, dir=None):
 #    """

@@ -1,8 +1,8 @@
 import pandas as pd
 import numpy as np
-import logging
+from grimsel import _get_logger
 
-logger = logging.Logger(__name__)
+logger = _get_logger(__name__)
 
 MONTH_DICT = {0:'JAN', 1:'FEB', 2:'MAR', 3:'APR', 4:'MAY', 5:'JUN',
                6:'JUL', 7:'AUG', 8:'SEP', 9:'OCT', 10:'NOV', 11:'DEC'}
@@ -30,6 +30,7 @@ class UniqueInstancesMeta(type):
         key = tm_hash(nhours, freq, start, stop, tm_filt)
 
         if key in TM_DICT:
+            logger.warn('Reading time map from module dict.')
             return TM_DICT[key]
         else:
             return super().__call__(nhours, freq, start, stop, tm_filt,
@@ -76,9 +77,9 @@ class TimeMap(metaclass=UniqueInstancesMeta):
     def gen_hoy_timemap(self):
 
 
-        print('Generating time map with freq='
-              '{} nhours={} from {} to {}'.format(self.freq, self.nhours,
-                                                  self.start, self.stop))
+        logger.info('Generating time map with freq='
+                    '{} nhours={} from {} to {}'.format(self.freq, self.nhours,
+                                                        self.start, self.stop))
 
         df_time_map = pd.DataFrame(index=pd.date_range(self.start, self.stop,
                                                        freq=self.str_freq))

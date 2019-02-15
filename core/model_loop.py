@@ -8,16 +8,20 @@ import itertools
 import time
 from importlib import reload
 import datetime
-import logging
-
-logger = logging.Logger(__name__)
 
 import grimsel.core.model_base as model_base
 import grimsel.core.io as io
 import grimsel.core.model_loop_modifier as model_loop_modifier
-
 import grimsel.auxiliary.sqlutils.aux_sql_func as aql
 import grimsel.auxiliary.maps as maps
+from grimsel import _get_logger
+
+logger = _get_logger(__name__)
+
+
+
+
+
 
 reload(model_base)
 reload(io)

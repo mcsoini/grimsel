@@ -1,8 +1,10 @@
 
 import pyomo.environ as po
 
-import logging
-logger = logging.Logger(__name__)
+from grimsel import _get_logger
+
+logger = _get_logger(__name__)
+
 
 class Variables:
     '''
@@ -46,7 +48,7 @@ class Variables:
         if not type(variable_index) is tuple:
             variable_index = (variable_index,)
 
-        logger.info('Defining variable ', variable_name, end='... ')
+        logger.info('Defining variable ' + variable_name)
 
         if not self.check_valid_indices(variable_index):
             return None
