@@ -206,32 +206,37 @@ class Sets:
         list_syndca = pd.merge(self.df_tm_soy[['tm_id', 'sy']],
                                 df, on='tm_id', how='outer')[cols]
 
-        self.sy_ndca = po.Set(within=self.sy * self.ndca, ordered=True,
-                           initialize=cols2tuplelist(list_syndca))
+        self.sy_ndca = po.Set(ordered=True,
+                              initialize=cols2tuplelist(list_syndca))
 
+        mask_pp = self.df_plant_encar.pp_id.isin(self.setlst['ppall'])
+        df = self.df_plant_encar.loc[mask_pp, ['pp_id', 'ca_id']].copy()
+        df['tm_id'] = (df.pp_id.replace(self.mps.dict_plant_2_node_id)
+                         .replace(self.dict_nd_tm_id))
         cols = ['sy', 'pp_id', 'ca_id']
-        for slct_set in ['ppall', 'rp', 'st', 'hyrs', 'pr', 'pp', 'chp',
-                         'ror', 'lin']:
+        list_syppca = pd.merge(self.df_tm_soy[['sy', 'tm_id']],
+                                df, on='tm_id', how='outer')[cols]
+
+        list_syppca = list_syppca.loc[~(list_syppca.pp_id.isna()
+                                        | list_syppca.ca_id.isna())]
+
+        list_syppca = cols2tuplelist(list_syppca)
+
+        for slct_set in ['ppall', 'rp', 'st', 'hyrs', 'pr',
+                         'pp', 'chp', 'ror', 'lin']:
 
             set_name = 'sy_%s_ca'%slct_set
             self.delete_component(set_name)
 
             logger.info('Defining set ' + set_name)
 
-            mask_pp = self.df_plant_encar.pp_id.isin(self.setlst[slct_set])
-            df = self.df_plant_encar.loc[mask_pp, ['pp_id', 'ca_id']].copy()
-            df['tm_id'] = (df.pp_id.replace(self.mps.dict_plant_2_node_id)
-                             .replace(self.dict_nd_tm_id))
-
-            list_syppca = pd.merge(self.df_tm_soy[['sy', 'tm_id']],
-                                    df, on='tm_id', how='outer')[cols]
-
-            list_syppca = list_syppca.loc[~(list_syppca.pp_id.isna()
-                                            | list_syppca.ca_id.isna())]
+            set_pp = set(self.setlst[slct_set])
 
             setattr(self, set_name,
-                    po.Set(within=self.sy * self.ppall_ca, ordered=True,
-                           initialize=cols2tuplelist(list_syppca)))
+                    po.Set(ordered=True,
+                           initialize=[row for row in list_syppca
+                                       if row[1] in set_pp]))
+
 
     def get_setlst(self):
         '''
