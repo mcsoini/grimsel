@@ -31,7 +31,7 @@ def get_table_dicts():
     '''
     Get the dictionaries describing all tables.
 
-    Also used in post_process_index, therefore classmethod.
+    Also used in post_process_index, therefore module function.
     '''
 
     # construct table name group name and component name
