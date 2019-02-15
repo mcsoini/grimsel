@@ -57,7 +57,7 @@ def cols2tuplelist(*args, return_df=False):
         cols += idf.columns.tolist()
 
 #        tl.append(list(idf.drop_duplicates().apply(**appkwargs)))
-        tl.append([tuple(row) for row in idf.values])
+        tl.append([tuple(row) for row in idf.drop_duplicates().values])
 
     prod = list(itertools.product(*tl))
     prod = [tuple([ccc for cc in c for ccc in cc]) for c in prod]
