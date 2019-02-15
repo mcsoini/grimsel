@@ -288,8 +288,6 @@ class Constraints:
     def add_monthly_total_rules(self):
 
         def monthly_totals_rule(self, mt, pp, ca):
-            ''' Monthly sums hydro. '''
-
             tm = self.dict_pp_tm_id[pp]
 
             if (tm, mt) in self.dict_month_soy:
@@ -303,6 +301,10 @@ class Constraints:
                                             rule=monthly_totals_rule)
 
     def add_variables_rules(self):
+        '''
+        Produced power equals output profile
+
+        '''
 
         def variables_prof_rule(self, sy, pp, ca):
             ''' Produced power equal output profile '''
@@ -439,7 +441,6 @@ class Constraints:
                         self.min_erg_share[pp]
                         * self.cap_erg_tot[pp, ca])
 
-        self.delete_component('hy_erg_min')
         self.hy_erg_min = po.Constraint(self.sy_hyrs_ca,
                                         rule=hy_erg_min_rule)
 
@@ -491,6 +492,7 @@ class Constraints:
 #        self.chg_only_var_ren.deactivate()
 
     def add_yearly_cost_rules(self):
+
         def calc_vc_fl_pp_rule(self, pp, nd, ca, fl):
 
             tm = self.dict_nd_tm_id[nd]
