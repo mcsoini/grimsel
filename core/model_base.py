@@ -926,11 +926,12 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
                     or vr.startswith(comp_name + '_index')
                     or vr.startswith(comp_name + '_domain')]
 
-        list_del_str = ', '.join(list_del)
-        logger.info('Deleting model components ({}).'.format(list_del_str))
+        if list_del:
+            list_del_str = ', '.join(list_del)
+            logger.info('Deleting model components ({}).'.format(list_del_str))
 
-        for kk in list_del:
-            self.del_component(kk)
+            for kk in list_del:
+                self.del_component(kk)
 
     def run(self, warmstart=False):
         '''
