@@ -157,7 +157,6 @@ class Constraints:
         time slot power variables.
         '''
 
-        logger.info('Calculation of yearly totals rules')
         def yearly_energy_rule(self, pp, ca):
             ''' Yearly energy production consumed per power plant and output
             energy carrier. Relevant only for fuel-consuming power plants.'''
@@ -247,7 +246,6 @@ class Constraints:
                                          | self.sy_st_ca | self.sy_hyrs_ca,
                                          rule=ppst_capac_rule)
 
-        logger.info('- Power capacity storage charging')
         def st_chg_capac_rule(self, sy, pp, ca):
             ''' Charging power less than nominal power capacity. '''
 
@@ -256,7 +254,6 @@ class Constraints:
         self.st_chg_capac = po.Constraint(self.sy_st_ca,
                                           rule=st_chg_capac_rule)
 
-        logger.info('- Energy capacity')
         def st_erg_capac_rule(self, sy, pp, ca):
             return (self.erg_st[sy, pp, ca]
                     <= self.cap_erg_tot[pp, ca])
@@ -279,7 +276,6 @@ class Constraints:
 
     def add_monthly_total_rules(self):
 
-        logger.info('Calculation of monthly totals rule')
         def monthly_totals_rule(self, mt, pp, ca):
             ''' Monthly sums hydro. '''
 
@@ -297,7 +293,6 @@ class Constraints:
 
     def add_variables_rules(self):
 
-        logger.info('Profile rule variables')
         def variables_prof_rule(self, sy, pp, ca):
             ''' Produced power equal output profile '''
             left = self.pwr[sy, pp, ca]
@@ -308,7 +303,6 @@ class Constraints:
 
     def add_ramp_rate_rules(self):
 
-        logger.info('Calculation of ramp rates rule')
         def calc_ramp_rate_rule(self, sy, pp, ca):
 
             tm = self.dict_pp_tm_id[pp]
@@ -324,7 +318,6 @@ class Constraints:
         self.calc_ramp_rate = po.Constraint(self.sy_rp_ca,
                                             rule=calc_ramp_rate_rule)
 
-        logger.info('Calculation of absolute ramp rates rule')
         def ramp_rate_abs_rule(self, sy, pp, ca):
             return (flag_abs * self.pwr_ramp[sy, pp, ca]
                     <= self.pwr_ramp_abs[sy, pp, ca])
@@ -364,7 +357,6 @@ class Constraints:
 
     def add_charging_level_rules(self):
 
-        logger.info('Storage level rule')
         def erg_store_level_rule(self, sy, pp, ca):
             ''' Charging state for storage and hydro. '''
 
@@ -409,7 +401,6 @@ class Constraints:
 
     def add_hydro_rules(self):
 
-        logger.info('Reservoir boundary conditions rule')
         def hy_reservoir_boundary_conditions_rule(self, sy, pp, ca):
             if (sy, pp) in [i for i in self.hyd_erg_bc.sparse_iterkeys()]:
                 return (self.erg_st[sy, pp, ca]
@@ -420,7 +411,6 @@ class Constraints:
                 po.Constraint(self.sy_hyrs_ca,
                               rule = hy_reservoir_boundary_conditions_rule))
 
-        logger.info('Hydro minimum monthly generation as fraction of maximum monthly inflow')
         def hy_month_min_rule(self, mt, pp, nd, ca, fl):
             return (self.erg_mt[mt, pp, ca]
                     >= self.max_erg_mt_in_share[pp]
@@ -429,7 +419,6 @@ class Constraints:
         self.hy_month_min = po.Constraint(self.mt, self.hyrs_ndcafl,
                                           rule=hy_month_min_rule)
 
-        logger.info('Hydro minimum stored energy as a fraction of energy capacitiy')
         def hy_erg_min_rule(self, sy, pp, ca):
             if not pp in [h for h in self.min_erg_share]:
                 return po.Constraint.Skip
@@ -490,7 +479,6 @@ class Constraints:
 #
 #        self.chg_only_var_ren.deactivate()
 
-    logger.info('Fuel consumption calculation rule')
     def add_yearly_cost_rules(self):
         def calc_vc_fl_pp_rule(self, pp, nd, ca, fl):
 
