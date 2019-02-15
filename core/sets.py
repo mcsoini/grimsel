@@ -102,7 +102,7 @@ class Sets:
                          ordered=True)
 
         self.sy_hydbc = po.Set(within=self.sy,
-                               initialize=self.df_plant_month.sy.tolist())
+                               initialize=set(self.df_plant_month.sy))
 
         self.mt = (po.Set(initialize=list(self.df_def_month['mt_id']))
                    if not self.df_def_month is None else None)
