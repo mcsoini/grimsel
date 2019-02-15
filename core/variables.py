@@ -48,12 +48,12 @@ class Variables:
         if not type(variable_index) is tuple:
             variable_index = (variable_index,)
 
-        logger.info('Defining variable ' + variable_name)
+        logger.info('Defining variable %s ...'%variable_name)
 
         if not self.check_valid_indices(variable_index):
             return None
         else:
-            logger.info('ok.')
+            logger.info('... ok.')
 
         setattr(self, variable_name, po.Var(*variable_index, bounds=bounds,
                                             domain=domain))

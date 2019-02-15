@@ -222,6 +222,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         '''
 
         for cg in set(self.constraint_groups):
+            logger.info('##### Calling constraint group {}'.format(cg.upper()))
             getattr(self, 'add_%s_rules'%cg)()
 
 
@@ -238,7 +239,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         This operates on the parameters and is called before each model run.
         '''
 
-        print('*'*60 + '\nModelBase: Limiting chp profiles to cap_pwr_leg', end='... ')
+        logger.info('Limiting chp profiles to cap_pwr_leg')
 
         # get list of plants relevant for chp from corresponding set
         pp_chp = self.setlst['chp']
@@ -286,7 +287,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
 
         if mask_viol.sum() == 0:
-            print('ok, nothing changed.\n' + '*'*60)
+            logger.info('ok, nothing changed.')
         else:
             # REPORTING
             df_profviol = df_chpprof_tot.loc[mask_viol]
@@ -296,7 +297,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
             for kk, vv in dict_viol.items():
                 print('\n(pp, ca)={}: {} violations'.format(kk, vv))
 
-            print('Modifing model parameter ' + param_mod, end=' ... ')
+            logger.warning('Modifing model parameter ' + param_mod)
 
             if param_mod == 'chpprof':
 
@@ -330,7 +331,6 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
                 for kk, vv in dict_cap_pwr_leg.items():
                     self.cap_pwr_leg[kk] = vv
 
-            print('done.\n' + '*'*60)
 
     def _init_pf_dicts(self):
         '''
@@ -666,7 +666,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         self._init_time_map()
         self._init_time_map_connect()
 
-        print('+++++++++++++++++++++++++ SKIPPING adjust_cost_time +++++++++++++++++++++++++++')
+        logger.critical('+++++++++++++++++++++++++ SKIPPING adjust_cost_time +++++++++++++++++++++++++++')
 #        self.adjust_cost_time()
         self._soy_map_hydro_bcs()
 
@@ -682,7 +682,8 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
                         ]:
 
             name_df = 'df_prof' + itb
-            print('Averaging {}; nhours={}.'.format(name_df, self.nhours))
+            logger.info('Averaging {}; nhours={}.'.format(name_df,
+                                                          self.nhours))
 
             df_tbsoy = getattr(self, name_df)
 

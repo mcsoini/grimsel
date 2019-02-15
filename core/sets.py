@@ -34,8 +34,7 @@ class Sets:
 
         for iset in slct_sets:
 
-            logger.info('Defining basic sets for {}={}'%(iset,
-                                                         self.setlst[iset]))
+            logger.info('Defining basic sets for {}'.format(iset))
 
             ''' SUB SETS PP'''
             setattr(self, iset,

@@ -452,9 +452,9 @@ class ModelWriter():
             setattr(self, key, val)
         self.__dict__.update(kwargs)
 
-
-        print('Output schema: ', self.sc_out,
-              '; resume loop=', self.resume_loop)
+        ls = 'Output schema: %s; resume loop=%s'%(self.sc_out,
+                                                  self.resume_loop)
+        logger.info(ls)
         self.reset_schema()
 
 
@@ -968,9 +968,9 @@ class DataReader():
             names_dict = {nn: list(set(report_df.loc[report_df.name == nn, 'id']))
                           for nn in names}
 
-            print('Ex-post filtering of DataFrame {}:'.format(name_df))
+            logger.info('Ex-post filtering of DataFrame {}:'.format(name_df))
             for kk, vv in names_dict.items():
-                print('\tSet {} is in ({})'.format(kk, ', '.join(map(str, vv))))
+                logger.info('\tSet {} is in ({})'.format(kk, ', '.join(map(str, vv))))
 
 
         return df

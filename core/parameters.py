@@ -237,19 +237,17 @@ class Parameters:
         # monthly factor dataframes
         self.dict_monthly_factors = {}
         self.parameter_month_dict = {}
-        print('*' * 60)
 
         for param in self.df_parameter_month.parameter.unique():
             self.apply_monthly_factors(param)
 
-        print('*' * 60)
 
 
     def apply_monthly_factors(self, param):
         '''
         '''
 
-        print('Applying monthly factors to parameter %s'%param, end=' ... ')
+        logger.info('Applying monthly factors to parameter %s'%param)
 
         list_mts = self.df_parameter_month.mt_id.unique().tolist()
 
@@ -332,8 +330,6 @@ class Parameters:
         # modify IO class attribute to get the output table indices right
         io.DICT_IDX[param] = sets_new
 
-        print('done.')
-
 
 
 ##############################################################################
@@ -372,6 +368,6 @@ class Parameters:
         df = df.loc[df['pp_id'].isin(self.setlst['pp'])]
         cf_max_new = pdef(df, ['pp_id', 'ca_id'], 'cf_max_runs')
         for ippca, cf_max_val in cf_max_new.items():
-            print(ippca, cf_max_val)
+            logger.info('set_cf_max_runs: %s, %s'%(str(ippca), str(cf_max_val)))
             self.cf_max[ippca] = cf_max_val
 
