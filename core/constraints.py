@@ -262,11 +262,21 @@ class Constraints:
 
 
     def add_chp_rules(self):
+        '''
+        Adds all co-generation related constraints.
 
         def chp_prof_rule(model, sy, pp, ca):
             '''Produced power greater than CHP output profile.'''
+        ``chp_prof_rule``
+        #################
 
             nd = self.mps.dict_plant_2_node_id[pp]
+        .. math::
+
+           & p_\mathrm{chp} \geqslant \mathrm{prf}_\mathrm{chp} \mathrm{e}_\mathrm{chp} \\
+
+        '''
+
 
             return (self.pwr[sy, pp, ca]
                     >= self.chpprof[sy, nd, ca] * self.erg_chp[pp, ca])
