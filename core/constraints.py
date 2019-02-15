@@ -99,7 +99,8 @@ class Constraints:
 
                     self.dict_sysy[nd, nd_2, sy]
 
-            Args:
+            Parameters
+            ----------
                 - sy (int): current time slot in nd
                 - nd (int): outgoing node
                 - nd_2 (int): incoming node
