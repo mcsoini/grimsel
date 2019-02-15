@@ -621,6 +621,9 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         pv_kws = dict(index='tm_id', values='sy', aggfunc=unq_list)
         self.dict_tm_sy = self.df_hoy_soy.pivot_table(**pv_kws).sy.to_dict()
 
+        self.dict_tm_symax = {tm: max(list_sy) for tm, list_sy
+                              in self.dict_tm_sy.items()}
+
 
     def _soy_map_hydro_bcs(self):
         ''' Map hydro boundary conditions (which refer to the beginning
