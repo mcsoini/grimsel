@@ -251,12 +251,14 @@ class ModelLoop():
         sep = '*' * 60
         run_id_str = 'run_id = %d of %d'%(self.run_id,
                                           self.df_def_loop['run_id'].max())
-        sw_str = '\n'.join([str(c[0]) + ' = ' + str(c[1])
-                            for c in self.dct_vl.items()])
-        run_title_str = '{sep}\n{run_id_str}\n{sw_str}\n{sep}'\
-                                .format(sep=sep, run_id_str=run_id_str,
-                                        sw_str=sw_str)
-        logger.info(run_title_str)
+        sw_strs = [str(c[0]) + ' = ' + str(c[1])
+                  for c in self.dct_vl.items()]
+
+        logger.info(sep)
+        logger.info(run_id_str)
+        for strg in sw_strs:
+            logger.info(strg)
+        logger.info(sep)
 
     def restore_run_id(self):
         '''
