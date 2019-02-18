@@ -8,6 +8,21 @@ from grimsel import _get_logger
 
 logger = _get_logger(__name__)
 
+
+DICT_SETS_PP = {'ppall': 'all power plant types',
+                 'pp': 'dispatchable power plants with fuels',
+                 'st': 'storage plants',
+                 'pr': 'variable renewables with fixed profiles',
+                 'ror': 'run-of-river plants',
+                 'lin': 'dispatchable plants with linear supply curve',
+                 'hyrs': 'hydro reservoirs',
+                 'chp': 'plants with co-generation',
+                 'add': 'plants with capacity additions',
+                 'rem': 'plants with capacity retirements',
+                 'curt': 'dedicated curtailment technology',
+                 'sll': 'plants selling produced energy carriers',
+                 'rp': 'dispatchable plants with ramping costs'}
+
 class Sets:
     '''
     Mixin class for set definition.
@@ -96,8 +111,8 @@ class Sets:
         '''
 
         self.nd = po.Set(initialize=self.setlst['nd'], doc='Nodes')
-        self.ca = po.Set(initialize=self.setlst['ca'], doc='Energy carriers')
-        self.fl = po.Set(initialize=self.setlst['fl'], doc='Sub-fuels')
+        self.ca = po.Set(initialize=self.setlst['ca'], doc='(Produced) energy carriers')
+        self.fl = po.Set(initialize=self.setlst['fl'], doc='Fuels')
         self.pf = po.Set(initialize=self.setlst['pf'], doc='Profiles')
 
         df_ndca = self.df_def_plant[['pp_id', 'nd_id']].set_index('pp_id')
@@ -115,26 +130,29 @@ class Sets:
             logger.info('Defining basic sets for {}'.format(iset))
 
             ''' SUB SETS PP'''
+            doc = dict(doc=DICT_SETS_PP[iset])
             setattr(self, iset,
                     po.Set(within=(None if iset == 'ppall' else self.ppall),
-                           initialize=self.setlst[iset])
+                           initialize=self.setlst[iset], **doc)
                            if iset in self.setlst.keys()
-                           else po.Set(within=self.ppall, initialize=[]))
+                           else po.Set(within=self.ppall, initialize=[], **doc))
 
             ''' SETS PP x ENCAR '''
+            doc = dict(doc=r'combined :math:`\mathrm{%s\times nd}` set'%iset)
             _df = self.df_plant_encar.copy()
             _df = _df.loc[_df['pp_id'].isin(getattr(self, iset))]
             setattr(self, iset + '_ca',
-                    po.Set(within=getattr(self, iset) * self.ca,
+                    po.Set(within=getattr(self, iset) * self.ca, **doc,
                            initialize=cols2tuplelist(_df[slct_cols])))
 
             ''' SETS PP x ND x ENCAR '''
+            doc = dict(doc=r'combined :math:`\mathrm{%s\times nd\times ca}` set'%iset)
             _df = df_ndca.copy()
             _df = _df.loc[df_ndca['pp_id'].isin(self.setlst[iset]
                           if iset in self.setlst.keys() else [])]
             setattr(self, iset + '_ndca',
                     po.Set(within=getattr(self, iset) * self.nd * self.ca,
-                           initialize=cols2tuplelist(_df)))
+                           initialize=cols2tuplelist(_df), **doc))
 
 
         # no scf fuels in the _cafl and _ndcafl
@@ -167,23 +185,24 @@ class Sets:
                            initialize=cols2tuplelist(df)))
 
         # plants selling fuels ... only ppall, therefore outside the loop
+        lst = cols2tuplelist(df.loc[df.pp_id.isin(self.setlst['sll'])])
+        doc = ('"fuels" solds by power plant :math:`pp` '
+               'consuming energy carrier :math:`ca`')
         setattr(self, 'pp' + '_ndcafl_sll',
-                po.Set(within=self.pp_ndcafl,
-                       initialize=
-                       cols2tuplelist(df.loc[df.pp_id.isin(self.setlst['sll'])])))
+                po.Set(within=self.pp_ndcafl, initialize=lst, doc=doc))
 
         # temporal
         self.sy = po.Set(initialize=list(self.df_tm_soy.sy.unique()),
-                         ordered=True)
-        self.tm = po.Set(initialize=self.df_tm_soy.tm_id.unique(),
-                         ordered=True)
+                         ordered=True, doc='model time slots')
 
         self.sy_hydbc = po.Set(within=self.sy,
                                initialize=set(self.df_plant_month.sy))
 
-        self.mt = (po.Set(initialize=list(self.df_def_month['mt_id']))
+        self.mt = (po.Set(initialize=list(self.df_def_month['mt_id']),
+                          doc='months')
                    if not self.df_def_month is None else None)
-        self.wk = (po.Set(initialize=list(self.df_def_week['wk_id']))
+        self.wk = (po.Set(initialize=list(self.df_def_week['wk_id']),
+                          doc='weeks')
                    if not self.df_def_week is None else None)
 
         # pp_cacafcl; used to account for conversions of ca in the supply rule
@@ -200,13 +219,19 @@ class Sets:
 
         # inter-node connections
         if not self.df_node_connect is None:
+            doc = dict(doc='combined node sets '
+                           ':math:`\mathrm{nd\\times nd\\times ca}` '
+                           'for inter-nodal transmission')
             df = self.df_node_connect[['nd_id', 'nd_2_id', 'ca_id']]
             self.ndcnn = po.Set(within=self.nd * self.nd * self.ca,
-                             initialize=cols2tuplelist(df), ordered=True)
+                             initialize=cols2tuplelist(df), ordered=True, **doc)
 
+            doc = dict(doc='combined node sets '
+                           ':math:`\mathrm{sy\\times nd\\times nd\\times ca}` '
+                           'for inter-nodal transmission')
             df = self.df_symin_ndcnn[['symin', 'nd_id', 'nd_2_id', 'ca_id']]
             self.symin_ndcnn = po.Set(within=self.sy * self.nd
-                                             * self.nd * self.ca,
+                                             * self.nd * self.ca, **doc,
                                       initialize=cols2tuplelist(df),
                                       ordered=True)
         else:
@@ -265,12 +290,17 @@ class Sets:
         time slots are connected.
         '''
 
+        self.tm = po.Set(initialize=self.df_tm_soy.tm_id.unique(),
+                         ordered=True, doc='time maps')
+
         list_tmsy = cols2tuplelist(self.df_tm_soy[['tm_id', 'sy']])
         self.tmsy = po.Set(within=self.tm*self.sy, initialize=list_tmsy,
-                           ordered=True)
+                           ordered=True,
+                           doc='combination of time maps and slots')
 
         # only constructed if self.mt exists
-        self.tmsy_mt = (po.Set(within=self.tmsy * self.mt,
+        doc = 'all relevant combinations :math:`\mathrm{tm\\times sy\\times mt}`'
+        self.tmsy_mt = (po.Set(within=self.tmsy * self.mt, doc=doc,
                                initialize=cols2tuplelist(
                                     self.df_tm_soy[['tm_id', 'sy', 'mt_id']]))
                         if not self.mt is None else None)
@@ -283,7 +313,7 @@ class Sets:
         list_syndca = pd.merge(self.df_tm_soy[['tm_id', 'sy']],
                                 df, on='tm_id', how='outer')[cols]
 
-        self.sy_ndca = po.Set(ordered=True,
+        self.sy_ndca = po.Set(within=self.sy*self.ndca, ordered=True,
                               initialize=cols2tuplelist(list_syndca))
 
         mask_pp = self.df_plant_encar.pp_id.isin(self.setlst['ppall'])
@@ -303,6 +333,7 @@ class Sets:
                          'pp', 'chp', 'ror', 'lin']:
 
             set_name = 'sy_%s_ca'%slct_set
+            doc = r'combined :math:`\mathrm{sy\times %s\times nd}` set'%slct_set
             self.delete_component(set_name)
 
             logger.info('Defining set ' + set_name)
@@ -310,7 +341,8 @@ class Sets:
             set_pp = set(self.setlst[slct_set])
 
             setattr(self, set_name,
-                    po.Set(ordered=True,
+                    po.Set(within=self.sy * getattr(self, slct_set) * self.ca,
+                           ordered=True, doc=doc,
                            initialize=[row for row in list_syppca
                                        if row[1] in set_pp]))
 
