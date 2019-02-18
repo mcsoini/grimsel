@@ -3,6 +3,19 @@ import json
 import pandas as pd
 import numpy as np
 import statsmodels.api as sm
+import wrapt
+
+@wrapt.decorator
+def silence_pd_warning(f, self, args, kwargs):
+
+    def f_new():
+        pd.options.mode.chained_assignment = None
+        ret = f(*args, **kwargs)
+        pd.options.mode.chained_assignment = 'warn'
+        return ret
+
+    return f_new()
+
 
 def print_full(x):
     pd.set_option('display.max_rows', len(x))

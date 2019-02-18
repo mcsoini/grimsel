@@ -3,9 +3,9 @@
 
 import numpy as np
 import pandas as pd
-import wrapt
 
 import grimsel.auxiliary.sqlutils.aux_sql_func as aql
+from grimsel.auxiliary.aux_general import silence_pd_warning
 
 rev_dict = lambda dct: {val: key for key, val in dct.items()}
 
@@ -224,16 +224,6 @@ class Maps():
         self.dict_plant_2_node = get_name_dict('plant', 'nd')
 
 
-    @wrapt.decorator
-    def silence_pd_warning(f, self, args, kwargs):
-
-        def f_new():
-            pd.options.mode.chained_assignment = None
-            ret = f(*args, **kwargs)
-            pd.options.mode.chained_assignment = 'warn'
-            return ret
-
-        return f_new()
 
     @silence_pd_warning
     def id_to_name(self, df, name_list=None, inplace=False):
