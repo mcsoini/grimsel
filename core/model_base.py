@@ -687,7 +687,8 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         '''
 
         self._init_time_map()
-        self._init_time_map_connect()
+        if not self.df_node_connect.empty:
+            self._init_time_map_connect()
 
         logger.critical('+++++++++++++++++++++++++ SKIPPING adjust_cost_time +++++++++++++++++++++++++++')
 #        self.adjust_cost_time()
