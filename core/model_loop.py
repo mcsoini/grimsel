@@ -246,7 +246,7 @@ class ModelLoop():
         # can't use io method here if we want this to happen when no_output
         aql.write_sql(self.df_add, self.db, self.sc_out, 'def_loop', 'append')
 
-    def print_run_title(self, warmstartfile, solutionfile):
+    def _print_run_title(self, warmstartfile, solutionfile):
 
         sep = '*' * 60
         run_id_str = 'run_id = %d of %d'%(self.run_id,
@@ -289,7 +289,7 @@ class ModelLoop():
         if zero_run:
             self.m.do_zero_run() # zero run method in model_base
         else:
-            self.print_run_title(self.m.warmstartfile, self.m.solutionfile)
+            self._print_run_title(self.m.warmstartfile, self.m.solutionfile)
             self.m.run(warmstart=warmstart)
         tdiff_solve = time.time() - t
         stat = ('Solver: ' + str(self.m.results.Solver[0]['Termination condition']))
