@@ -305,8 +305,8 @@ class Sets:
                                     self.df_tm_soy[['tm_id', 'sy', 'mt_id']]))
                         if not self.mt is None else None)
 
-        df = pd.merge(self.df_def_plant, self.df_plant_encar,
-                      on='pp_id', how='outer')[['nd_id', 'ca_id']]
+        df = pd.merge(self.df_def_node, self.df_node_encar,
+                      on='nd_id', how='outer')[['nd_id', 'ca_id']]
         df = df.loc[~df.ca_id.isna()].drop_duplicates()
         df['tm_id'] = df.nd_id.replace(self.dict_nd_tm_id)
         cols = ['sy', 'nd_id', 'ca_id']
