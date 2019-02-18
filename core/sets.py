@@ -1,4 +1,5 @@
 import pyomo.environ as po
+import pyomo.core.base.sets as poset
 import pandas as pd
 import numpy as np
 
