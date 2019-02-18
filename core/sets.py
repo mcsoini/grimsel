@@ -375,6 +375,68 @@ class Sets:
                              + self.setlst['hyrs'])
 
 
+    @silence_pd_warning
+    def _get_set_docs(self):
+        '''
+        Convenience method to extract all set docs from a :class:`ModelBase`
+        instance.
+
+        '''
+
+        import tabulate
+
+        to_math = lambda x: ':math:`\mathrm{%s}`'%x
+
+        dict_doc = {name: comp.doc for name, comp in self.__dict__.items()
+                    if type(comp) in (poset.SimpleSet, poset.OrderedSimpleSet)
+#                    and (not '_' in name)
+                    and comp.doc
+                    }
+
+        comb_sets = ['ndcnn', 'tmsy']
+
+        cols = ['Set', 'Description']
+        df_doc = pd.Series(dict_doc).reset_index()
+        df_doc.columns = cols
+
+        mask_not_under = ~df_doc.Set.str.contains('_')
+        mask_not_ndca = ~df_doc.Set.str.contains('_ndca')
+        mask_not_ca = ~df_doc.Set.str.contains('_ca')
+
+        print('\nPrimary base sets:\n')
+
+        df_doc_pp = df_doc.loc[df_doc.Set.isin(DICT_SETS_PP)
+                               & mask_not_under]
+        df_doc_pp['Set'] = df_doc_pp.Set.apply(to_math)
+        print(tabulate.tabulate(df_doc_pp.applymap(lambda x: x.replace('_', '\_')),
+                                tablefmt='rst', headers=cols,
+                                showindex=False))
+
+        print('\nPrimary power plant sets and subsets:\n')
+
+
+        df_doc_oth = df_doc.loc[~df_doc.Set.isin(DICT_SETS_PP)
+                                & ~df_doc.Set.isin(comb_sets)
+                                & mask_not_under]
+        df_doc_oth['Set'] = df_doc_oth.Set.apply(to_math)
+        print(tabulate.tabulate(df_doc_oth.applymap(lambda x: x.replace('_', '\_')),
+                                headers=cols,
+                                tablefmt='rst', showindex=False))
+
+        df_doc_oth = df_doc.loc[(df_doc.Set.isin(comb_sets)
+                                | ~mask_not_under) & mask_not_ndca & mask_not_ca]
+        df_doc_oth['Set'] = df_doc_oth.Set.apply(to_math)
+
+        print('\nExample derived sets:\n')
+
+        df_doc_ppca = df_doc.loc[~mask_not_ca | ~mask_not_ndca]
+        df_doc_ppca['Set'] = df_doc_ppca.Set.apply(to_math)
+        df_doc_ppca = df_doc_ppca.loc[df_doc_ppca.Set.str.contains('ppall')
+                        | df_doc_ppca.Set.str.endswith('sll')]
+        print(tabulate.tabulate(pd.concat([df_doc_ppca, df_doc_oth]).applymap(lambda x: x.replace('_', '\_')), headers=cols,
+                                tablefmt='rst', showindex=False))
+
+
         # hydro and storage together
         self.setlst['sthyrs'] = self.setlst['st'] + self.setlst['hyrs']
 
