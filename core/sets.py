@@ -122,8 +122,9 @@ class Sets:
 
         slct_cols = ['pp_id', 'ca_id']
         slct_sets = ['ppall', 'pp', 'st', 'pr', 'ror', 'lin',
-                     'hyrs', 'chp', 'add', 'rem', 'winsol', 'scen',
-                     'curt', 'sll']
+                     'hyrs', 'chp', 'add', 'rem',
+                     'curt', 'sll', 'rp']
+
 
         for iset in slct_sets:
 
