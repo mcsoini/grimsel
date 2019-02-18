@@ -853,6 +853,7 @@ class DataReader():
         # autocomplete input tables
         self.data_autocompletion()
 
+        self._fix_df_node_connect()
 
         self.input_table_list = (list(dict_tb_1) + list(dict_tb_2)
                                  + list(dict_tb_0)+ list(dict_tb_3)
@@ -1026,7 +1027,7 @@ class DataReader():
 
         '''
 
-        for itb in tb_list:
+        for itb in set(tb_list) - set(list(zip(*self.runtime_tables))[0]):
             df = getattr(self.model, 'df_' + itb)
             if (df is not None and ('def_' in itb or not 'prof' in itb)):
                 logger.info('Writing table {} to output schema.'.format(itb))
