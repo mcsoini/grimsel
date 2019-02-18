@@ -10,12 +10,89 @@ logger = _get_logger(__name__)
 class Sets:
     '''
     Mixin class for set definition.
-    Methods:
-    - define_sets: adds all relevant sets
-    - get_setlst: generate dictionary with lists of set elements
+
     '''
 
     def define_sets(self):
+        r'''
+        Add all required sets to the model.
+
+        Adds sets as defined by
+
+        * the ``setlst`` dictionary initialized in the :func:`get_setlst`
+          method (for basic power plant sets)
+        * the DataFrame attributes of the :class:`ModelBase` class
+
+        Consult the :class:`Variables`, :class:`Parameters`,
+        and :class:`Constraints` class for usage
+
+        Primary base sets:
+
+        ======================  ============================================
+        Set                     Description
+        ======================  ============================================
+        :math:`\mathrm{ppall}`  all power plant types
+        :math:`\mathrm{pp}`     dispatchable power plants with fuels
+        :math:`\mathrm{st}`     storage plants
+        :math:`\mathrm{pr}`     variable renewables with fixed profiles
+        :math:`\mathrm{ror}`    run-of-river plants
+        :math:`\mathrm{lin}`    dispatchable plants with linear supply curve
+        :math:`\mathrm{hyrs}`   hydro reservoirs
+        :math:`\mathrm{chp}`    plants with co-generation
+        :math:`\mathrm{add}`    plants with capacity additions
+        :math:`\mathrm{rem}`    plants with capacity retirements
+        :math:`\mathrm{curt}`   dedicated curtailment technology
+        :math:`\mathrm{sll}`    plants selling produced energy carriers
+        :math:`\mathrm{rp}`     dispatchable plants with ramping costs
+        ======================  ============================================
+
+        Primary power plant sets and subsets:
+
+        ===================  ==========================
+        Set                  Description
+        ===================  ==========================
+        :math:`\mathrm{nd}`  Nodes
+        :math:`\mathrm{ca}`  (Produced) energy carriers
+        :math:`\mathrm{fl}`  Fuels
+        :math:`\mathrm{pf}`  Profiles
+        :math:`\mathrm{sy}`  model time slots
+        :math:`\mathrm{mt}`  months
+        :math:`\mathrm{wk}`  weeks
+        :math:`\mathrm{tm}`  time maps
+        ===================  ==========================
+
+        Example derived sets:
+
+        ==============================  ==============================================================================================
+        Set                             Description
+        ==============================  ==============================================================================================
+        :math:`\mathrm{ppall\_ca}`      combined :math:`\mathrm{ppall\times nd}` set
+        :math:`\mathrm{ppall\_ndca}`    combined :math:`\mathrm{ppall\times nd\times ca}` set
+        :math:`\mathrm{sy\_ppall\_ca}`  combined :math:`\mathrm{sy\times ppall\times nd}` set
+        :math:`\mathrm{ndcnn}`          combined node sets :math:`\mathrm{nd\times nd\times ca}` for inter-nodal transmission
+        :math:`\mathrm{symin\_ndcnn}`   combined node sets :math:`\mathrm{sy\times nd\times nd\times ca}` for inter-nodal transmission
+        :math:`\mathrm{tmsy}`           combination of time maps and slots
+        :math:`\mathrm{tmsy\_mt}`       all relevant combinations :math:`\mathrm{tm\times sy\times mt}`
+        ==============================  ==============================================================================================
+
+
+
+
+        .. note::
+
+           * :math:`\mathrm{sy\_ppall\_ca}`: The dispatch of a given power plant
+             :math:`\mathrm{pp}` is defined for the time slots of the corresponding
+             node. Since the time resolution and hence the number of time slots
+             potentially depends on the node, this combined set is necessary to
+             limit the variable and constraint definitions to the relevant time
+             slots of any power plant.
+           * :math:`\mathrm{symin\_ndcnn}`: If two nodes with different time
+             resolutions are connected, the transmission variable has the higher
+             time resolution of the two (*min* as in shortest time slot duration).
+             This combined set expresses this relationship for each of the
+             connected nodes.
+
+        '''
 
         self.nd = po.Set(initialize=self.setlst['nd'], doc='Nodes')
         self.ca = po.Set(initialize=self.setlst['ca'], doc='Energy carriers')
@@ -240,7 +317,19 @@ class Sets:
     def get_setlst(self):
         '''
         Lists of indices for all model components are extracted from the
-        input tables and stored in a dictionary self.
+        input tables and stored in a dictionary ``ModelBase.setlst``.
+
+        For the most part power plant subset definitions are based on the
+        binary columns *set_def_..* in the ``df_def_plant`` input table.
+
+        Exceptions are:
+
+        * Power plant subsets defined as set unions of the above
+          (:math:`pf`, :math:`rp`)
+        * Profile sets from the ``df_fuel_node_encar`` (price profiles),
+          ``df_plant_encar`` (supply profiles) and ``df_node_encar``
+          (demand profiles) input tables.
+
         '''
         # define lists for set initialization
         self.setlst = {}

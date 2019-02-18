@@ -151,8 +151,9 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         5. call self.add_all_constraints
         6. call self.init_solver
 
-        Note: io needs to have loaded all data, i.e. set the ModelBase
-        DataFrames.
+        .. note::
+           io needs to have loaded all data, i.e. set the ModelBase
+           DataFrames.
         '''
 
         self.get_setlst()
@@ -175,8 +176,18 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         parameter to initialize the ModelBase object by selecting certain
         groups to be excluded.
 
-        Parameters:
-        excl : exclude certain group names from the returned list
+        Parameters
+        ----------
+        excl : list
+            exclude certain group names from the returned list
+
+        Returns
+        -------
+        list
+            Names of constraint groups. These correspond to the
+            methods in the :class:`Constraints` class without the prefix
+            `add_` and the suffix `_rules`
+
         '''
 
         cg_lst = [mth.replace('add_', '').replace('_rules', '')
@@ -196,6 +207,13 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         Verifies constraint groups if the ``constraint_groups`` argument
         is not None. Otherwise it gathers all accordingly named
         methods from the class attributes and populates the list thusly.
+
+        Raises
+        ------
+        ValueError
+            If the :class:`ModelBase` instance attribute ``constraint_groups``
+            contains invalid entries.
+
         '''
 
         cg_options = self.get_constraint_groups()
@@ -656,11 +674,14 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         Also generates dictionaries which contain all slot ids for each
         week/month and vice versa.
 
-        Raises:
-            ValueError: If multiple tm_ids correspond to the pf_ids in any
-                selected profile tables. This could be fixed by splitting up
-                the profile table, but we rather have this avoided on the
-                input data side.
+        Raises
+        ------
+        ValueError
+            If multiple tm_ids correspond to the pf_ids in any
+            selected profile tables. This could be fixed by splitting up
+            the profile table, but we rather have this avoided on the
+            input data side.
+
         '''
 
         self._init_time_map()

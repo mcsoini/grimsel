@@ -755,7 +755,6 @@ class DataReader():
         Read all input data and generate :class:`ModelBase` instance
         attributes.
 
-
         '''
 
         tbrd = TableReader(self.sql_connector, self.sc_inp,
@@ -983,8 +982,10 @@ class DataReader():
         Makes sure the table df_node_connect corresponds to the new style.
 
         New style: The transmission capacities are expressed as
-        * cap_trme_leg for exports and
-        * cap_trmi_leg for imports
+
+        * ``cap_trme_leg`` for exports and
+        * ``cap_trmi_leg`` for imports
+
         for single directions, i.e. non-redundant. The input table has columns
         (nd_id, nd_2_id, ca_id, mt_id, cap_trme_leg, cap_trmi_leg).
 
@@ -1018,9 +1019,7 @@ class DataReader():
     @skip_if_no_output
     def write_input_tables_to_output_schema(self, tb_list):
         '''
-        TODO: Input tables in output schema are required even if no_output.
-              Check where + fix. Ideally this would have decorator
-              skip_if_no_output.
+
         '''
 
         for itb in tb_list:

@@ -17,16 +17,16 @@ nn = [None] * 2
 
 def _limit_max_sy(dct):
     '''
-    Decorator limiting the constraints to a timemap-dependent range
+    Decorator limiting the constraints to a timemap-dependent range.
 
     Note: Only useful if the sy_pp_ca sets are not defined (which they will
     probably always be, since they are required by the variables).
 
     Parameters
     ----------
-        dct: dict
-            maximum time slot in dependence on the other parameters
-            (typically ``{nd: sy_max}`` or ``{pp: sy_max}``)
+    dct: dict
+        maximum time slot in dependence on the other parameters
+        (typically ``{nd: sy_max}`` or ``{pp: sy_max}``)
 
     '''
     def wrapper(f):
@@ -52,12 +52,13 @@ class Constraints:
 
         Parameters
         ----------
-        ``name`` - ``str``
+        name : str
             name of the new component
-        ``objclass`` - pyomo class
-            probably one of ``{po.Constraint, po.Objective}``
-        ``args``, ``kwargs``
+        objclass : pyomo class
+            one of ``{po.Constraint, po.Objective}``
+        args, kwargs
             passed to the ``objclass`` initializiation
+
         '''
 
         ls = 'Adding {} {}: {}.'.format(name, objclass.__name__.lower(),
@@ -282,15 +283,24 @@ class Constraints:
                   rule=st_erg_capac_rule)
 
     def add_chp_rules(self):
-        '''
+        r'''
         Adds all co-generation related constraints.
 
+
+
         ``chp_prof_rule``
-        #################
+        -----------------
+
+        The production from power plants :math:`p_\mathrm{pp,t}` in the
+        set :math:`\mathrm{sy\_chp\_ca}` must be larger than the scaled
+        CHP profile :math:`\phi_\mathrm{chp,n,t}`:
 
         .. math::
 
-           & p_\mathrm{chp} \geqslant \mathrm{prf}_\mathrm{chp} \mathrm{e}_\mathrm{chp} \\
+           & p_\mathrm{pp,t} \geqslant \phi_\mathrm{chp,n,t}
+           \mathrm{e}_\mathrm{chp,pp} \\
+           & \forall \mathrm{(sy,pp,ca)} \in \mathrm{sy\_chp\_ca}
+
 
         '''
 

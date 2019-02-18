@@ -131,20 +131,26 @@ class Maps():
 
     def get_color_dict(self, iind, list_complement=[], color_complement='k'):
         '''
-        Returns a color dict based on the *color* columns in the input tables.
+        Returns a color dictionary based on the *color* columns in the input.
 
-        Args:
-            iind (str): index like fl, fl_id, pp, pp_id, etc.
-            list_complement (list): list of entries which are not included in
-                the input table but which are required in the color dictionary
-            color_complement (str): color string of any format for the
-                complemented color dictionary entries
+        Parameters
+        ----------
+        iind : str
+            index like fl, fl_id, pp, pp_id, etc.
+        list_complement : list
+            list of entries which are not included in the input table but
+            which are required in the color dictionary
+        color_complement : str
+            color string of any format for the complemented color dictionary
+            entries
 
-        Returns:
-            dict: dictionary ``{index: color}``
+        Returns
+        -------
+        dict
+            dictionary ``{index: color}``
 
-        Note:
-            Returns ``None`` if the the corresponding table doesn't exist
+        bool
+            Returns ``False`` if the the corresponding table doesn't exist
             or if it has no *color* column.
 
 

@@ -1,3 +1,12 @@
+'''
+The timemap module contains the TimeMap class for
+
+* mapping between hours of the year and model time slots of the year,
+* convenient mapping between time slots/hours and other temporal indices
+  (month ids, week ids, seasons, hours of the week/month, etc)
+
+'''
+
 import pandas as pd
 import numpy as np
 from grimsel import _get_logger
@@ -22,6 +31,14 @@ def tm_hash(nhours, freq, start, stop, tm_filt):
     return hash_val
 
 class UniqueInstancesMeta(type):
+    '''
+    Load ``TimeMap`` instance from the module dictionary, if exists.
+
+    To avoid the generation of multiple time maps with the same
+    parameters, they are stored in the ``TM_DICT`` module attribute
+    and retrieved when appropriate.
+
+    '''
 
     def __call__(cls, nhours=1, freq=1,
                  start='2015-1-1 00:00', stop='2015-12-31 23:59',
@@ -37,6 +54,99 @@ class UniqueInstancesMeta(type):
                                     *args, **kwargs)
 
 class TimeMap(metaclass=UniqueInstancesMeta):
+    '''
+    The ``TimeMap`` class generates various DataFrames for time mapping.
+
+    For example, if we start from input data with 15 minutes (0.25 hour)
+    time resolution and run the model with 2 hour time resolution, we
+    need a ``TimeMap`` instance with ``freq=0.25`` and ``nhours=2``.
+
+    After calling the :func:`gen_soy_timemap` (which occurs automatically
+    in the ``__init__`` method) three attribute ``DataFrames`` are generated:
+
+    * ``df_time_map``, indexed by the hour of the year *hy*
+    * ``df_time_red``, reduced time map indexed by the time slot of the year *sy*
+    * ``df_hoy_soy``, a minimal map between the *sy* and the *hy*
+
+    Args
+    ----
+    nhours : float
+        target time resolution in hours
+    freq : float
+        frequency of the base time map in hours
+    start : str
+        start datetime of time map; format ``2015-1-1 00:00``
+    stop : str
+        end datetime of time map; format ``2015-1-1 00:00``
+    tm_filt : list
+        list of tuples with shape ``(timemap_column, [values])``
+        for time map filtering. For example,
+        ``tm_filt=[('dow', [0, 1]), ('mt_id', [2])]`` generates a
+        ``TimeMap`` instance whose tables only contain the days of the
+        week 0 and 1 for the *mt_id* 2
+    keep_datetime : bool
+        Remove the *DateTime* column if False
+    minimum : bool
+        don't generate non-essential columns
+
+    Raises
+    ------
+    AssertionError
+        If ``nhours`` is not a multiple of ``freq``.
+
+    Examples
+    --------
+
+    Initialize a ``TimeMap`` instance mapping the original 0.25 hour time
+    resolution to 1.25 hours:
+
+    >>> tm = TimeMap(nhours=1.25, freq=0.25, tm_filt=[('mt_id', [0]), ('hom', range(2))], minimum=True)
+
+    Base ``df_time_map`` table:
+
+    >>> print(tabulate.tabulate(tm.df_time_map, headers=tm.df_time_map.columns, tablefmt='rst'))
+    ====  ======  =====  =======  =====  ======  =====  =====  =====  =======  ===========  ====  ====
+      ..    hour    doy    mt_id    day    year    dow    how    hom    wk_id    wk_weight    hy    sy
+    ====  ======  =====  =======  =====  ======  =====  =====  =====  =======  ===========  ====  ====
+       0       0      1        0      1    2015      3     72      0        0          384  0        0
+       1       0      1        0      1    2015      3     72      0        0          384  0.25     0
+       2       0      1        0      1    2015      3     72      0        0          384  0.5      0
+       3       0      1        0      1    2015      3     72      0        0          384  0.75     0
+       4       1      1        0      1    2015      3     73      1        0          384  1        0
+       5       1      1        0      1    2015      3     73      1        0          384  1.25     1
+       6       1      1        0      1    2015      3     73      1        0          384  1.5      1
+       7       1      1        0      1    2015      3     73      1        0          384  1.75     1
+    ====  ======  =====  =======  =====  ======  =====  =====  =====  =======  ===========  ====  ====
+
+    Reduced ``df_time_red`` table:
+
+    >>> print(tabulate.tabulate(tm.df_time_red, headers=tm.df_time_red.columns, tablefmt='rst'))
+    ====  ======  ====  =====  =====  =====  =====  ======  =====  ====  =======  ========  =======  ===========
+      ..    year    sy    day    dow    doy    hom    hour    how    hy    mt_id    weight    wk_id    wk_weight
+    ====  ======  ====  =====  =====  =====  =====  ======  =====  ====  =======  ========  =======  ===========
+       0    2015     0      1      3      1      0       0     72  0           0      1.25        0          384
+       1    2015     1      1      3      1      1       1     73  1.25        0      0.75        0          384
+    ====  ======  ====  =====  =====  =====  =====  ======  =====  ====  =======  ========  =======  ===========
+
+    Minimal convenience table ``df_hoy_soy`` only containing the *hy* |rarr| *sy*
+    map:
+
+    >>> print(tabulate.tabulate(tm.df_hoy_soy, headers=tm.df_hoy_soy.columns, tablefmt='rst'))
+    ====  ====  ====
+      ..    sy    hy
+    ====  ====  ====
+       0     0  0
+       1     0  0.25
+       2     0  0.5
+       3     0  0.75
+       4     0  1
+       5     1  1.25
+       6     1  1.5
+       7     1  1.75
+    ====  ====  ====
+    '''
+
+
 
     def __repr__(self):
 
@@ -168,15 +278,15 @@ class TimeMap(metaclass=UniqueInstancesMeta):
         '''
         Reduces the original timemap to a lower time resolution.
 
+        * Adds additional columns *weight* and *sy* to the ``df_time_map`` DataFrame:
+            - *sy* are the time slot, each of which covers ``nhours/num_freq`` of the
+              original *hy*-indexed ``df_time_map`` rows
+            - The *weight* is the number of hours per reduced time slot. It is used
+              to calculate energy from average power.
+        * Generates an attribute ``df_time_red``, which is *sy* indexed. For any given
+          *sy*, the minimum value of the temporal columns (e.g. *mt_id*, *how*, etc)
+          over the corresponding *hy* is selected.
 
-        The *weight* is the number of hours per reduced time slot. It is used
-        to calculate energy from average power.
-
-        Args:
-            nhours (float): final time resolution in hours
-
-        Raises:
-            AssertionError: If nhours is not a multiple of freq.
         '''
 
 

@@ -37,7 +37,7 @@ class ModelLoop():
          - def_loop
      -> functions:
          - generate run name
-         - print_run_title
+         - _print_run_title
          - init loop table
          - reset_run_id
          - generate_loop_row <- from run_id and current values of dictionaries
