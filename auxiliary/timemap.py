@@ -25,12 +25,12 @@ DOW_TYPE_DICT = {**{d: 'WEEKDAY' for d in range(5)}, **{5: 'SAT', 6: 'SUN'}}
 
 TM_DICT = {}
 
-def tm_hash(nhours, freq, start, stop, tm_filt):
+def _tm_hash(nhours, freq, start, stop, tm_filt):
 
     hash_val = hash((nhours, freq, start, stop, str(tm_filt)))
     return hash_val
 
-class UniqueInstancesMeta(type):
+class _UniqueInstancesMeta(type):
     '''
     Load ``TimeMap`` instance from the module dictionary, if exists.
 
@@ -44,7 +44,7 @@ class UniqueInstancesMeta(type):
                  start='2015-1-1 00:00', stop='2015-12-31 23:59',
                  tm_filt=False, *args, **kwargs):
 
-        key = tm_hash(nhours, freq, start, stop, tm_filt)
+        key = _tm_hash(nhours, freq, start, stop, tm_filt)
 
         if key in TM_DICT:
             logger.warning(('TimeMap (%s) exists. Reading time '
@@ -54,7 +54,7 @@ class UniqueInstancesMeta(type):
             return super().__call__(nhours, freq, start, stop, tm_filt,
                                     *args, **kwargs)
 
-class TimeMap(metaclass=UniqueInstancesMeta):
+class TimeMap(metaclass=_UniqueInstancesMeta):
     '''
     The ``TimeMap`` class generates various DataFrames for time mapping.
 
@@ -155,7 +155,7 @@ class TimeMap(metaclass=UniqueInstancesMeta):
 
     def __hash__(self):
 
-        return tm_hash(self.nhours, self.freq, self.start,
+        return _tm_hash(self.nhours, self.freq, self.start,
                        self.stop, self.tm_filt)
 
     def __init__(self, nhours=1, freq=1,
@@ -332,7 +332,7 @@ class TimeMap(metaclass=UniqueInstancesMeta):
 
 
 
-    def get_dst_days(self, list_months=['MAR', 'OCT']):
+    def _get_dst_days(self, list_months=['MAR', 'OCT']):
 
         # filter by relevant months
         _df = self.df_time_map.loc[self.df_time_map.mt.isin(list_months)]
