@@ -408,6 +408,12 @@ class Sets:
                              + self.setlst['ror']
                              + self.setlst['hyrs'])
 
+#         # hydro and storage together
+#        self.setlst['sthyrs'] = self.setlst['st'] + self.setlst['hyrs']
+#
+#        mask_node = self.df_def_node['nd_id'].isin(self.slct_node_id)
+
+#
 
     @silence_pd_warning
     def _get_set_docs(self):
@@ -471,8 +477,6 @@ class Sets:
                                 tablefmt='rst', showindex=False))
 
 
-        # hydro and storage together
-        self.setlst['sthyrs'] = self.setlst['st'] + self.setlst['hyrs']
 
         mask_node = self.df_def_node['nd_id'].isin(self.slct_node_id)
 

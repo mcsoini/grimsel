@@ -118,7 +118,7 @@ class Parameters:
 
         logger.info('Defining st + hyrs parameters')
         _df = self.df_plant_encar
-        _df = (_df.loc[_df['pp_id'].isin(self.setlst['sthyrs'])])
+        _df = (_df.loc[_df['pp_id'].isin(self.setlst['st'] + self.setlst['hyrs'])])
         self.padd('discharge_duration', (self.st | self.hyrs, self.ca), _df, **mut)
 
         logger.info('Defining parameter for investment and retirement control')
