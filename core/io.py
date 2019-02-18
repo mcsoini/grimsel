@@ -725,6 +725,12 @@ class DataReader():
     '''
 
     '''
+
+    runtime_tables = [('tm_soy', ['sy', 'tm_id']),
+                      ('hoy_soy', ['hy', 'tm_id']),
+                      ('tm_soy_full', ['sy', 'tm_id']),
+                      ]
+
     def __init__(self, **kwargs):
 
         defaults = {'resume_loop': False,
@@ -1045,10 +1051,7 @@ class DataReader():
         con_cur = self.sql_connector.get_pg_con_cur()
 
         tb_name, pk = ('hoy_soy', ['hy', 'tm_id'])
-        for tb_name, pk in [('tm_soy', ['sy', 'tm_id']),
-                            ('hoy_soy', ['hy', 'tm_id']),
-                            ('tm_soy_full', ['sy', 'tm_id']),
-                            ]:
+        for tb_name, pk in self.runtime_tables:
 
             if hasattr(self.model, 'df_' + tb_name):
                 df = getattr(self.model, 'df_' + tb_name)
