@@ -313,9 +313,11 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
                                                 values='sy', aggfunc=len)['sy'].to_dict()
 
             for kk, vv in dict_viol.items():
-                print('\n(pp, ca)={}: {} violations'.format(kk, vv))
+                logger.warning('limit_prof_to_cap: \n(pp, ca)='
+                               '{}: {} violations'.format(kk, vv))
 
-            logger.warning('Modifing model parameter ' + param_mod)
+            logger.warning('limit_prof_to_cap: Modifing model '
+                           'parameter ' + param_mod)
 
             if param_mod == 'chpprof':
 

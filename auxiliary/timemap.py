@@ -47,7 +47,8 @@ class UniqueInstancesMeta(type):
         key = tm_hash(nhours, freq, start, stop, tm_filt)
 
         if key in TM_DICT:
-            logger.warn('Reading time map from module dict.')
+            logger.warning(('TimeMap (%s) exists. Reading time '
+                         'map from module dict.')%key)
             return TM_DICT[key]
         else:
             return super().__call__(nhours, freq, start, stop, tm_filt,

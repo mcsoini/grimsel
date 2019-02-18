@@ -143,11 +143,11 @@ class Parameters:
             if hasattr(self, source_dataframe):
                 df = getattr(self, source_dataframe)
                 if df is None:
-                    logger.warn('... failed (source_dataframe is None).')
+                    logger.warning('... failed (source_dataframe is None).')
                     df = pd.DataFrame()
                     flag_empty = True
             else:
-                logger.warn('... failed (source_dataframe does not exist).')
+                logger.warning('... failed (source_dataframe does not exist).')
                 df = pd.DataFrame()
                 flag_empty = True
 
@@ -198,7 +198,7 @@ class Parameters:
 
         # check if column exists in table
         if not flag_infeasible and value_col not in _df.columns:
-            logger.warn(log_str + ' failed (column doesn\'t exist).')
+            logger.warning(log_str + ' failed (column doesn\'t exist).')
             flag_infeasible = True
 
         # dictionary sets -> column names

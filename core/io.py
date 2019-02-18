@@ -103,7 +103,7 @@ class CompIO():
 
         '''
 
-        logger.info('Initializing output table ', self.tb)
+        logger.info('Initializing output table {}'.format(self.tb))
         col_names = self.index + ('value',)
         cols = [(c,) + (self.coldict[c][0],) for c in col_names]
         cols += [('run_id', 'SMALLINT')]
@@ -127,7 +127,8 @@ class CompIO():
         ''' Add run_id column and write to database table '''
 
         tb = self.tb if not tb else tb
-        logger.info('Writing %s to'%self.comp_obj.name, self.sc + '.' + tb, end='... ')
+        logger.info('Writing {} to {}.{}'.format(self.comp_obj.name,
+                                                 self.sc, tb))
 
         # value generally positive, directionalities expressed through bool_out
         df['value'] = df['value'].abs()
@@ -137,7 +138,7 @@ class CompIO():
         t = time.time()
         df.to_sql(tb, self.connect.get_sqlalchemy_engine(),
                   schema=self.sc, if_exists='append', index=False)
-        logger.info('done in %.3f sec'%(time.time() - t))
+        logger.info(' ... done in %.3f sec'%(time.time() - t))
 
     @property
     def index(self):
@@ -477,8 +478,8 @@ class ModelWriter():
         comp, idx = 'pwr_st_ch', DICT_IDX['pwr_st_ch']
         for comp, idx in DICT_IDX.items():
             if not hasattr(self.model, comp):
-                logger.warning('Component ' + comp + ' does not exist... skipping '
-                      'init CompIO.')
+                logger.warning(('Component {} does not exist... '
+                               'skipping init CompIO.').format(comp))
             else:
                 comp_obj = getattr(self.model, comp)
 

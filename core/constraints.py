@@ -61,13 +61,12 @@ class Constraints:
 
         '''
 
-        ls = 'Adding {} {}: {}.'.format(name, objclass.__name__.lower(),
+        ls = 'Adding {} {}: {}.'.format(objclass.__name__.lower(), name,
                                         kwargs['rule'].__doc__)
         logger.info(ls)
 
         obj = objclass(*args, **kwargs)
         setattr(self, name, obj)
-        logger.info('... length={}'.format(len(obj)))
 
     def add_transmission_bounds_rules(self):
         '''
