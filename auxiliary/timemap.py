@@ -20,7 +20,8 @@ SEASON_DICT = {'JAN': 'WINTER', 'FEB': 'WINTER', 'DEC': 'WINTER',
                'MAR': 'SPRING', 'APR': 'SPRING', 'MAY': 'SPRING',
                'JUN': 'SUMMER', 'JUL': 'SUMMER', 'AUG': 'SUMMER',
                'SEP': 'FALL', 'OCT': 'FALL', 'NOV': 'FALL'}
-DOW_DICT = {0: 'MON', 1: 'TUE', 2: 'WED', 3: 'THU', 4: 'FRI', 5: 'SAT', 6: 'SUN'}
+DOW_DICT = {0: 'MON', 1: 'TUE', 2: 'WED', 3: 'THU',
+            4: 'FRI', 5: 'SAT', 6: 'SUN'}
 DOW_TYPE_DICT = {**{d: 'WEEKDAY' for d in range(5)}, **{5: 'SAT', 6: 'SUN'}}
 
 TM_DICT = {}
