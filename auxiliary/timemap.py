@@ -350,4 +350,7 @@ class TimeMap(metaclass=_UniqueInstancesMeta):
 # %%
 
 if __name__ == '__main__':
-    pass
+    import tabulate
+    import doctest
+
+    doctest.testmod()
