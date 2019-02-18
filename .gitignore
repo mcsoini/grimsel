@@ -8,6 +8,8 @@ def_loop*
 
 ephemeral*
 
+doc/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
