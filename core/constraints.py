@@ -319,16 +319,17 @@ class Constraints:
 
             tm = self.dict_pp_tm_id[pp]
 
-            if (tm, mt) in self.dict_month_soy:
-                list_sy = self.dict_month_soy[(tm, mt)]
-                return (self.erg_mt[mt, pp, ca]
-                        == sum(self.pwr[sy, pp, ca] * self.weight[tm, sy]
-                               for sy in list_sy))
-            else:
-                return po.Constraint.Skip
+            list_sy = self.dict_month_soy[(tm, mt)]
+            return (self.erg_mt[mt, pp, ca]
+                    == sum(self.pwr[sy, pp, ca] * self.weight[tm, sy]
+                           for sy in list_sy))
 
-        self.cadd('monthly_totals', self.mt, self.hyrs_ca,
-                  rule=monthly_totals_rule)
+        if  len(set(self.df_tm_soy.mt_id)) == 12:
+            self.cadd('monthly_totals', self.mt, self.hyrs_ca,
+                      rule=monthly_totals_rule)
+        else:
+            logger.warning('Constraint monthly_totals: skipping. Temporal '
+                           'model scope doesn\'t cover all months.')
 
     def add_variables_rules(self):
         '''Produced power equals output profile '''
