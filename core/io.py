@@ -847,8 +847,6 @@ class DataReader():
         # autocomplete input tables
         self.data_autocompletion()
 
-        self.fix_df_node_connect()
-
         input_table_list = (list(dict_tb_1) + list(dict_tb_2)
                             + list(dict_tb_0)+ list(dict_tb_3)
                             + list(dict_pf_1))
@@ -978,7 +976,7 @@ class DataReader():
 
 
 
-    def fix_df_node_connect(self):
+    def _fix_df_node_connect(self):
         '''
         Makes sure the table df_node_connect corresponds to the new style.
 
