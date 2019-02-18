@@ -854,7 +854,6 @@ class DataReader():
         self.data_autocompletion()
 
 
-        self.write_input_tables_to_output_schema(input_table_list)
         self.input_table_list = (list(dict_tb_1) + list(dict_tb_2)
                                  + list(dict_tb_0)+ list(dict_tb_3)
                                  + list(dict_pf_1))
@@ -1044,6 +1043,9 @@ class DataReader():
         Write these to output database schema.
         Also, table def_node altered due to addition of column dmnd_max.
         '''
+
+        self.write_input_tables_to_output_schema(self.input_table_list)
+
         skip_fks = [('tm_soy', 'sy'),  # defines sy
                     ('hoy_soy', 'hy')]  # defines hy
 
