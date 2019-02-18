@@ -2,6 +2,7 @@ import pyomo.environ as po
 import pandas as pd
 import numpy as np
 
+from grimsel.auxiliary.aux_general import silence_pd_warning
 from grimsel.auxiliary.aux_m_func import cols2tuplelist
 from grimsel import _get_logger
 
