@@ -219,7 +219,7 @@ class Sets:
                                   initialize=cols2tuplelist(df))
 
         # inter-node connections
-        if not self.df_node_connect is None:
+        if not self.df_node_connect is None and not self.df_node_connect.empty:
             doc = dict(doc='combined node sets '
                            ':math:`\mathrm{nd\\times nd\\times ca}` '
                            'for inter-nodal transmission')
