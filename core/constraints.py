@@ -106,8 +106,6 @@ class Constraints:
 
         '''
 
-# %%
-
         def get_transmission(sy, nd, nd_2, ca, export=True):
             '''
             If called by supply rule, the order nd, nd_2 is always the ndcnn
@@ -479,53 +477,6 @@ class Constraints:
                         * self.cap_erg_tot[pp, ca])
 
         self.cadd('hy_erg_min', self.sy_hyrs_ca, rule=hy_erg_min_rule)
-
-#    def add_ror_rules(self):
-#
-#        print('Weekly totals rule')
-#        def weekly_totals_rule(self, wk, pp, ca):
-#            return (self.erg_wk[wk, pp, self.mps.dict_ca_id['EL']]
-#                    == sum(self.pwr[sy, pp, self.mps.dict_ca_id['EL']]
-#                       * self.weight[sy]
-#                    for sy in self.dict_week_soy[wk]))
-#        self.weekly_totals = po.Constraint(self.wk, self.ror_ca,
-#                                           rule=weekly_totals_rule)
-#
-#        print('Run-of-river weekly production constraint')
-#        def ror_weekly_energy_rule(self, wk, pp):
-#            return (self.erg_wk[wk, pp, self.mps.dict_ca_id['EL']]
-#                    <= self.week_ror_output[wk, pp])
-#        self.ror_weekly_energy = po.Constraint(self.wk, self.ror,
-#                                               rule=ror_weekly_energy_rule)
-#
-#        print('Run-of-river minimum power output rule')
-#        def ror_min_base_load_rule(self, sy, pp):
-#            wk = self.dict_soy_week[sy]
-#            return (self.erg_wk[wk, pp, self.mps.dict_ca_id['EL']]
-#                    * 0.8 / self.wk_weight[wk]
-#                    <= self.pwr[sy, pp, self.mps.dict_ca_id['EL']])
-#        self.ror_min_base_load = po.Constraint(self.sy, self.ror,
-#                                               rule=ror_min_base_load_rule)
-
-#
-#    def add_scenario_rules(self):
-#        '''
-#        Constraints which are only active during certain model runs
-#        '''
-#        def chg_only_var_ren_rule(self, nd, ca, sy):
-#            '''
-#            Total electric charging power is limited to VRE output
-#            '''
-#            pch = sum(self.pwr_st_ch[sy, st, ca] for (st, nd, ca)
-#                      in set_to_list(self.st_ndca & self.scen_ndca,
-#                                     [None, nd, ca]))
-#            ppr = sum(self.pwr[sy, pr, ca] for (pr, nd, ca)
-#                      in set_to_list(self.winsol_ndca, [None, nd, ca]))
-#            return pch <= ppr
-#        self.chg_only_var_ren = po.Constraint(self.ndca_EL, self.sy,
-#                            rule=chg_only_var_ren_rule)
-#
-#        self.chg_only_var_ren.deactivate()
 
     def add_yearly_cost_rules(self):
 

@@ -348,11 +348,10 @@ class Parameters:
         Reset erg_max parameters, using the corresponding column from the
         fuel_encar tables.
         '''
-        # reset erg_max_runs
+
         df = self.df_fuel_encar
         erg_max_new = pdef(df, ['nd_id', 'ca_id', 'fl_id'], 'erg_max_runs')
         for indcafl, erg_max_val in erg_max_new.items():
-            print(indcafl, erg_max_val)
             self.erg_max[indcafl] = erg_max_val
 
     def set_cap_pwr_leg(self, slct_pp_id=None):

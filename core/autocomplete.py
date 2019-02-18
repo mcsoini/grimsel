@@ -243,7 +243,6 @@ class AutoCompletePpType(AutoComplete):
         self.lst_add = ['TRNS'] + self._get_dmnd_list('plant')
         self.lst_add += ['CONS_' + ca for ca in self.m.df_def_encar.ca]
 
-#        print('Potential additions: {}'.format(', '.join(self.lst_add)))
 
     def reset_index(self):
         ''' Calls parent _reset_index method. '''

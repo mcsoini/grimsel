@@ -290,7 +290,6 @@ class TimeMap(metaclass=UniqueInstancesMeta):
 
         '''
 
-
         assert (self.nhours / self.num_freq)%1 == 0, \
                 ('TimeMap.gen_soy_timemap: The time slot duration nhours must '
                  'be a multiple of the original time map frequency freq. '

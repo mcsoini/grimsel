@@ -478,5 +478,4 @@ class Sets:
 
 
 
-        mask_node = self.df_def_node['nd_id'].isin(self.slct_node_id)
 
