@@ -92,6 +92,26 @@ class Maps():
 
         return self
 
+    @classmethod
+    def from_hdf5(cls, fn):
+
+        with pd.HDFStore(fn) as store:
+
+            keys = store.keys()
+
+            dict_tb = {key.replace('/def_', ''): store.get(key)
+                       for key in keys
+                       if key.replace('/', '').replace('def_', '')
+                       in Maps.list_id_tbs}
+
+        if not dict_tb:
+            raise IOError('File %s not found.'%fn)
+
+        self = cls(None, None, dict_tb)
+
+        return self
+
+
     def _read_tables_sql(self):
         '''
         Reads all relevant tables from the input PSQL schema.
