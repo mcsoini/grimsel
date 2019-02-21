@@ -252,7 +252,8 @@ class Maps():
 
 
     @silence_pd_warning
-    def id_to_name(self, df, name_list=None, inplace=False):
+    def id_to_name(self, df, name_list=None, inplace=False,
+                   keep_cols=True):
 
         if not name_list:
             name_list = [c.replace('_id', '') for c
@@ -265,7 +266,10 @@ class Maps():
             idict = getattr(self, 'dict_' + iid, None)
 
             if idict:
-                df.loc[:, iid + '_id'] = df[iid + '_id'].replace(idict)
+
+                col_name = iid + ('_id' if not keep_cols else '')
+                df.loc[:, col_name] = df[iid + '_id'].replace(idict)
+
         return df
 
 
