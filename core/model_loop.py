@@ -67,16 +67,15 @@ class ModelLoop():
         self._df_def_loop = df_def_loop
         self.restore_run_id()
 
-    def init_output_schema(self):
+#    def init_output_schema(self):
+#
+#        if self.sc_out: # output schema name is provided
+#            self.unq_code = self.sc_out.replace('out_', '')
+#        else: # generate output schema name
+#            self.unq_code = datetime.datetime.now().strftime("%H%M")
+#            self.sc_out = 'out_{n}_{uq}'.format(n=self.mkwargs['nhours'],
+#                                                uq=self.unq_code)
 
-        if self.sc_out: # output schema name is provided
-            self.unq_code = self.sc_out.replace('out_', '')
-        else: # generate output schema name
-            self.unq_code = datetime.datetime.now().strftime("%H%M")
-            self.sc_out = 'out_{n}_{uq}'.format(n=self.mkwargs['nhours'],
-                                                uq=self.unq_code)
-
-    def __init__(self, sql_connector, **kwargs):
         '''
         Keyword arguments:
         nsteps -- list of model loop dimensions and steps; format:
@@ -96,10 +95,6 @@ class ModelLoop():
         for key, val in defaults.items():
             setattr(self, key, val)
         self.__dict__.update(kwargs)
-
-        self.init_output_schema()
-
-        self.mkwargs.update({'unq_code': self.unq_code})
 
         self.run_id = None  # set later
 
