@@ -121,7 +121,7 @@ class Constraints:
            & + \sum_\mathrm{nd_2} p_\mathrm{trm, nd_2 \rightarrow nd} \\
            & = \\
            & \phi_\mathrm{dmnd, sy(nd), pf(nd, ca)} \\
-           & + \sum_\mathrm{st_{nd}} p_\mathrm{sy\_st\_ca}\\
+           & + \sum_\mathrm{st_{nd}} p_\mathrm{chg,sy\_st\_ca}\\
            & + \sum_\mathrm{nd_2} p_\mathrm{trm, nd \rightarrow nd_2} \\
            & + \sum_\mathrm{pp} p_\mathrm{sy\_pp\_ca_{out}} /
                \eta_\mathrm{pp\_ca} \\
@@ -293,9 +293,9 @@ class Constraints:
 
           .. math::
 
-             & P_\mathrm{tot, p\_ca} = P_\mathrm{leg, p\_ca}
-             - P_\mathrm{ret, p\_ca} + P_\mathrm{new, p\_ca} \\
-             & \forall \mathrm{p\in ppall}
+             & P_\mathrm{tot, p, c} = P_\mathrm{leg, p, c}
+             - P_\mathrm{ret, p, c} + P_\mathrm{new, p, c} \\
+             & \forall \mathrm{(p,c)\in ppall\_ca}
 
         * The storage and reservoir energy capacity follows from the total
           power capacity and the fixed exogenous discharge duration.
@@ -303,7 +303,7 @@ class Constraints:
           .. math::
 
              & C_\mathrm{tot, p,c} = P_\mathrm{tot, p,c} * \zeta_\mathrm{p,c} \\
-             & \forall \mathrm{(p,c) \in st\_ca \setunion hyrs\_ca} \\
+             & \forall \mathrm{(p,c) \in st\_ca \cup hyrs\_ca} \\
 
         '''
 
@@ -331,7 +331,35 @@ class Constraints:
                   rule=calc_cap_erg_tot_rule)
 
     def add_capacity_constraint_rules(self):
-        
+        r'''
+        Power and stored energy are constrained by the respective capacities:
+
+        * Output power of generators:
+
+          .. math::
+
+             & P_\mathrm{tot, p, c} \geqslant p_\mathrm{t, p, c} \\
+             & \forall \mathrm{(t, p, c) \in
+             (sy\_pp\_ca \setminus sy\_pr\_ca)
+             \cup sy\_st\_ca \cup sy\_hyrs\_ca} \\
+
+        * Charging power of storage assets:
+
+          .. math::
+
+             & P_\mathrm{tot, p, c} \geqslant p_\mathrm{chg,t,p,c} \\
+             & \forall \mathrm{(t, p, c) \in sy\_st\_ca} \\
+
+        * Stored energy of storage assets:
+
+          .. math::
+
+             & C_\mathrm{tot, p, c} \geqslant e_\mathrm{t,p,c} \\
+             & \forall \mathrm{(t, p, c) \in sy\_st\_ca\cup sy\_hyrs\_ca} \\
+
+
+        '''
+
         def ppst_capac_rule(self, sy, pp, ca):
             ''' Produced power must be less than capacity. '''
 
@@ -484,6 +512,19 @@ class Constraints:
         self.cadd('pp_max_fuel', self.ndcafl, rule=pp_max_fuel_rule)
 
     def add_charging_level_rules(self):
+        r'''
+        Adds the constraint determining the stored energy.
+
+        .. math::
+
+           e_\mathrm{t,p,c} = e_\mathrm{t-t,p,c} +
+           \begin{cases}
+           \phi_\mathrm{inflow,t,p} e_\mathrm{inp,n(p),c,f(p)} - p_\mathrm{t, p, c} w_\mathrm{t} & \forall \mathrm{(t,p,c)\in sy\_hyrs\_ca}\\
+           (\eta_\mathrm{p,c}^{1/2} p_\mathrm{t, p, c} - \eta_\mathrm{p,c}^{-1/2} p_\mathrm{chg, t, p, c}) w_\mathrm{t}      & \forall \mathrm{(t,p,c)\in sy\_st\_ca}\\
+           \end{cases}
+
+        '''
+
 
         def erg_store_level_rule(self, sy, pp, ca):
             ''' Charging state for storage and hydro. '''
@@ -528,6 +569,21 @@ class Constraints:
                   rule=erg_store_level_rule)
 
     def add_hydro_rules(self):
+        '''
+        Various rules constraining the operation of the hydro reservoir plants.
+
+        * The ``hy_reservoir_boundary_conditions`` constraint sets requires
+          the reservoir filling level to assume an exogenously define share
+          of the energy capacity during certain time slots:
+
+          .. math::
+
+             & e_\mathrm{t,p,c}
+             = e_\mathrm{hyd\_bc,p,c} C_\mathrm{tot, p, c} \\
+             & \forall \mathrm{(t,p,c) in sy_hydbc \times hyrs_ca} \\
+
+        '''
+
 
         def hy_reservoir_boundary_conditions_rule(self, sy, pp, ca):
             '''Reservoirs stored energy boundary conditions.'''
