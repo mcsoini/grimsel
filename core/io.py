@@ -8,6 +8,8 @@ Created on Wed Jan  2 15:03:42 2019
 import time
 import itertools
 import os
+from odo import odo
+import tables
 
 import numpy as np
 import pandas as pd
@@ -60,12 +62,13 @@ class CompIO():
     the model and of writing a single table to the database.
     '''
 
-    def __init__(self, tb, sc, comp_obj, idx, connect, model=None,
-                 coldict=None):
+    def __init__(self, tb, cl, comp_obj, idx, connect, output_target,
+                 model=None):
 
         self.tb = tb
-        self.sc = sc
+        self.cl = cl
         self.comp_obj = comp_obj
+        self.output_target = output_target
         self.connect = connect
         self.model = model
 
@@ -103,7 +106,7 @@ class CompIO():
 
         '''
 
-        logger.info('Initializing output table {}'.format(self.tb))
+        logger.info('Generating output table {}'.format(self.tb))
         col_names = self.index + ('value',)
         cols = [(c,) + (self.coldict[c][0],) for c in col_names]
         cols += [('run_id', 'SMALLINT')]
@@ -111,8 +114,8 @@ class CompIO():
         unique = []
 
         aql.init_table(tb_name=self.tb, cols=cols,
-                       schema=self.sc,
-                       ref_schema=self.sc, pk=pk,
+                       schema=self.cl,
+                       ref_schema=self.cl, pk=pk,
                        unique=unique, bool_auto_fk=False, db=self.connect.db,
                        con_cur=self.connect.get_pg_con_cur())
 
@@ -123,21 +126,48 @@ class CompIO():
 
         return df
 
+    def _to_hdf5(self, df, tb):
+
+
+        try:
+            dtype_dict = pd.read_hdf(self.cl, 'var_sy_pwr').dtypes.to_dict()
+            df = df.astype(dtype_dict)
+        except:
+            pass
+
+        with pd.HDFStore(self.cl, mode='a') as store:
+
+            store.append(tb, df, data_columns=True,
+#                         columns=tuple(df.columns.tolist()),
+                         complevel=9,
+                         complib='blosc:blosclz')
+
+
+
+    def _to_sql(self, df, tb):
+
+        df.to_sql(tb, self.connect.get_sqlalchemy_engine(),
+                  schema=self.cl, if_exists='append', index=False)
+
     def _finalize(self, df, tb=None):
         ''' Add run_id column and write to database table '''
 
         tb = self.tb if not tb else tb
         logger.info('Writing {} to {}.{}'.format(self.comp_obj.name,
-                                                 self.sc, tb))
+                                                 self.cl, tb))
 
-        # value generally positive, directionalities expressed through bool_out
+        # value always positive, directionalities expressed through bool_out
         df['value'] = df['value'].abs()
 
         df['run_id'] = self.run_id
 
         t = time.time()
-        df.to_sql(tb, self.connect.get_sqlalchemy_engine(),
-                  schema=self.sc, if_exists='append', index=False)
+
+        if self.output_target == 'hdf5':
+            self._to_hdf5(df, tb)
+        elif self.output_target == 'psql':
+            self._to_sql(df, tb)
+
         logger.info(' ... done in %.3f sec'%(time.time() - t))
 
     @property
@@ -373,6 +403,7 @@ class DmndIO(ParamIO):
 
         dfpp = self._translate_dmnd(df.copy())
         dfpp['bool_out'] = True
+        dfpp = dfpp[['sy', 'pp_id', 'ca_id', 'value', 'bool_out']]
 
         self._finalize(dfpp, 'var_sy_pwr')
 
@@ -434,10 +465,11 @@ class ModelWriter():
                      'resume_loop': False,
                      'replace_runs_if_exist': False,
                      'model': None,
+                     'output_target': 'hdf5',
                      'sql_connector': None,
                      'no_output': False,
                      'dev_mode': False,
-                     'sc_out': None,
+                     'coll_out': None,
                      'db': None}
 
 
@@ -453,20 +485,77 @@ class ModelWriter():
             setattr(self, key, val)
         self.__dict__.update(kwargs)
 
-        ls = 'Output schema: %s; resume loop=%s'%(self.sc_out,
-                                                  self.resume_loop)
+        ls = 'Output collection: %s; resume loop=%s'%(
+                                            self.cl_out, self.resume_loop)
         logger.info(ls)
-        self.reset_schema()
+        self.reset_tablecollection()
 
 
     @skip_if_resume_loop
-    def reset_schema(self):
+    def reset_tablecollection(self):
+        '''
+        Reset the SQL schema or hdf file for model output writing.
 
-        aql.reset_schema(self.sc_out, self.sql_connector.db, not self.dev_mode)
+        '''
+
+        if self.output_target == 'psql':
+            self._reset_schema()
+        elif self.output_target == 'hdf5':
+            self._reset_hdf_file()
+
+    def _reset_hdf_file(self):
+
+        ModelWriter.reset_hdf_file(self.cl_out, not self.dev_mode)
+
+    @staticmethod
+    def reset_hdf_file(fn, warn):
+        '''
+        Deletes existing hdf5 file and creates empty one.
+
+        Parameters
+        ----------
+        fn: str
+            filename
+        warn: bool
+            prompt user input if the file exists
+
+        '''
+#        pass
+
+        if os.path.isfile(fn):
+
+
+            try:
+                max_run_id = pd.read_hdf(fn, 'def_loop',
+                                         columns=['run_id']).run_id.max()
+            except Exception as e:
+                logger.error(e)
+                logger.warn('reset_hdf_file: Could not determine max_run_id '
+                            '... setting to None.')
+                max_run_id = None
+
+            if warn:
+                input(
+'''
+~~~~~~~~~~~~~~~   WARNING:  ~~~~~~~~~~~~~~~~
+You are about to delete existing file {fn}.
+The maximum run_id is {max_run_id}.
+
+Hit enter to proceed.
+'''.format(fn=fn, max_run_id=max_run_id)
+)
+
+            logger.info('Dropping output file %s'%fn)
+            os.remove(fn)
+
+    def _reset_schema(self):
+
+        aql.reset_schema(self.cl_out, self.sql_connector.db,
+                         not self.dev_mode)
 
     def init_output_schema(self):
 
-        aql.exec_sql('CREATE SCHEMA IF NOT EXISTS ' + self.sc_out,
+        aql.exec_sql('CREATE SCHEMA IF NOT EXISTS ' + self.cl_out,
                      db=self.db, )
 
     @skip_if_no_output
@@ -491,11 +580,15 @@ class ModelWriter():
                 else:
                     io_class = self.IO_CLASS_DICT[DICT_GROUP[comp].split('_')[0]]
 
-                io_class_args = (DICT_TABLE[comp], self.sc_out, comp_obj,
-                                   idx, self.sql_connector)
-                io_class_args += (self.model,)
+                io_class_kwars = dict(tb=DICT_TABLE[comp],
+                                      cl=self.cl_out,
+                                      comp_obj=comp_obj,
+                                      idx=idx,
+                                      connect=self.sql_connector,
+                                      output_target=self.output_target,
+                                      model=self.model)
 
-                self.dict_comp_obj[comp] = io_class(*io_class_args)
+                self.dict_comp_obj[comp] = io_class(**io_class_kwars)
 
     @skip_if_no_output
     def write_all(self):
@@ -514,12 +607,18 @@ class ModelWriter():
         Calls the init_output_table methods of all CompIO instances.
         '''
 
-        coldict = aql.get_coldict(self.sc_out, self.sql_connector.db)
+        if self.output_target == 'psql':
 
-        for comp, io_obj in self.dict_comp_obj.items():
+            coldict = aql.get_coldict(self.cl_out, self.sql_connector.db)
 
-            io_obj.coldict = coldict
-            io_obj.init_output_table()
+            for comp, io_obj in self.dict_comp_obj.items():
+
+                io_obj.coldict = coldict
+                io_obj.init_output_table()
+
+        elif self.output_target == 'hdf5':
+
+            pass
 
     def delete_run_id(self, run_id=False, operator='>='):
         '''
@@ -543,12 +642,12 @@ class ModelWriter():
         if run_id:
             for itb in self.list_all_tb:
 
-                logger.info('Deleting from ' + self.sc_out + '.' + itb
+                logger.info('Deleting from ' + self.cl_out + '.' + itb
                       + ' where run_id %s %s'%(operator, str(run_id)))
                 exec_strg = '''
-                            DELETE FROM {sc_out}.{tb}
+                            DELETE FROM {cl_out}.{tb}
                             WHERE run_id {op} {run_id};
-                            '''.format(sc_out=self.sc_out, tb=itb,
+                            '''.format(cl_out=self.cl_out, tb=itb,
                                        run_id=run_id, op=operator)
                 try:
                     aql.exec_sql(exec_strg, db=self.db)
@@ -588,14 +687,14 @@ class ModelWriter():
 
 
                 pk_kws = {'pk_list': ', '.join(pk_list),
-                          'tb': tb_name, 'sc_out': sc}
+                          'tb': tb_name, 'cl_out': sc}
                 exec_str = ('''
-                            ALTER TABLE {sc_out}.{tb}
+                            ALTER TABLE {cl_out}.{tb}
                             DROP CONSTRAINT IF EXISTS {tb}_pkey;
                             ''').format(**pk_kws)
                 if not drop:
                     exec_str += ('''
-                                 ALTER TABLE {sc_out}.{tb}
+                                 ALTER TABLE {cl_out}.{tb}
                                  ADD CONSTRAINT {tb}_pkey
                                  PRIMARY KEY ({pk_list})
                                  ''').format(**pk_kws)
@@ -603,17 +702,17 @@ class ModelWriter():
                 aql.exec_sql(exec_str, db=db)
 
                 for fk_keys, fk_vals in fk_dict.items():
-                    fk_kws = {'sc_out': sc, 'tb': tb_name,
+                    fk_kws = {'cl_out': sc, 'tb': tb_name,
                               'fk': fk_keys, 'ref': fk_vals}
 
                     exec_str = ('''
-                                ALTER TABLE {sc_out}.{tb}
+                                ALTER TABLE {cl_out}.{tb}
                                 DROP CONSTRAINT IF EXISTS fk_{tb}_{fk};
                                 ''').format(**fk_kws)
 
                     if not drop:
                         exec_str += ('''
-                                     ALTER TABLE {sc_out}.{tb}
+                                     ALTER TABLE {cl_out}.{tb}
                                      ADD CONSTRAINT fk_{tb}_{fk}
                                      FOREIGN KEY ({fk})
                                      REFERENCES {ref}
@@ -743,7 +842,7 @@ class DataReader():
                     'data_path': None,
                     'sql_connector': None,
                     'sc_inp': None,
-                    'sc_out': None,
+                    'cl_out': None,
                     'db': None,
                     }
 
@@ -1028,13 +1127,26 @@ class DataReader():
         '''
 
         for itb in set(tb_list) - set(list(zip(*self.runtime_tables))[0]):
+
             df = getattr(self.model, 'df_' + itb)
+
             if (df is not None and ('def_' in itb or not 'prof' in itb)):
-                logger.info('Writing table {} to output schema.'.format(itb))
-                engine = self.sql_connector.get_sqlalchemy_engine()
-                db = self.sql_connector.db
-                aql.write_sql(df, db, self.sc_out, itb,
-                              if_exists='replace', engine=engine)
+
+                print(itb)
+                if self.output_target == 'psql':
+
+                    logger.info('Writing table {} to output.'.format(itb))
+                    engine = self.sql_connector.get_sqlalchemy_engine()
+                    db = self.sql_connector.db
+                    aql.write_sql(df, db, self.cl_out, itb,
+                                  if_exists='replace', engine=engine)
+
+                elif self.output_target == 'hdf5':
+
+                    with pd.HDFStore(self.cl_out, mode='a') as store:
+
+                        store.put(itb, df, data_columns=True, format='table',
+                                  complevel=9, complib='blosc:blosclz')
 
     @skip_if_resume_loop
     @skip_if_no_output
@@ -1050,8 +1162,7 @@ class DataReader():
         skip_fks = [('tm_soy', 'sy'),  # defines sy
                     ('hoy_soy', 'hy')]  # defines hy
 
-        engine = self.sql_connector.get_sqlalchemy_engine()
-        con_cur = self.sql_connector.get_pg_con_cur()
+
 
         tb_name, pk = ('hoy_soy', ['hy', 'tm_id'])
         for tb_name, pk in self.runtime_tables:
@@ -1073,14 +1184,27 @@ class DataReader():
                                  else list(self._coldict[c][:1]))
                     cols.append(tuple(col_add))
 
-                aql.init_table(tb_name=tb_name, cols=cols, schema=self.sc_out,
-                               ref_schema=self.sc_out, pk=pk, unique=[],
-                               db=self.sql_connector.db, con_cur=con_cur)
+                if self.output_target == 'psql':
 
-                aql.write_sql(df, sc=self.sc_out, tb=tb_name,
-                              if_exists='append', engine=engine,
-                              con_cur=con_cur)
+                    engine = self.sql_connector.get_sqlalchemy_engine()
+                    con_cur = self.sql_connector.get_pg_con_cur()
 
+                    aql.init_table(tb_name=tb_name, cols=cols,
+                                   schema=self.cl_out,
+                                   ref_schema=self.cl_out, pk=pk, unique=[],
+                                   db=self.sql_connector.db, con_cur=con_cur)
+
+                    aql.write_sql(df, sc=self.cl_out, tb=tb_name,
+                                  if_exists='append', engine=engine,
+                                  con_cur=con_cur)
+
+                elif self.output_target == 'hdf5':
+
+                    with pd.HDFStore(self.cl_out, mode='a') as store:
+
+                        store.put(tb_name, df, format='table',
+                                  data_columns=True,
+                                  complevel=9, complib='blosc:blosclz')
 
 
 class IO:
@@ -1093,6 +1217,8 @@ class IO:
 
     def __init__(self, **kwargs):
 
+        self._close_all_hdf_connections()
+
         defaults = {'sc_warmstart': False,
                     'resume_loop': False,
                     'replace_runs_if_exist': False,
@@ -1104,8 +1230,9 @@ class IO:
                     'dev_mode': False,
                     'data_path': None,
                     'sc_inp': None,
-                    'sc_out': None,
-                    'db': None,
+                    'cl_out': None,
+                    'db': 'postgres',
+                    'output_target': 'psql'
                     }
 
         defaults.update(kwargs)
@@ -1116,7 +1243,10 @@ class IO:
         self.resume_loop = defaults['resume_loop']
         self.sql_connector = defaults['sql_connector']
         self.replace_runs_if_exist = defaults['replace_runs_if_exist']
-        self.db = self.sql_connector.db
+        self.db = self.sql_connector.db if self.sql_connector else None
+        self.cl_out = defaults['cl_out']
+
+
 
     @classmethod
     def variab_to_df(cls, py_obj, sets=None):
@@ -1154,6 +1284,29 @@ class IO:
 
         self.modwr.run_id = run_id
         self.modwr.write_all()
+
+    def _init_loop_table(self, cols_id, cols_step, cols_val):
+
+        tb_name = 'def_loop'
+        cols = ([('tdiff_solve', 'DOUBLE PRECISION'),
+                 ('tdiff_write', 'DOUBLE PRECISION'),
+                 ('run_id', 'SMALLINT'),
+                 ]
+              + [(s, 'SMALLINT') for s in cols_id]
+              + [(s, 'DOUBLE PRECISION') for s in cols_step]
+              + [(s, 'VARCHAR(30)') for s in cols_val]
+              + [('info', 'VARCHAR'), ('objective', 'DOUBLE PRECISION')])
+
+        if self.modwr.output_target == 'psql':
+
+            aql.init_table(tb_name, cols, self.cl_out,
+                           pk=cols_id, unique=['run_id'], db=self.db)
+
+        elif self.modwr.output_target == 'hdf5':
+
+            df = pd.DataFrame(columns=list(zip(*cols))[0])
+            df.to_hdf(self.cl_out, tb_name, format='table')
+
     @staticmethod
     def _close_all_hdf_connections():
 
