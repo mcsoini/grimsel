@@ -45,23 +45,23 @@ class Sets:
 
         Primary base sets:
 
-        ======================  ============================================
-        Set                     Description
-        ======================  ============================================
-        :math:`\mathrm{ppall}`  all power plant types
-        :math:`\mathrm{pp}`     dispatchable power plants with fuels
-        :math:`\mathrm{st}`     storage plants
-        :math:`\mathrm{pr}`     variable renewables with fixed profiles
-        :math:`\mathrm{ror}`    run-of-river plants
-        :math:`\mathrm{lin}`    dispatchable plants with linear supply curve
-        :math:`\mathrm{hyrs}`   hydro reservoirs
-        :math:`\mathrm{chp}`    plants with co-generation
-        :math:`\mathrm{add}`    plants with capacity additions
-        :math:`\mathrm{rem}`    plants with capacity retirements
-        :math:`\mathrm{curt}`   dedicated curtailment technology
-        :math:`\mathrm{sll}`    plants selling produced energy carriers
-        :math:`\mathrm{rp}`     dispatchable plants with ramping costs
-        ======================  ============================================
+        =================================  ============================================
+        Set                                Description
+        =================================  ============================================
+        :math:`\mathrm{ppall}`             all power plant types
+        :math:`\mathrm{pp\subset ppall}`   dispatchable power plants with fuels
+        :math:`\mathrm{st}`                storage plants
+        :math:`\mathrm{pr}`                variable renewables with fixed profiles
+        :math:`\mathrm{ror}`               run-of-river plants
+        :math:`\mathrm{lin}`               dispatchable plants with linear supply curve
+        :math:`\mathrm{hyrs}`              hydro reservoirs
+        :math:`\mathrm{chp}`               plants with co-generation
+        :math:`\mathrm{add}`               plants with capacity additions
+        :math:`\mathrm{rem}`               plants with capacity retirements
+        :math:`\mathrm{curt}`              dedicated curtailment technology
+        :math:`\mathrm{sll}`               plants selling produced energy carriers
+        :math:`\mathrm{rp}`                dispatchable plants with ramping costs
+        =================================  ============================================
 
         Primary power plant sets and subsets:
 

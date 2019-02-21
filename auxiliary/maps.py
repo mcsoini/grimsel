@@ -3,6 +3,7 @@
 
 import numpy as np
 import pandas as pd
+import wrapt
 
 import grimsel.auxiliary.sqlutils.aux_sql_func as aql
 from grimsel.auxiliary.aux_general import silence_pd_warning
@@ -91,6 +92,26 @@ class Maps():
         self = cls(None, None, dict_tb)
 
         return self
+
+    @classmethod
+    def from_hdf5(cls, fn):
+
+        with pd.HDFStore(fn) as store:
+
+            keys = store.keys()
+
+            dict_tb = {key.replace('/def_', ''): store.get(key)
+                       for key in keys
+                       if key.replace('/', '').replace('def_', '')
+                       in Maps.list_id_tbs}
+
+        if not dict_tb:
+            raise IOError('File %s not found.'%fn)
+
+        self = cls(None, None, dict_tb)
+
+        return self
+
 
     def _read_tables_sql(self):
         '''
@@ -195,8 +216,9 @@ class Maps():
         if (hasattr(self, 'dict_plant_2_pp_type')
             and hasattr(self, '_color_pt')
             and not hasattr(self, '_color_pp')):
+            # generate pp color map from pt
 
-            self._color_pp_id = {pp_id: self._color_pt[pt] for pp_id, pt
+            self._color_pp_id = {pp_id: self._color_pt_id[pt] for pp_id, pt
                                  in self.dict_plant_2_pp_type.items()}
             self._color_pp = {self.dict_pp[pp_id]: col for pp_id, col
                               in self._color_pp_id.items()}
@@ -232,7 +254,8 @@ class Maps():
 
 
     @silence_pd_warning
-    def id_to_name(self, df, name_list=None, inplace=False):
+    def id_to_name(self, df, name_list=None, inplace=False,
+                   keep_cols=True):
 
         if not name_list:
             name_list = [c.replace('_id', '') for c
@@ -245,8 +268,53 @@ class Maps():
             idict = getattr(self, 'dict_' + iid, None)
 
             if idict:
-                df.loc[:, iid + '_id'] = df[iid + '_id'].replace(idict)
+
+                col_name = iid + ('_id' if not keep_cols else '')
+                df.loc[:, col_name] = df[iid + '_id'].replace(idict)
+
         return df
+
+
+
+    @wrapt.decorator
+    def param_to_list(f, self, *args, **kwargs):
+
+        if not isinstance(args[0][0], (set, list, tuple)):
+            args = (([args[0][0]],),)
+
+        return f(*args[0], **kwargs)
+
+    @param_to_list
+    def nd2nd(self, list_nd):
+        df = self._dict_tb['node']
+        print(list_nd)
+        return set(df.loc[df.nd.str.contains('|'.join(list_nd))].index.tolist())
+
+    @param_to_list
+    def nd2pp(self, list_nd):
+        df = self._dict_tb['plant']
+        return set(df.loc[df.nd_id.isin(self.nd2nd(list_nd))].index.tolist())
+
+
+    @param_to_list
+    def pt2pt(self, list_pt):
+        df = self._dict_tb['pp_type']
+        return set(df.loc[df.pt.str.contains('|'.join(list_pt))].index.tolist())
+
+    @param_to_list
+    def fl2fl(self, list_fl):
+        df = self._dict_tb['fuel']
+        return set(df.loc[df.fl.str.contains('|'.join(list_fl))].index.tolist())
+
+    @param_to_list
+    def pt2pp(self, list_pt):
+        df = self._dict_tb['plant']
+        return set(df.loc[df.pt_id.isin(self.pt2pt(list_pt))].index.tolist())
+
+    @param_to_list
+    def fl2pp(self, list_fl):
+        df = self._dict_tb['plant']
+        return set(df.loc[df.fl_id.isin(self.fl2fl(list_fl))].index.tolist())
 
 
 

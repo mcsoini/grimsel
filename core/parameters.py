@@ -5,6 +5,7 @@ import pyomo.environ as po
 import pyomo.core.base.sets as poset
 import itertools
 import pandas as pd
+import os
 
 from grimsel.auxiliary.aux_m_func import pdef, set_to_list
 import grimsel.core.io as io
@@ -12,8 +13,12 @@ from grimsel import _get_logger
 
 logger = _get_logger(__name__)
 
+
+
+
+
 class Parameters:
-    '''
+    r'''
     Mixin class containing all parameters.
     Methods:
     define_parameters : contains all parameter defintions relevant for the model
@@ -52,12 +57,8 @@ class Parameters:
 
         logger.info('Defining general parameters')
         self.padd('weight', (self.tmsy,), self.df_tm_soy) # Weight per time slot.
-        self.padd('month_weight', (self.mt,), self.df_def_month) # Hours per month.
-        self.padd('dmnd_sum', (self.nd,), self.df_node_encar, default=0) # .
         self.padd('grid_losses', (self.nd, self.ca), self.df_node_encar, **mut) # Grid losses.
-        self.padd('vc_dmnd_flex', (self.nd, self.ca), self.df_node_encar) # VC of flexible demand.
 
-        self.padd('chp_cap_pwr_leg', (self.nd,), self.df_def_node, **mut) # .
         self.padd('cap_trme_leg', (self.mt, self.ndcnn,), 'df_node_connect', **mut) # Cross-node transmission capacity.
         self.padd('cap_trmi_leg', (self.mt, self.ndcnn,), 'df_node_connect', **mut) # Cross-node transmission capacity.
 
@@ -70,8 +71,6 @@ class Parameters:
         logger.info('Defining pp parameters')
         _df = self.df_plant_encar.copy()
         _df = _df.loc[_df['pp_id'].isin(self.setlst['pp'])]
-        self.padd('ca_share_min', (self.pp, self.ca), _df) # .
-        self.padd('ca_share_max', (self.pp, self.ca), _df) # .
         self.padd('pp_eff', (self.ppall, self.ca), _df, default=1) # .
         self.padd('cf_max', (self.pp, self.ca), _df, **mut) # .
         df = self.df_plant_encar.loc[self.df_plant_encar.pp_id.isin(self.chp)]
@@ -97,7 +96,6 @@ class Parameters:
         self.padd('cap_pwr_leg', sets, _df, **mut) # .
         self.padd('vc_om', sets, _df, **mut) # .
         self.padd('fc_om', sets, _df, **mut, default=0) # .
-        self.padd('fc_dc', sets, _df, **mut) # .
 
         _df = _df.loc[_df['pp_id'].isin(self.setlst['pp'])]
         self.padd('cap_avlb', (self.pp, self.ca), _df, **mut) # .
@@ -128,6 +126,9 @@ class Parameters:
         # in the self.df_parameter_month input table
         if not self.df_parameter_month is None:
             self.apply_monthly_factors_all()
+
+
+
 
 
     def _get_param_data(self, source_dataframe):
@@ -378,3 +379,134 @@ class Parameters:
             logger.info('set_cf_max_runs: %s, %s'%(str(ippca), str(cf_max_val)))
             self.cf_max[ippca] = cf_max_val
 
+    @staticmethod
+    def _make_model_parameters_doc():
+
+        doc_dict = {
+        'Model structure': {
+                    'weight': r':math:`\mathrm{w_{tmsy}}`: Time slot weight, indexed by time map and time slot.',
+                    },
+        'Profiles': {
+                    'dmnd': r':math:`\phi_\mathrm{dmd, sy\_pf}`: Demand profile with profile id :math:`pf`',
+                    'chpprof': r':math:`\phi_\mathrm{chp, sy\_pf}`: CHP profile with profile id :math:`pf`',
+                    'supprof': r':math:`\phi_\mathrm{supply, sy\_pf}`: Supply (VRE) profile with profile id :math:`pf`',
+                    'inflowprof': r':math:`\phi_\mathrm{inflow, sy\_pf}`: Reservoir inflow profile with profile id :math:`pf`',
+                    'inflowprof': r':math:`\phi_\mathrm{inflow, sy\_pf}`: Reservoir inflow profile with profile id :math:`pf`',
+                    'pricebuyprof': r':math:`\phi_\mathrm{pbuy, sy\_pf}`: Energy carrier price profile (buying) with id :math:`pf`',
+                    'pricesllprof': r':math:`\phi_\mathrm{psell, sy\_pf}`: Energy carrier price profile (selling) with id :math:`pf`',
+                    },
+        'Hydro parameters': {
+                    'min_erg_mt_out_share': r':math:`\rho_\mathrm{min\_erg\_out, hyrs}`: Minimum monthly reservoir production as share of maximum monthly inflow :math:`\rho_\mathrm{max\_erg\_in, hyrs}`.',
+                    'max_erg_mt_in_share': r':math:`\rho_\mathrm{max\_erg\_in, hyrs}`: Maximum monthly reservoir inflow .',
+                    'min_erg_share': r':math:`\mathrm{min\_erg\_share_{hyrs}}`: Maximum monthly reservoir inflow.',
+                    'hyd_erg_bc': r':math:`e_\mathrm{hyd\_bc, hyrs\_ca}`: Hydro filling level boundary conditions for specific hours as share of energy capacity :math:`\mathrm{(-)}`.',
+                    },
+        'Grid and transmission': {
+                    'cap_trme_leg': r':math:`P_\mathrm{exp, mt, ndcnn}`: Internodal monthly export capacity.',
+                    'cap_trmi_leg': r':math:`P_\mathrm{imp, mt, ndcnn}`: Internodal monthly import capacity.',
+                    'grid_losses': r':math:`\mathrm{\eta_{grid, nd, ca}}`: Grid losses for each node and energy carrier.',
+        },
+        'Technical asset properties': {
+                    'cap_pwr_leg': r':math:`P_\mathrm{leg, ppall\_ca}`: Legacy power plant capacity :math:`\mathrm{(MW)}`.',
+                    'discharge_duration': r':math:`\zeta_\mathrm{st\_ca \setunion hyrs\_ca}`: Hydro filling level boundary conditions for specific hours as share of energy capacity :math:`\mathrm{(-)}`.',
+                    'pp_eff': r':math:`\eta_\mathrm{ppall\_ca}`: Power plant efficiency for constant supply curves :math:`\mathrm{(MWh_{el}/MWh_{fl})}`.',
+                    'erg_chp': r':math:`e_\mathrm{chp,chp\_ca}`: Heat-driven electricity generation from co-generation plants :math:`\mathrm{(MWh_{el}/yr)}`.',
+                    'st_lss_hr': r':math:`\mathrm{\epsilon_{hr, st\_ca}}`: Hourly storage leakage losses :math:`\mathrm{(1/hr)}`.',
+                    'st_lss_rt': r':math:`\mathrm{\epsilon_{rt, st\_ca}}`: Storage round-trip losses :math:`\mathrm{(-)}`.',
+                    'cap_avlb': r':math:`\mathrm{\alpha_{mt, pp\_ca}}`: Relative monthly capacity availability of dispatchable plants.',
+                    },
+        'Specific costs': {
+                    'vc_ramp': r':math:`vc_\mathrm{ramp, ppall\_ca}`: Specific variable ramping cost :math:`\mathrm{(EUR/MW)}`.',
+                    'vc_fl': r':math:`vc_\mathrm{fl\_nd}`: Specific fuel cost in each node :math:`\mathrm{(EUR/MWh_{fl})}`.',
+                    'vc_om': r':math:`\mathrm{vc_{om, ppall\_ca}}`: Specific variable O\&M costs :math:`\mathrm{(EUR/MWh_{el})}`.',
+                    'fc_om': r':math:`\mathrm{fc_{om, ppall\_ca}}`: Specific fixed O\&M costs :math:`\mathrm{(EUR/MW/yr)}`.',
+                    'fc_cp_ann': r':math:`\mathrm{fc_{cp, ppall\_ca}}`: Annualized specific capital investment costs :math:`\mathrm{(EUR/MW/yr)}`.',
+                    },
+        'Linear supply curve coefficients': {
+                    'factor_lin_0': r':math:`f_\mathrm{0, lin\_ca}`: Zero-order linear supply curve efficiency coefficient :math:`\mathrm{(MWh_{fl}/MWh_{el})}`.',
+                    'factor_lin_1': r':math:`f_\mathrm{1, lin\_ca}`: First-order linear supply curve efficiency coefficient :math:`\mathrm{(MWh_{fl}/MWh_{el}/MW_{el})}`.',
+                    },
+        'Emission parameters': {
+                    'price_co2': r':math:`\pi_\mathrm{CO_2, nd}`: Node-specific CO:sub:`2` price :math:`\mathrm{(EUR/t_{CO_2})}`.',
+                    'co2_int': r':math:`i_\mathrm{CO_2, fl}`: Fuel-specific CO:sub:`2` intensity :math:`\mathrm{(t_{CO_2}/MWh_{fl})}`.',
+                    }}
+
+        doc_dict_origin = {'cap_avlb': 'merge(df_plant_encar, df_parameter_month)',
+         'cap_pwr_leg': 'df_plant_encar',
+         'cap_trme_leg': 'df_node_connect',
+         'cap_trmi_leg': 'df_node_connect',
+         'chpprof': 'df_profchp_soy',
+         'co2_int': 'df_def_fuel',
+         'price_co2': 'merge(df_def_node, df_parameter_month)',
+         'discharge_duration': 'df_plant_encar',
+         'dmnd': 'df_profdmnd_soy',
+         'erg_chp': 'df_plant_encar',
+         'factor_lin_0': 'df_plant_encar',
+         'factor_lin_1': 'df_plant_encar',
+         'fc_cp_ann': 'df_plant_encar',
+         'fc_om': 'df_plant_encar',
+         'grid_losses': 'df_node_encar',
+         'hyd_erg_bc': 'df_plant_month',
+         'inflowprof': 'df_profinflow_soy',
+         'max_erg_mt_in_share': 'df_hydro',
+         'min_erg_mt_out_share': 'df_hydro',
+         'min_erg_share': 'df_hydro',
+         'pp_eff': 'df_plant_encar',
+         'pricebuyprof': 'df_profpricebuy_soy',
+         'pricesllprof': 'df_profpricesll_soy',
+         'st_lss_hr': 'df_plant_encar',
+         'st_lss_rt': 'df_plant_encar',
+         'supprof': 'df_profsupply_soy',
+         'vc_fl': 'merge(df_plant_encar, df_parameter_month)',
+         'vc_om': 'df_plant_encar',
+         'vc_ramp': 'df_plant_encar',
+         'weight': 'df_tm_soy'
+         }
+
+        df = pd.DataFrame(doc_dict).stack().reset_index()
+        df.columns = ['par', 'cat', 'doc']
+
+
+        df['tab'] = df.par.replace(doc_dict_origin).apply(lambda x: '``%s``'%x)
+
+        df.par = df.par.apply(lambda x: '``%s``'%x)
+
+        cols=['Parameter', 'Symbol', 'Doc', 'Table']
+        df = pd.DataFrame(
+                list(df.apply(lambda x: (x['cat'], x.par,) + tuple(x.doc.split(': ')) + (x.tab,), axis=1).values),
+                columns=['cat'] + cols).set_index('cat')
+
+        import tabulate
+
+        doc_str = '''
+Default model parameters
+------------------------
+
+The parameters are the exogenous input data of the dispatch model. They are
+defined in the Grimsel class :class:`grimsel.core.parameters.Parameters`.
+
+.. toctree::
+    doc_core_parameters
+
+        '''
+
+        for cat in doc_dict.keys():
+            doc_str += ('\n\n')
+            doc_str += (cat + '\n')
+            doc_str += ('*'*len(cat) + '\n\n')
+
+            doc_str += (
+            tabulate.tabulate(df.loc[df.index.get_level_values('cat') == cat],
+                                     tablefmt='rst', showindex=False,
+                                     headers=cols)
+            )
+
+        fn = os.path.join(os.path.relpath('../../grimsel_docs/source', os.path.dirname(__file__)), 'doc_core_parameters.rst')
+
+        print(os.path.abspath(fn))
+
+
+
+        with open(fn, 'w') as f:
+            f.write(doc_str)
+#            print(f.read())

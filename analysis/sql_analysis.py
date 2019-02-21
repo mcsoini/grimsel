@@ -354,8 +354,8 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
             join_timescale_id = \
                     ('''
                      LEFT JOIN (
-                     SELECT {timescale}, sy FROM {sc_out}.tm_soy_full) AS dftsc
-                     ON dftsc.sy = pwr.sy
+                     SELECT {timescale}, sy, tm_id FROM {sc_out}.tm_soy_full) AS dftsc
+                     ON dftsc.sy = pwr.sy AND dftsc.tm_id = dfnd.tm_id
                      ''').format(sc_out=self.sc_out,
                                  timescale=timescale)
             if timescale == '':
@@ -369,7 +369,8 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
                              'col_timescale_id': col_timescale_id,
                              'tb_mod': tb_mod}
 
-            exec_str = ('''
+            exec_str = (
+                        '''
                         /* ####################################### */
                         /* GENERATE GENERAL VIEW plant_{tb_mod}run */
                         /* ####################################### */
@@ -377,44 +378,36 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
                         DROP VIEW IF EXISTS plant_{tb_mod}run_0 CASCADE;
                         CREATE VIEW plant_{tb_mod}run_0 AS
                         SELECT
-                            pwr.run_id, pwr.bool_out, pwr.ca_id, pwr.pp_id, {col_timescale_id}
-                            dfplt.nd_id, dfplt.set_def_st, dfplt.pt_id, dfplt.set_def_chp,
-                            SUM((CASE WHEN pwr.bool_out = True THEN -1 ELSE 1 END) * pwr.value * mc.value) AS val_yr_0,
---                            COVAR_POP((CASE WHEN pwr.bool_out = True THEN -1 ELSE 1 END) * pwr.value, mc.value / dfsy.weight) * 8760 AS val_yr_cov,
---                            AVG((CASE WHEN pwr.bool_out = True THEN -1 ELSE 1 END) * pwr.value) AS pwr_yr_avg,
-                            AVG(mc.value / dfsy.weight) * 8760 AS mc_yr_avg,
-                            --SUM((CASE WHEN pwr.bool_out = True THEN -1 ELSE 1 END) * pwr.value * dfsy.weight) AS erg_yr_sy,
-                            SUM(pwr.value * dfsy.weight) AS erg_yr_sy,
-                            AVG((CASE WHEN pwr.bool_out = True THEN -1 ELSE 1 END) * pwr.value) AS pwr_avg,
-                            AVG(mc.value / dfsy.weight) AS mc_avg,
-                            SUM(co2_int / NULLIF(eff.value, 0) * pwr.value * dfsy.weight) AS co2_el,
+                            pwr.run_id,
+                            pwr.bool_out,
+                            pwr.ca_id,
+                            pwr.pp_id,
+                            dfpp.fl_id,
+                            dfnd.tm_id,
+                            {col_timescale_id}
+                            SUM(dffl.co2_int * pwr.value * tmsoy.weight * (ppca.factor_lin_0 + 0.5 * pwr.value * ppca.factor_lin_1)) AS co2_yr_sy,
+                            SUM(mc.value * pwr.value * tmsoy.weight) AS val_yr_sy,
+                            SUM(pwr.value * tmsoy.weight) AS erg_yr_sy,
                             COUNT(pwr.run_id) AS count_check
                         FROM (SELECT * FROM {sc_out}.var_sy_pwr WHERE run_id IN {in_run_id}) AS pwr
-                        LEFT JOIN (
-                            SELECT pp_id, pt_id, fl_id, nd_id, set_def_st,
-                                   set_def_chp
-                            FROM {sc_out}.def_plant) AS dfplt
-                        ON dfplt.pp_id = pwr.pp_id
-                        LEFT JOIN (
-                            SELECT run_id, sy, nd_id, value
-                            FROM {sc_out}.dual_supply) AS mc
-                        ON mc.run_id = pwr.run_id AND mc.nd_id = dfplt.nd_id
-                            AND mc.sy = pwr.sy
-                        LEFT JOIN (
-                            SELECT fl_id, co2_int
-                            FROM {sc_out}.def_fuel) AS dffl
-                        ON dfplt.fl_id = dffl.fl_id
+                        NATURAL LEFT JOIN (SELECT nd_id, tm_id FROM {sc_out}.def_node) AS dfnd
+                        LEFT JOIN (SELECT run_id, sy, nd_id, value FROM {sc_out}.dual_supply) AS mc
+                            ON mc.run_id = pwr.run_id AND mc.nd_id = dfplt.nd_id AND mc.sy = pwr.sy
                         LEFT JOIN {sc_out}.par_pp_eff AS eff
-                        ON eff.pp_id = pwr.pp_id AND eff.run_id = pwr.run_id AND eff.ca_id = pwr.ca_id
-                        LEFT JOIN (
-                            SELECT weight, sy
-                            FROM {sc_out}.tm_soy) AS dfsy
-                        ON dfsy.sy = pwr.sy
+                            ON eff.pp_id = pwr.pp_id AND eff.run_id = pwr.run_id AND eff.ca_id = pwr.ca_id
+                        LEFT JOIN (SELECT pp_id, ca_id, factor_lin_0, factor_lin_1 FROM {sc_out}.plant_encar) AS ppca
+                            ON ppca.pp_id = pwr.pp_id AND ppca.ca_id = pwr.ca_id
+                        LEFT JOIN (SELECT pp_id, fl_id, nd_id FROM {sc_out}.def_plant) AS dfpp
+                            ON dfpp.pp_id = pwr.pp_id
+                        LEFT JOIN (SELECT co2_int, fl_id FROM {sc_out}.def_fuel) AS dffl
+                            ON dfpp.fl_id = dffl.fl_id
+                        LEFT JOIN (SELECT nd_id, price_co2 FROM {sc_out}.def_node) AS dfnd
+                            ON dfpp.nd_id = dfnd.nd_id
+                        LEFT JOIN (SELECT tm_id, weight, sy FROM {sc_out}.tm_soy) AS tmsoy
+                            ON pwr.sy = tmsoy.sy AND dfnd.tm_id = tmsoy.tm_id
                         {join_timescale_id}
-                        GROUP BY pwr.run_id, pwr.ca_id, {col_timescale_id} dfplt.pt_id,
-                                 dfplt.fl_id, pwr.pp_id, dfplt.nd_id,
-                                 pwr.bool_out, dfplt.set_def_st,
-                                 dfplt.set_def_chp;
+                        GROUP BY pwr.run_id, pwr.ca_id, {col_timescale_id}
+                                 pwr.pp_id, pwr.bool_out;
 
                         /* ADD DERIVED COLUMNS */
                         DROP VIEW IF EXISTS plant_{tb_mod}run_01 CASCADE;
@@ -423,7 +416,6 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
                             SELECT nd_id, run_id, SUM(value) AS sum_dmnd
                             FROM {sc_out}.par_dmnd AS dmnd
                             GROUP BY nd_id, run_id
-                            ORDER BY nd_id, run_id
                         )
                         SELECT pr0.*,
                             pr0.erg_yr_sy / NULLIF(sum_dmnd, 0) AS erg_yr_sy_share_dmnd
@@ -439,19 +431,13 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
                         SELECT
                             pr0.*,
                             tb_cap.value AS cap_pwr_tot,
-                       --     tb_cap_new.value AS cap_pwr_new,
-                       --     -tb_cap_rem.value AS cap_pwr_rem,
+                           --     tb_cap_new.value AS cap_pwr_new,
+                           --     -tb_cap_rem.value AS cap_pwr_rem,
                             tb_cap_leg.value AS cap_pwr_leg
                         FROM plant_{tb_mod}run_01 AS pr0
                         LEFT JOIN {sc_out}.var_yr_cap_pwr_tot AS tb_cap
                             ON tb_cap.run_id = pr0.run_id
                             AND tb_cap.pp_id = pr0.pp_id
-/*                        LEFT JOIN {sc_out}.var_yr_cap_pwr_new AS tb_cap_new
-                            ON tb_cap_new.run_id = pr0.run_id
-                            AND tb_cap_new.pp_id = pr0.pp_id
-                        LEFT JOIN {sc_out}.var_yr_cap_pwr_rem AS tb_cap_rem
-                            ON tb_cap_rem.run_id = pr0.run_id
-                            AND tb_cap_rem.pp_id = pr0.pp_id     */
                         LEFT JOIN {sc_out}.par_cap_pwr_leg AS tb_cap_leg
                             ON tb_cap_leg.run_id = pr0.run_id
                             AND tb_cap_leg.pp_id = pr0.pp_id;
@@ -459,25 +445,21 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
                         DROP VIEW IF EXISTS plant_{tb_mod}run_2;
                         CREATE VIEW plant_{tb_mod}run_2 AS
                         SELECT pr1.*,
---                            (pr1.pwr_yr_avg * pr1.mc_yr_avg) AS val_yr_avg,
---                            (pr1.val_yr_cov + pr1.pwr_yr_avg * pr1.mc_yr_avg) AS val_yr_tot_dis,
                             pr1.val_yr_0 / NULLIF(cap_pwr_tot, 0) AS val_yr_0_cap,
---                            pr1.val_yr_cov / NULLIF(cap_pwr_tot, 0) AS val_yr_cov_cap,
---                            (pr1.pwr_yr_avg * pr1.mc_yr_avg) / NULLIF(cap_pwr_tot, 0) AS val_yr_avg_cap,
---                            (pr1.val_yr_cov + pr1.pwr_yr_avg * pr1.mc_yr_avg) / NULLIF(cap_pwr_tot, 0) AS val_yr_tot_dis_cap,
                             erg_yr_sy / NULLIF(cap_pwr_tot * 8760, 0) AS cf_sy
                         FROM plant_{tb_mod}run_1 AS pr1;
 
-                        DROP TABLE IF EXISTS {sc_out}.analysis_plant_{tb_mod}run_tot{sfx} CASCADE;
-                        SELECT * INTO {sc_out}.analysis_plant_{tb_mod}run_tot{sfx}
+                        DROP TABLE IF EXISTS {sc_out}.analysis_plant_{tb_mod}run_tot CASCADE;
+                        SELECT * INTO {sc_out}.analysis_plant_{tb_mod}run_tot
                         FROM plant_{tb_mod}run_2 AS pr2;
                         ''').format(**self.format_kw, **time_scale_kw)
+
             if self.bool_run:
                 print(exec_str)
                 aql.exec_sql(exec_str, db=self.db, ret_res=False)
 
                 itb = '''
-                      analysis_plant_{tb_mod}run_tot{sfx}
+                      analysis_plant_{tb_mod}run_tot
                       '''.format(**self.format_kw, **time_scale_kw)
 
                 '''
@@ -537,129 +519,134 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
                              'col_timescale_id': col_timescale_id,
                              'tb_mod': tb_mod}
 
+
+            tb_name = 'analysis_plant_{tb_mod}run_tot'.format(**time_scale_kw)
+            cols = [('run_id', 'SMALLINT'),
+                    ('bool_out', 'BOOLEAN'),
+                    ('ca_id', 'SMALLINT'),
+                    ('pp_id', 'SMALLINT'),
+                    ('nd_id', 'SMALLINT'),
+                    ('weight', 'FLOAT'),
+                    ('val_sy_yr', 'DOUBLE PRECISION'),
+                    ('co2_sy_yr', 'DOUBLE PRECISION'),
+                    ('erg_yr_sy', 'DOUBLE PRECISION'),
+                   ] + ([(timescale, 'SMALLINT')] if timescale else [])
+            pk = ['run_id', 'pp_id', 'ca_id', 'bool_out'] + ([timescale] if timescale else [])
+            cols = aql.init_table(tb_name=tb_name, cols=cols, schema=self.sc_out,
+                                  pk=pk, db=self.db)
+
+
             exec_str = ('''
                         /* ####################################### */
                         /* GENERATE GENERAL VIEW plant_{tb_mod}run */
                         /* ####################################### */
 
---                        DROP VIEW IF EXISTS plant_{tb_mod}run_0 CASCADE;
---                        CREATE VIEW plant_{tb_mod}run_0 AS
-
-                        DROP TABLE IF EXISTS {sc_out}.analysis_plant_{tb_mod}run_tot{sfx} CASCADE;
+                        WITH tb_final AS (
                         SELECT
-                            pwr.run_id, pwr.bool_out, pwr.ca_id, pwr.pp_id, {col_timescale_id}
-                            dfplt.nd_id, AVG(weight),
-                            SUM((CASE WHEN pwr.bool_out = True THEN -1 ELSE 1 END) * pwr.value * mc.value) AS val_yr_0,
-                            SUM(pwr.value * dfsy.weight) AS erg_yr_sy,
+                            pwr.run_id, pwr.bool_out, pwr.ca_id, pwr.pp_id,
+                            dfpp.nd_id, AVG(weight) AS weight,
+                            {col_timescale_id}
+                            SUM((CASE WHEN pwr.bool_out = True THEN -1 ELSE 1 END) * pwr.value * mc.value) AS val_sy_yr,
+                            SUM(co2_int * weight * pwr.value * (factor_lin_0 + 0.5 * pwr.value * factor_lin_1)) AS co2_sy_yr,
+                            SUM(pwr.value * weight) AS erg_yr_sy,
                             COUNT(pwr.run_id) AS count_check
-                        INTO {sc_out}.analysis_plant_{tb_mod}run_tot{sfx}
-                        FROM (SELECT * FROM {sc_out}.var_sy_pwr WHERE run_id IN {in_run_id}) AS pwr
-                        LEFT JOIN (
-                            SELECT pp_id, nd_id
-                            FROM {sc_out}.def_plant) AS dfplt
-                        ON dfplt.pp_id = pwr.pp_id
-                        LEFT JOIN (
-                            SELECT run_id, sy, nd_id, value
-                            FROM {sc_out}.dual_supply) AS mc
-                            ON mc.run_id = pwr.run_id AND mc.nd_id = dfplt.nd_id
-                                AND mc.sy = pwr.sy
-                        LEFT JOIN (
-                            SELECT weight, sy
-                            FROM {sc_out}.tm_soy) AS dfsy
-                            ON dfsy.sy = pwr.sy
-                        {join_timescale_id}
-                        GROUP BY pwr.run_id, {col_timescale_id} pwr.ca_id,
-                                 pwr.pp_id, dfplt.nd_id, pwr.bool_out;
+                        FROM (SELECT * FROM {sc_out}.var_sy_pwr) AS pwr
+                        LEFT JOIN (SELECT pp_id, nd_id, fl_id FROM {sc_out}.def_plant) AS dfpp ON dfpp.pp_id = pwr.pp_id
+                        LEFT JOIN (SELECT nd_id, ca_id, tm_id,
+                                   weight_0 as weight
+                                   FROM {sc_out}.nd_tm_pf_map) AS ndtmpf
+                            ON ndtmpf.nd_id = dfpp.nd_id AND ndtmpf.ca_id = pwr.ca_id
+                        LEFT JOIN (SELECT run_id, sy, nd_id, value
+                                   FROM {sc_out}.dual_supply) AS mc
+                            ON mc.run_id = pwr.run_id AND mc.nd_id = dfpp.nd_id AND mc.sy = pwr.sy
+                        LEFT JOIN (SELECT nd_id, tm_id FROM {sc_out}.def_node) AS dfnd ON dfnd.nd_id = dfpp.nd_id
+                        LEFT JOIN (SELECT fl_id, co2_int FROM {sc_out}.def_fuel) AS dffl ON dffl.fl_id = dfpp.fl_id
+                        LEFT JOIN (SELECT pp_id, ca_id, factor_lin_1, factor_lin_0 FROM {sc_out}.plant_encar) AS ppca
+                            ON ppca.pp_id = pwr.pp_id AND ppca.ca_id = pwr.ca_id
+                        GROUP BY pwr.run_id,  pwr.ca_id, pwr.pp_id, dfpp.nd_id, pwr.bool_out
+                        )
+                        INSERT INTO {sc_out}.{tb_name}
+                        SELECT {cols} FROM tb_final;
                         '''
-                        ).format(**self.format_kw, **time_scale_kw)
+                        ).format(cols=cols, tb_name=tb_name,
+                                 **self.format_kw, **time_scale_kw)
             if self.bool_run:
                 aql.exec_sql(exec_str, db=self.db, ret_res=False)
 
-            # CALCULATION OF DEMAND SHARE
-
-            # add tot
-
                 itb = '''
-                      analysis_plant_{tb_mod}run_tot{sfx}
+                      analysis_plant_{tb_mod}run_tot
                       '''.format(**self.format_kw, **time_scale_kw)
 
-
-                aql.joinon(self.db, ['set_def_winsol', 'fl_id', 'pt_id', 'pp'], ['pp_id'],
+                aql.joinon(self.db, ['fl_id', 'pt_id', 'pp'], ['pp_id'],
                            [self.sc_out, itb], [self.sc_out, 'def_plant'])
-                aql.joinon(self.db, ['fl', 'co2_int'], ['fl_id'],
+                aql.joinon(self.db, ['fl'], ['fl_id'],
                            [self.sc_out, itb], [self.sc_out, 'def_fuel'])
-                aql.joinon(self.db, {'value': 'pp_eff'},
-                           ['pp_id', 'ca_id', 'run_id'],
-                           [self.sc_out, itb], [self.sc_out, 'par_pp_eff'])
+                aql.joinon(self.db, ['nd'], ['nd_id'],
+                           [self.sc_out, itb], [self.sc_out, 'def_node'])
+                aql.joinon(self.db, ['pt'], ['pt_id'],
+                           [self.sc_out, itb], [self.sc_out, 'def_pp_type'])
                 aql.joinon(self.db, {'value': 'cap_pwr_tot'},
                            ['pp_id', 'ca_id', 'run_id'],
                            [self.sc_out, itb], [self.sc_out, 'var_yr_cap_pwr_tot'])
-                aql.joinon(self.db, {'value': 'cap_pwr_rem'},
-                           ['pp_id', 'ca_id', 'run_id'],
-                           [self.sc_out, itb], [self.sc_out, 'var_yr_cap_pwr_rem'])
-                aql.joinon(self.db, {'value': 'cap_pwr_new'},
-                           ['pp_id', 'ca_id', 'run_id'],
-                           [self.sc_out, itb], [self.sc_out, 'var_yr_cap_pwr_new'])
                 aql.joinon(self.db, {'value': 'cap_pwr_leg'},
                            ['pp_id', 'ca_id', 'run_id'],
                            [self.sc_out, itb], [self.sc_out, 'par_cap_pwr_leg'])
 
-                ''' ADDING co2_el '''
-                exec_str = '''
-                           ALTER TABLE {sc_out}.{tb}
-                           ADD COLUMN IF NOT EXISTS co2_el DOUBLE PRECISION,
-                           ADD COLUMN IF NOT EXISTS val_yr_0_cap DOUBLE PRECISION,
-                           ADD COLUMN IF NOT EXISTS cf_sy DOUBLE PRECISION;
-
-                           UPDATE {sc_out}.{tb}
-                           SET co2_el = (co2_int / pp_eff) * erg_yr_sy,
-                               cf_sy = erg_yr_sy / NULLIF(cap_pwr_tot * count_check, 0),
-                               val_yr_0_cap = val_yr_0 / NULLIF(cap_pwr_tot, 0);
-                           '''.format(**self.format_kw, tb=itb)
-                aql.exec_sql(exec_str, db=self.db)
-
-                ''' ADDING erg_yr_sy_share_dmnd '''
-                exec_str = '''
-                           ALTER TABLE {sc_out}.{tb}
-                           ADD COLUMN IF NOT EXISTS erg_yr_sy_share_dmnd DOUBLE PRECISION;
-
-                           WITH tot_dmnd AS (
-                               SELECT run_id, nd_id, ca_id, SUM(tm.weight * dmnd.value) AS sum_dmnd
-                               FROM {sc_out}.par_dmnd AS dmnd
-                               NATURAL LEFT JOIN {sc_out}.tm_soy AS tm
-                               GROUP BY run_id, nd_id, ca_id
-                           )
-                           UPDATE {sc_out}.{tb} AS tb
-                           SET erg_yr_sy_share_dmnd = erg_yr_sy / tot_dmnd.sum_dmnd
-                           FROM tot_dmnd
-                           WHERE tb.run_id = tot_dmnd.run_id
-                               AND tb.nd_id = tot_dmnd.nd_id
-                               AND tb.ca_id = tot_dmnd.ca_id
-                           '''.format(**self.format_kw, tb=itb)
-                aql.exec_sql(exec_str, db=self.db)
-
-
-
-#                            pr1.val_yr_0 / NULLIF(cap_pwr_tot, 0) AS val_yr_0_cap,
-#                            erg_yr_sy / NULLIF(cap_pwr_tot * 8760, 0) AS
-
-                '''
-                /* ################## */
-                /* ADD HELPER COLUMNS */
-                /* ################## */
-                '''
-
-                print(itb)
-
-                aql.joinon(self.db, ['pp_broad_cat', 'pt'], ['pt_id'],
-                           [self.sc_out, itb], [self.sc_out, 'def_pp_type'])
-                aql.joinon(self.db, ['nd'], ['nd_id'],
-                           [self.sc_out, itb], [self.sc_out, 'def_node'])
                 if len(self.sw_columns) > 0:
                     aql.joinon(self.db, self.sw_columns, ['run_id'],
                                [self.sc_out, itb], [self.sc_out, 'def_loop'])
 
         return exec_str
+
+    def analysis_basic_pp_nd_map(self):
+        '''
+        Auxiliary tables for the maps
+
+        * *pp_id*+*ca_id* |rarr| *tm_id/weight/supply_pd_id*
+        * *nd_id*+*ca_id* |rarr| *tm_id/weight/dmnd_pf_id*
+
+        '''
+
+        tb_name = 'pp_tm_pf_map'
+        cols = [('pp_id', 'SMALLINT'), ('ca_id', 'SMALLINT'),
+                ('nd_id', 'SMALLINT'), ('tm_id', 'SMALLINT'),
+                ('supply_pf_id', 'SMALLINT'), ('weight_0', 'FLOAT'),
+               ]
+        pk = ['pp_id', 'ca_id']
+        cols = aql.init_table(tb_name=tb_name, cols=cols, schema=self.sc_out,
+                              pk=pk, db=self.db)
+
+        exec_strg = '''
+        INSERT INTO {sc_out}.pp_tm_pf_map
+        SELECT {cols} FROM {sc_out}.plant_encar
+        NATURAL LEFT JOIN (SELECT nd_id, pp_id FROM {sc_out}.def_plant) AS dfpp
+        NATURAL LEFT JOIN (SELECT tm_id, nd_id
+                           FROM {sc_out}.def_node) AS dfnd
+        NATURAL LEFT JOIN (SELECT weight AS weight_0, tm_id
+                           FROM {sc_out}.tm_soy WHERE sy = 0) AS tmsy;
+        '''.format(**self.format_kw, cols=cols)
+        aql.exec_sql(exec_strg, db=self.db)
+
+        tb_name = 'nd_tm_pf_map'
+        cols = [('nd_id', 'SMALLINT'), ('ca_id', 'SMALLINT'),
+                ('tm_id', 'SMALLINT'),
+                ('dmnd_pf_id', 'SMALLINT'), ('weight_0', 'FLOAT'),
+               ]
+        pk = ['nd_id', 'ca_id']
+        cols = aql.init_table(tb_name=tb_name, cols=cols, schema=self.sc_out,
+                              pk=pk, db=self.db)
+
+        exec_strg = '''
+        INSERT INTO {sc_out}.nd_tm_pf_map
+        SELECT nd_id, ca_id, tm_id, dmnd_pf_id, weight_0
+            FROM {sc_out}.node_encar
+        NATURAL LEFT JOIN (SELECT tm_id, nd_id
+                           FROM {sc_out}.def_node) AS dfnd
+        NATURAL LEFT JOIN (SELECT weight AS weight_0, tm_id
+                           FROM {sc_out}.tm_soy WHERE sy = 0) AS tmsy;
+        '''.format(**self.format_kw, cols=cols)
+        aql.exec_sql(exec_strg, db=self.db)
+
 
 # %%
 

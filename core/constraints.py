@@ -57,7 +57,7 @@ class Constraints:
         objclass : pyomo class
             one of ``{po.Constraint, po.Objective}``
         args, kwargs
-            passed to the ``objclass`` initializiation
+            passed to the ``objclass`` initialization
 
         '''
 
@@ -72,13 +72,16 @@ class Constraints:
         '''
         Add transmission bounds.
 
-        :math:`-C_\mathrm{import} \leqslant p_{\mathrm{trm}, t} \leqslant C_\mathrm{export}`
+        .. math::
 
-        *Note*: This method modifies the ``trm`` transmission power Pyomo
-        variable object by calling its ``setub`` and ``setlb`` methods.
+           -C_\mathrm{import} \leqslant p_{\mathrm{trm}, t}
+           \leqslant C_\mathrm{export}
+
+        .. note::
+           This method modifies the ``trm`` transmission power Pyomo
+           variable object by calling its ``setub`` and ``setlb`` methods.
 
         '''
-
 
         if hasattr(self, 'trm'):
             for sy, nd1, nd2, ca in self.trm:
@@ -93,16 +96,63 @@ class Constraints:
 
     def add_supply_rules(self):
         r'''
-        Adds the supply rule.
+        Adds the supply rule: Balance supply/demand in each node for teach
+        time slot :math:`sy`, node :math:`nd` and, produced energy
+        carrier :math:`ca`.
+
+        * The supply side consists of the power production
+          :math:`p_\mathrm{sy\_pp\_ca}` from all plants producing energy
+          carrier :math:`ca`. This is reduced by the curtailed and the sold
+          power. Additionally, imports or exports from connected nodes
+          enter this side of the equation depending on the directionality
+          definition in the combinaed set :math:`ndcnn` (see the **note**
+          below).
+        * The demand side consists of the exogenous demand profile, the storage
+          charging power, the relevant imports and exports, depending on the
+          direction definition, and the consumtion of energy carrier
+          :math:`\mathrm{ca}` for the production of energy carrier
+          :math:`\mathrm{ca_{out}}` (see the **note** below).
 
         .. math::
 
-           & p_\mathrm{pp} - p_\mathrm{sell} - p_\mathrm{curt} \\
-           & + p_\mathrm{trm} \\
-           & \leqslant \\
-           & p_\mathrm{dmnd} + p_\mathrm{st,chg} \\
-           & + p_\mathrm{pp, ca_out} / \eta_\mathrm{pp}
+           & \sum_\mathrm{ppall\setminus (sell\cup curt)} p_\mathrm{sy\_pp\_ca}
+               - \sum_\mathrm{sell}p_\mathrm{sy\_sell\_ca}
+               - \sum_\mathrm{curt}p_\mathrm{sy\_curt\_ca} \\
+           & + \sum_\mathrm{nd_2} p_\mathrm{trm, nd_2 \rightarrow nd} \\
+           & = \\
+           & \phi_\mathrm{dmnd, sy(nd), pf(nd, ca)} \\
+           & + \sum_\mathrm{st_{nd}} p_\mathrm{sy\_st\_ca}\\
+           & + \sum_\mathrm{nd_2} p_\mathrm{trm, nd \rightarrow nd_2} \\
+           & + \sum_\mathrm{pp} p_\mathrm{sy\_pp\_ca_{out}} /
+               \eta_\mathrm{pp\_ca} \\
 
+
+        .. note::
+
+            * **Directionality of inter-nodal transmission**: Transmission
+              between nodes is expressed through the variables
+              :math:`p_\mathrm{trm, symin_ndcnn}`. These variables can be
+              positive or negative depending on the power flow direction.
+              Since only one direction is included in the :math:`ndcnn` set,
+              e.g.
+
+              .. math::
+
+                 & \mathrm{(nd_1=0, nd_2=1, ca=0) \in ndcnn} \\
+                 & \Rightarrow \mathrm{(nd_1=1, nd_2=0, ca=0) \notin ndcnn}, \\
+
+              they enter the supply constraint on both sides.
+            * **Transmission between nodes with different time
+              resolutions**: The transmission power variable
+              :math:`p_\mathrm{trm}` has the higher time resolution of the two
+              connected nodes. On the side of the lower time resolution node,
+              it is averaged over the corresponding time slots.
+            * **Consumption of produced energy carriers :math:`ca`**:
+              Generators which consume an endogenously produced energy carrier
+              (e.g. electricity) to produce another energy carrier (e.g. heat)
+              enter the supply constraint on the demand side
+              as :math:`\sum_\mathrm{pp} p_\mathrm{sy\_pp\_ca_{out}} /
+              \eta_\mathrm{pp\_ca}`
 
         '''
 
@@ -111,7 +161,7 @@ class Constraints:
             If called by supply rule, the order nd, nd_2 is always the ndcnn
             order, therefore also trm order.
 
-            Case 1: nd has higher time resolution (min) -> just use
+            Case 1: nd has higher time resolution (min) |rarr| just use
                     trm[tm, sy, nd, nd_2, ca]
             Case 2: nd has lower time resolution (not min) -> average
                     avg(trm[tm, all the sy, nd, nd_2, ca])
@@ -141,7 +191,6 @@ class Constraints:
                 return avg
 
         def supply_rule(self, sy, nd, ca):
-            '''Balance supply/demand in each node.'''
 
             list_neg = self.setlst['sll'] + self.setlst['curt']
             prod = (# power output; negative if energy selling plant
@@ -150,7 +199,7 @@ class Constraints:
                         for (pp, nd, ca)
                         in set_to_list(self.ppall_ndca, [None, nd, ca]))
                     # incoming inter-node transmission
-                    + sum(get_transmission(sy, nd, nd_2, ca,    False)
+                    + sum(get_transmission(sy, nd, nd_2, ca, False)
                           for (nd, nd_2, ca)
                           in set_to_list(self.ndcnn, [None, nd, ca]))
                    )
@@ -172,9 +221,34 @@ class Constraints:
 
 
     def add_energy_aggregation_rules(self):
-        '''
-        Calculation of yearly sums of energy from
-        time slot power variables.
+        r'''
+        Calculation of yearly totals from time slot power variables.
+
+
+        * Total energy production by plant and output energy carrier
+
+          .. math::
+
+             & E_\mathrm{ppall\_ca}
+             = \sum_\mathrm{sy} p_\mathrm{sy\_ppall\_ca} \mathrm{w_{tmsy}} \\
+             & \forall \mathrm{ppall, ca} \\
+
+        * Total absolute ramping power
+
+        .. math::
+
+           & \Delta p_\mathrm{rp\_ca}|
+           = \sum_\mathrm{sy} |\delta p_\mathrm{sy\_rp\_ca}| \\
+           & \qquad \forall \mathrm{rp, ca} \\
+
+        * Total energy production by plant, fuel and output energy carrier
+
+        .. math::
+
+           & E_\mathrm{ppall\_ca}
+           = \sum_\mathrm{sy} p_\mathrm{sy\_ppall\_ca} \mathrm{w_{tmsy}} \\
+           & \forall \mathrm{ppall, ca} \\
+
         '''
 
         def yearly_energy_rule(self, pp, ca):
@@ -207,21 +281,33 @@ class Constraints:
                     == self.erg_yr[pp, ca])
         self.cadd('yearly_fuel_cons', self.pp_ndcafl,
                   rule=yearly_fuel_cons_rule)
-#
-#        def yearly_chg_rule(self, pp, ca):
-#            ''''''
-#
-#            tm = self.dict_pp_tm_id[pp]
-#            tmsy_list = set_to_list(self.tmsy, [tm, None])
-#
-#            agg_erg_chg_yr = sum(self.pwr_st_ch[sy, pp, ca]
-#                                 * self.weight[tm, sy]
-#                                 for tm, sy in tmsy_list)
-#            return self.erg_ch_yr[pp, ca] == agg_erg_chg_yr
-#        self.yearly_charging = po.Constraint(self.st_ca, rule=yearly_chg_rule)
-#
+
+
 
     def add_capacity_calculation_rules(self):
+        r'''
+        Constraints concerning endogenous capacity calculations.
+
+        * The total power capacity is composed of exogenous legacy capacity,
+          retirements, and new capacity investments.
+
+          .. math::
+
+             & P_\mathrm{tot, p\_ca} = P_\mathrm{leg, p\_ca}
+             - P_\mathrm{ret, p\_ca} + P_\mathrm{new, p\_ca} \\
+             & \forall \mathrm{p\in ppall}
+
+        * The storage and reservoir energy capacity follows from the total
+          power capacity and the fixed exogenous discharge duration.
+
+          .. math::
+
+             & C_\mathrm{tot, p,c} = P_\mathrm{tot, p,c} * \zeta_\mathrm{p,c} \\
+             & \forall \mathrm{(p,c) \in st\_ca \setunion hyrs\_ca} \\
+
+        '''
+
+
 
         def calc_cap_pwr_tot_rule(self, pp, ca):
             '''Calculate total power capacity (leg + add - rem).'''
@@ -480,6 +566,25 @@ class Constraints:
         self.cadd('hy_erg_min', self.sy_hyrs_ca, rule=hy_erg_min_rule)
 
     def add_yearly_cost_rules(self):
+        '''
+        Groups the yearly cost calculation constraints:
+
+        * Fuel cost of plants with constant supply curves
+        .. math::
+           \mathrm{vc}_\mathrm{fl, ppall\_cafl\setminus lin\_cafl}
+
+
+        *
+
+        .. note::
+           The fuel and emission costs of power plants with linear supply
+           curves must be calculated directly in the objective function.
+           This is because CPLEX only supports a quadratic objective, not
+           quadratic constraints.
+
+
+        '''
+
 
         def calc_vc_fl_pp_rule(self, pp, nd, ca, fl):
             '''Yearly fuel cost calculation (constant supply curve plants).'''
@@ -593,6 +698,11 @@ class Constraints:
             for (sy, lin, ca) in set_to_list(self.sy_lin_ca, nnnn))
 
     def get_vc_co(self):
+        '''
+        Auxiliary methods to generate the
+
+        '''
+
         return \
         sum(self.pwr[sy, lin, ca] * self.weight[self.dict_pp_tm_id[lin], sy]
             * (self.price_co2[self.dict_soy_month[(self.dict_pp_tm_id[lin], sy)],
@@ -606,9 +716,38 @@ class Constraints:
             for (sy, lin, ca) in set_to_list(self.sy_lin_ca, nnnn))
 
     def add_objective_rules(self):
+        ''' Quadratic objective function.
+
+        The objective function to be minimized is the sum over all system
+        costs:
+
+
+
+        * Fuel costs of power plants with constant supply curve:
+
+        .. math::
+            \sum_\mathrm{ppall\setminus lin} \mathrm{vc}_\mathrm{fl, ppall\_cafl\setminus lin\_cafl}
+
+        * Variable O\&M costs of power plants:
+
+        .. math::
+            \sum_\mathrm{ppall,ca} \mathrm{vc}_\mathrm{om, ppall\_ca}
+
+
+        .. note::
+           The variable fuel and emission cost terms of the power plants with
+           linear supply curves
+
+           * :math:`\sum_\mathrm{lin,ca}\mathrm{vc_{fl\_lin\_ca}} =`
+           * :math:`\sum_\mathrm{lin,ca}\mathrm{vc_{em\_lin\_ca}} =`
+
+           are not model variables but calculated directly in the auxiliary methods
+           :func:`get_vc_fl` and :func:`get_vc_fl`. See the note in the
+           :func:`add_yearly_cost_rules` method documentation.
+
+        '''
 
         def objective_rule_quad(self):
-            '''Quadratic objective function.'''
 
             return (# FUEL COST CONSTANT
                     sum(self.vc_fl_pp_yr[pp, ca, fl]

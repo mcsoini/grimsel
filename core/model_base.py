@@ -651,18 +651,20 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         '''
 
         if not self.df_plant_month is None:
-            _df = self.df_def_month[['mt_id', 'month_min_hoy']]
-            _df = _df.set_index('mt_id')
-            self.df_plant_month = self.df_plant_month.join(_df,
-                                                           on=_df.index.name)
+            df = self.df_def_month[['mt_id', 'month_min_hoy']]
+            df = df.set_index('mt_id')
+            self.df_plant_month = self.df_plant_month.join(df,
+                                                           on=df.index.name)
             self.df_plant_month['tm_id'] = (
                     self.df_plant_month.pp_id
                         .replace(self.mps.dict_plant_2_node_id)
                         .replace(self.dict_nd_tm_id))
-            _df = self.df_hoy_soy.rename(columns={'hy': 'month_min_hoy'})
-            _df = _df.set_index(['month_min_hoy', 'tm_id'])
-            self.df_plant_month = self.df_plant_month.join(_df,
-                                                           on=_df.index.names)
+            df = self.df_hoy_soy.rename(columns={'hy': 'month_min_hoy'})
+            df = df.set_index(['month_min_hoy', 'tm_id'])
+            self.df_plant_month.month_min_hoy = (
+                self.df_plant_month.month_min_hoy.astype(float))
+            self.df_plant_month = self.df_plant_month.join(df,
+                                                           on=df.index.names)
 
             sy_null = self.df_plant_month.sy.isnull()
             self.df_plant_month = self.df_plant_month.loc[-sy_null]

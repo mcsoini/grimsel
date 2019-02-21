@@ -67,75 +67,63 @@ class ModelLoop():
         self._df_def_loop = df_def_loop
         self.restore_run_id()
 
-    def init_output_schema(self):
+#    def init_output_schema(self):
+#
+#        if self.sc_out: # output schema name is provided
+#            self.unq_code = self.sc_out.replace('out_', '')
+#        else: # generate output schema name
+#            self.unq_code = datetime.datetime.now().strftime("%H%M")
+#            self.sc_out = 'out_{n}_{uq}'.format(n=self.mkwargs['nhours'],
+#                                                uq=self.unq_code)
 
-        if self.sc_out: # output schema name is provided
-            self.unq_code = self.sc_out.replace('out_', '')
-        else: # generate output schema name
-            self.unq_code = datetime.datetime.now().strftime("%H%M")
-            self.sc_out = 'out_{n}_{uq}'.format(n=self.mkwargs['nhours'],
-                                                uq=self.unq_code)
-
-    def __init__(self, sql_connector, **kwargs):
+    def __init__(self, **kwargs):
         '''
         Keyword arguments:
         nsteps -- list of model loop dimensions and steps; format:
                   (name::str, number_of_steps::int, type_of_steps::function)
         '''
 
-        # define instance attributes and update with kwargs
         defaults = {
                     'nsteps': ModelLoop.nsteps_default,
                     'dev_mode': False,
                     'mkwargs': None,
-                    'iokwargs': None,
-                    'sc_inp': None,
-                    'sc_out': None,
-                    'db': None}
+                    'iokwargs': None}
 
         for key, val in defaults.items():
             setattr(self, key, val)
         self.__dict__.update(kwargs)
 
-        self.init_output_schema()
-
-        self.mkwargs.update({'unq_code': self.unq_code})
-
         self.run_id = None  # set later
-
-        # SETTING UP MODEL AND IO
 
         self.m = model_base.ModelBase(**self.mkwargs)
 
         self.iokwargs.update({'model': self.m,
                               'dev_mode': self.dev_mode,
-                              'sql_connector': sql_connector,
-                              'db': self.db,
-                              'sc_out': self.sc_out,
-                              'sc_inp': self.sc_inp})
+#                              'sql_connector': sql_connector,
+                              'db': self.db})
 
         self.io = io.IO(**self.iokwargs)
 
         return
 
-        self.io.read_model_data()
-
-        self.m.map_to_time_res()
-
-        # Write tables which are generated in dependence on the time
-        # resolution (profiles, boundary conditions).
-        self.m.get_maximum_demand()
-        self.io.write_runtime_tables()
-
-        self.m.mps = maps.Maps(self.sc_out, db=self.db)
-
-        self.m.build_model()
-
-        self.init_run_table()
-
-        self.io.init_output_tables()
-
-        self.select_run(0)
+#        self.io.read_model_data()
+#
+#        self.m.map_to_time_res()
+#
+#        # Write tables which are generated in dependence on the time
+#        # resolution (profiles, boundary conditions).
+#        self.m.get_maximum_demand()
+#        self.io.write_runtime_tables()
+#
+#        self.m.mps = maps.Maps(self._out, db=self.db)
+#
+#        self.m.build_model()
+#
+#        self.init_run_table()
+#
+#        self.io.init_output_tables()
+#
+#        self.select_run(0)
 
 
     def init_run_table(self):
@@ -193,21 +181,10 @@ class ModelLoop():
 
         self.loop_series = lpsrs
 
+
     def init_loop_table(self):
-        tb_name = 'def_loop'
-        cols = ([('tdiff_solve', 'DOUBLE PRECISION'),
-                 ('tdiff_write', 'DOUBLE PRECISION'),
-                 ('run_id', 'SMALLINT'),
-                 ]
-              + [(s, 'SMALLINT') for s in self.cols_id]
-              + [(s, 'DOUBLE PRECISION') for s in self.cols_step]
-              + [(s, 'VARCHAR(30)') for s in self.cols_val]
-              + [('info', 'VARCHAR'), ('objective', 'DOUBLE PRECISION')])
-        aql.init_table(tb_name, cols, self.sc_out,
-                       pk=self.cols_id, unique=['run_id'],
-                       db=self.io.db)
 
-
+        self.io._init_loop_table(self.cols_id, self.cols_step, self.cols_val)
 
     def append_row(self, zero_row=False, tdiff_solve=0, tdiff_write=0,
                    info=''):
@@ -218,6 +195,13 @@ class ModelLoop():
         - zero_row == False: Loop params copied to row
         '''
 
+
+        dtypes = {int: ['run_id'] + list(self.dct_id),
+                  float: (['tdiff_solve', 'tdiff_write', 'objective']
+                          + list(self.dct_step.keys())),
+                  str: ['info'] + list(self.dct_vl)}
+        dtypes = {col: dtp  for dtp, cols in dtypes.items() for col in cols}
+
         if zero_row:
             df_add = aql.read_sql(self.io.db, self.sc_out, 'def_loop')
             df_add.loc[0] = 0
@@ -227,24 +211,34 @@ class ModelLoop():
             df_add['tdiff_solve'] = tdiff_solve
             df_add['tdiff_write'] = tdiff_write
         else:
-            df_add = pd.DataFrame(np.array([tdiff_solve, tdiff_write]
-                                  + [self.run_id] + [info]
-                                  + list(self.dct_id.values())
-                                  + list(self.dct_step.values())
-                                  + list(self.dct_vl.values()))).T
-            df_add.columns = (['tdiff_solve', 'tdiff_write', 'run_id', 'info']
-                             + list(self.dct_id.keys())
-                             + list(self.dct_step.keys())
-                             + list(self.dct_vl.keys()))
+            vals = [[tdiff_solve, tdiff_write]
+                    + [self.run_id] + [info] + list(self.dct_id.values())
+                    + list(self.dct_step.values())
+                    + list(self.dct_vl.values())]
+            cols = (['tdiff_solve', 'tdiff_write', 'run_id', 'info']
+                    + list(self.dct_id.keys()) + list(self.dct_step.keys())
+                    + list(self.dct_vl.keys()))
+
+            df_add = pd.DataFrame(vals, columns=cols)
+
 
         df_add['objective'] = (self.m.objective_value
                                if hasattr(self.m, 'objective_value') else 0)
 
+        df_add = df_add.astype(dtypes)
+
         # update instance variable and add run_name column
-        self.df_add = df_add
+#        self.df_add = df_add
 
         # can't use io method here if we want this to happen when no_output
-        aql.write_sql(self.df_add, self.db, self.sc_out, 'def_loop', 'append')
+        if self.io.modwr.output_target == 'psql':
+            aql.write_sql(df_add, self.db, self.io.cl_out, 'def_loop', 'append')
+        elif self.io.modwr.output_target == 'hdf5':
+            with pd.HDFStore(self.io.cl_out, mode='a') as store:
+                store.append('def_loop', df_add, data_columns=True,
+                             min_itemsize=30 # set string length!
+                             )
+
 
     def _print_run_title(self, warmstartfile, solutionfile):
 
