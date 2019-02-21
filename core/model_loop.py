@@ -218,6 +218,13 @@ class ModelLoop():
         - zero_row == False: Loop params copied to row
         '''
 
+
+        dtypes = {int: ['run_id'] + list(self.dct_id),
+                  float: (['tdiff_solve', 'tdiff_write', 'objective']
+                          + list(self.dct_step.keys())),
+                  str: ['info'] + list(self.dct_vl)}
+        dtypes = {col: dtp  for dtp, cols in dtypes.items() for col in cols}
+
         if zero_row:
             df_add = aql.read_sql(self.io.db, self.sc_out, 'def_loop')
             df_add.loc[0] = 0
@@ -227,18 +234,21 @@ class ModelLoop():
             df_add['tdiff_solve'] = tdiff_solve
             df_add['tdiff_write'] = tdiff_write
         else:
-            df_add = pd.DataFrame(np.array([tdiff_solve, tdiff_write]
-                                  + [self.run_id] + [info]
-                                  + list(self.dct_id.values())
-                                  + list(self.dct_step.values())
-                                  + list(self.dct_vl.values()))).T
-            df_add.columns = (['tdiff_solve', 'tdiff_write', 'run_id', 'info']
-                             + list(self.dct_id.keys())
-                             + list(self.dct_step.keys())
-                             + list(self.dct_vl.keys()))
+            vals = [[tdiff_solve, tdiff_write]
+                    + [self.run_id] + [info] + list(self.dct_id.values())
+                    + list(self.dct_step.values())
+                    + list(self.dct_vl.values())]
+            cols = (['tdiff_solve', 'tdiff_write', 'run_id', 'info']
+                    + list(self.dct_id.keys()) + list(self.dct_step.keys())
+                    + list(self.dct_vl.keys()))
+
+            df_add = pd.DataFrame(vals, columns=cols)
+
 
         df_add['objective'] = (self.m.objective_value
                                if hasattr(self.m, 'objective_value') else 0)
+
+        df_add = df_add.astype(dtypes)
 
         # update instance variable and add run_name column
         self.df_add = df_add
