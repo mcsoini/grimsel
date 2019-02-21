@@ -331,7 +331,7 @@ class Constraints:
                   rule=calc_cap_erg_tot_rule)
 
     def add_capacity_constraint_rules(self):
-
+        
         def ppst_capac_rule(self, sy, pp, ca):
             ''' Produced power must be less than capacity. '''
 
@@ -368,15 +368,15 @@ class Constraints:
     def add_chp_rules(self):
         r'''
         Adds all co-generation related constraints.
+        
+        * Certain generators need to produce power following heat demand.
+          This is implemented through the node-specific normalized CHP
+          profile :math:`\phi_\mathrm{chp, sy\_pf}`: The production from 
+          power plants :math:`p_\mathrm{pp,t}` in the
+          set :math:`\mathrm{sy\_chp\_ca}` must be larger than the scaled
+          CHP profile
 
-
-
-        ``chp_prof_rule``
-        -----------------
-
-        The production from power plants :math:`p_\mathrm{pp,t}` in the
-        set :math:`\mathrm{sy\_chp\_ca}` must be larger than the scaled
-        CHP profile :math:`\phi_\mathrm{chp,n,t}`:
+        :math:`\phi_\mathrm{chp,n,t}`:
 
         .. math::
 
