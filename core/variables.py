@@ -3,6 +3,7 @@ import pyomo.environ as po
 from collections import namedtuple
 
 from grimsel import _get_logger
+from grimsel.auxiliary.aux_general import silence_pd_warning
 
 logger = _get_logger(__name__)
 
@@ -17,6 +18,39 @@ class Variables:
 
 
     def define_variables(self):
+        r'''
+        Adds all variables to the model instance.
+
+        * :math:`p_\mathrm{sy\_ppall\_ca} \in (0,\infty)`: Per time slot production of energy carriers :math:`\mathrm{ca}` from all plants
+
+        * :math:`\delta p_\mathrm{sy\_rp\_ca} \in (-\infty,\infty)`: Per time slot ramping power difference for relevant plants :math:`\mathrm{rp}`
+        * :math:`|\delta p_\mathrm{sy\_rp\_ca}| \in (0,\infty)`: Per time slot absolute ramping power difference
+
+        * :math:`p_\mathrm{sy\_st\_ca} \in (0,\infty)`: Per time slot charging power of storage plants.
+        * :math:`e_\mathrm{sy\_st\_ca\cup sy\_hyrs\_ca} \in (0,\infty)`: Stored energy in storage and reservoirs each time slot
+
+        * :math:`p_\mathrm{trm,symin\_ndcnn} \in (-\infty,\infty)`: Internodal power transmission for each of the time slots
+
+        * :math:`E_\mathrm{mt,hyrs\_ca\cup pp\_ca} \in (0,\infty)`: Monthly produced energy from hydro reservoirs and dispatchable plants
+        * :math:`E_\mathrm{ppall\_ndcafl} \in (0,\infty)`: Yearly produced energy by fuel
+        * :math:`E_\mathrm{ppall\_ca} \in (0,\infty)`: Yearly produced energy by plant
+
+        * :math:`\Delta p_\mathrm{rp\_ca}| \in (0,\infty)`: Yearly aggregated absolute ramping
+
+        * :math:`\mathrm{vc}_\mathrm{fl, ppall\_cafl\setminus lin\_cafl} \in (-\infty,\infty)`: Yearly variable fuel cost (only constant supply curves).
+        * :math:`\mathrm{vc}_\mathrm{om, ppall\_cafl} \in (0,\infty)`: Yearly variable O\&M cost.
+        * :math:`\mathrm{fc}_\mathrm{om, ppall\_cafl} \in (0,\infty)`: Yearly fixed O\&M cost.
+        * :math:`\mathrm{fc}_\mathrm{cp, add\_ca} \in (0,\infty)`: Yearly capital investment cost.
+        * :math:`\mathrm{vc}_\mathrm{em, pp\_ca} \in (0,\infty)`: Yearly CO:sub:`2` emission cost.
+        * :math:`\mathrm{vc}_\mathrm{rp, rp\_ca} \in (0,\infty)`: Yearly ramping cost.
+
+        * :math:`P_\mathrm{tot, ppall\_ca} \in (0,\infty)`: Net installed power capacity.
+        * :math:`P_\mathrm{new, add\_ca} \in (0,\infty)`: New installed power capacity.
+        * :math:`P_\mathrm{ret, rem\_ca} \in (0,\infty)`: Retired power capacity.
+        * :math:`C_\mathrm{tot, st\_ca\cup hyrs\_ca} \in (0,\infty)`: Total energy capacity of storage and reservoirs.
+
+        '''
+
         Var = namedtuple('Var', ['name', 'sets', 'bounds', 'doc'])
 
         vars_ = [Var('pwr', self.sy_ppall_ca, None,
@@ -114,4 +148,14 @@ class Variables:
 
         setattr(self, variable_name, po.Var(*variable_index, bounds=bounds,
                                             domain=domain, doc=doc))
+
+
+    @silence_pd_warning
+    def _get_set_docs(self):
+
+        var_doc = pd.Series({var.name: '* ' + var.doc + '\n' for var in vars_})
+
+        print(
+                var_doc.sum()
+        )
 
