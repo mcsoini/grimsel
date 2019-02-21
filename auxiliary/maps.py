@@ -250,6 +250,48 @@ class Maps():
 
 
 
+    @wrapt.decorator
+    def param_to_list(f, self, *args, **kwargs):
+
+        if not isinstance(args[0][0], (set, list, tuple)):
+            args = (([args[0][0]],),)
+
+        return f(*args[0], **kwargs)
+
+    @param_to_list
+    def nd2nd(self, list_nd):
+        df = self._dict_tb['node']
+        print(list_nd)
+        return set(df.loc[df.nd.str.contains('|'.join(list_nd))].index.tolist())
+
+    @param_to_list
+    def nd2pp(self, list_nd):
+        df = self._dict_tb['plant']
+        return set(df.loc[df.nd_id.isin(self.nd2nd(list_nd))].index.tolist())
+
+
+    @param_to_list
+    def pt2pt(self, list_pt):
+        df = self._dict_tb['pp_type']
+        return set(df.loc[df.pt.str.contains('|'.join(list_pt))].index.tolist())
+
+    @param_to_list
+    def fl2fl(self, list_fl):
+        df = self._dict_tb['fuel']
+        return set(df.loc[df.fl.str.contains('|'.join(list_fl))].index.tolist())
+
+    @param_to_list
+    def pt2pp(self, list_pt):
+        df = self._dict_tb['plant']
+        return set(df.loc[df.pt_id.isin(self.pt2pt(list_pt))].index.tolist())
+
+    @param_to_list
+    def fl2pp(self, list_fl):
+        df = self._dict_tb['plant']
+        return set(df.loc[df.fl_id.isin(self.fl2fl(list_fl))].index.tolist())
+
+
+
 if __name__ == '__main__':
 
     self = Maps('lp_input_levels', 'storage2')
