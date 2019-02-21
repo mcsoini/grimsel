@@ -76,6 +76,7 @@ class ModelLoop():
 #            self.sc_out = 'out_{n}_{uq}'.format(n=self.mkwargs['nhours'],
 #                                                uq=self.unq_code)
 
+    def __init__(self, **kwargs):
         '''
         Keyword arguments:
         nsteps -- list of model loop dimensions and steps; format:
