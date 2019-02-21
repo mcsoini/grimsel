@@ -231,7 +231,14 @@ class ModelLoop():
 #        self.df_add = df_add
 
         # can't use io method here if we want this to happen when no_output
-        aql.write_sql(self.df_add, self.db, self.sc_out, 'def_loop', 'append')
+        if self.io.modwr.output_target == 'psql':
+            aql.write_sql(df_add, self.db, self.io.cl_out, 'def_loop', 'append')
+        elif self.io.modwr.output_target == 'hdf5':
+            with pd.HDFStore(self.io.cl_out, mode='a') as store:
+                store.append('def_loop', df_add, data_columns=True,
+                             min_itemsize=30 # set string length!
+                             )
+
 
     def _print_run_title(self, warmstartfile, solutionfile):
 
