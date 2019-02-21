@@ -133,15 +133,13 @@ class CompIO():
 
             try:
                 dtype_dict = store.get_node(tb).table.coldtypes
-                df = df.astype(dtype_dict)
-            except:
-                pass
+                df = df.astype({key: val for key, val in dtype_dict.items() if key in df.columns})
+            except Exception as e:
+                print(e)
 
             store.append(tb, df, data_columns=True,
-#                         columns=tuple(df.columns.tolist()),
                          complevel=9,
                          complib='blosc:blosclz')
-
 
 
     def _to_sql(self, df, tb):
