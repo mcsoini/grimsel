@@ -99,10 +99,11 @@ class CompIO():
         '''
         Initialization of output table.
 
-        Note
-        ----
-        Keys need to be added in post-processing due to table
-        writing performance.
+        Calls the :func:`aux_sql_func` method with appropriate parameters.
+
+        .. note:
+           Keys need to be added in post-processing due to table
+           writing performance.
 
         '''
 
