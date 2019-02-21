@@ -129,14 +129,13 @@ class CompIO():
 
     def _to_hdf5(self, df, tb):
 
-
-        try:
-            dtype_dict = pd.read_hdf(self.cl, 'var_sy_pwr').dtypes.to_dict()
-            df = df.astype(dtype_dict)
-        except:
-            pass
-
         with pd.HDFStore(self.cl, mode='a') as store:
+
+            try:
+                dtype_dict = store.get_node(tb).table.coldtypes
+                df = df.astype(dtype_dict)
+            except:
+                pass
 
             store.append(tb, df, data_columns=True,
 #                         columns=tuple(df.columns.tolist()),
