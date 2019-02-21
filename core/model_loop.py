@@ -188,21 +188,10 @@ class ModelLoop():
 
         self.loop_series = lpsrs
 
+
     def init_loop_table(self):
-        tb_name = 'def_loop'
-        cols = ([('tdiff_solve', 'DOUBLE PRECISION'),
-                 ('tdiff_write', 'DOUBLE PRECISION'),
-                 ('run_id', 'SMALLINT'),
-                 ]
-              + [(s, 'SMALLINT') for s in self.cols_id]
-              + [(s, 'DOUBLE PRECISION') for s in self.cols_step]
-              + [(s, 'VARCHAR(30)') for s in self.cols_val]
-              + [('info', 'VARCHAR'), ('objective', 'DOUBLE PRECISION')])
-        aql.init_table(tb_name, cols, self.sc_out,
-                       pk=self.cols_id, unique=['run_id'],
-                       db=self.io.db)
 
-
+        self.io._init_loop_table(self.cols_id, self.cols_step, self.cols_val)
 
     def append_row(self, zero_row=False, tdiff_solve=0, tdiff_write=0,
                    info=''):
