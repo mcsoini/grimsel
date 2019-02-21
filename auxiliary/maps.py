@@ -216,8 +216,9 @@ class Maps():
         if (hasattr(self, 'dict_plant_2_pp_type')
             and hasattr(self, '_color_pt')
             and not hasattr(self, '_color_pp')):
+            # generate pp color map from pt
 
-            self._color_pp_id = {pp_id: self._color_pt[pt] for pp_id, pt
+            self._color_pp_id = {pp_id: self._color_pt_id[pt] for pp_id, pt
                                  in self.dict_plant_2_pp_type.items()}
             self._color_pp = {self.dict_pp[pp_id]: col for pp_id, col
                               in self._color_pp_id.items()}
