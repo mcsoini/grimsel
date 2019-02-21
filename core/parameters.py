@@ -13,8 +13,12 @@ from grimsel import _get_logger
 
 logger = _get_logger(__name__)
 
+
+
+
+
 class Parameters:
-    '''
+    r'''
     Mixin class containing all parameters.
     Methods:
     define_parameters : contains all parameter defintions relevant for the model
@@ -53,12 +57,8 @@ class Parameters:
 
         logger.info('Defining general parameters')
         self.padd('weight', (self.tmsy,), self.df_tm_soy) # Weight per time slot.
-        self.padd('month_weight', (self.mt,), self.df_def_month) # Hours per month.
-        self.padd('dmnd_sum', (self.nd,), self.df_node_encar, default=0) # .
         self.padd('grid_losses', (self.nd, self.ca), self.df_node_encar, **mut) # Grid losses.
-        self.padd('vc_dmnd_flex', (self.nd, self.ca), self.df_node_encar) # VC of flexible demand.
 
-        self.padd('chp_cap_pwr_leg', (self.nd,), self.df_def_node, **mut) # .
         self.padd('cap_trme_leg', (self.mt, self.ndcnn,), 'df_node_connect', **mut) # Cross-node transmission capacity.
         self.padd('cap_trmi_leg', (self.mt, self.ndcnn,), 'df_node_connect', **mut) # Cross-node transmission capacity.
 
@@ -71,8 +71,6 @@ class Parameters:
         logger.info('Defining pp parameters')
         _df = self.df_plant_encar.copy()
         _df = _df.loc[_df['pp_id'].isin(self.setlst['pp'])]
-        self.padd('ca_share_min', (self.pp, self.ca), _df) # .
-        self.padd('ca_share_max', (self.pp, self.ca), _df) # .
         self.padd('pp_eff', (self.ppall, self.ca), _df, default=1) # .
         self.padd('cf_max', (self.pp, self.ca), _df, **mut) # .
         df = self.df_plant_encar.loc[self.df_plant_encar.pp_id.isin(self.chp)]
@@ -98,7 +96,6 @@ class Parameters:
         self.padd('cap_pwr_leg', sets, _df, **mut) # .
         self.padd('vc_om', sets, _df, **mut) # .
         self.padd('fc_om', sets, _df, **mut, default=0) # .
-        self.padd('fc_dc', sets, _df, **mut) # .
 
         _df = _df.loc[_df['pp_id'].isin(self.setlst['pp'])]
         self.padd('cap_avlb', (self.pp, self.ca), _df, **mut) # .
@@ -129,6 +126,9 @@ class Parameters:
         # in the self.df_parameter_month input table
         if not self.df_parameter_month is None:
             self.apply_monthly_factors_all()
+
+
+
 
 
     def _get_param_data(self, source_dataframe):
