@@ -82,7 +82,6 @@ class ModelLoop():
                   (name::str, number_of_steps::int, type_of_steps::function)
         '''
 
-        # define instance attributes and update with kwargs
         defaults = {
                     'nsteps': ModelLoop.nsteps_default,
                     'dev_mode': False,
@@ -98,8 +97,6 @@ class ModelLoop():
 
         self.run_id = None  # set later
 
-        # SETTING UP MODEL AND IO
-
         self.m = model_base.ModelBase(**self.mkwargs)
 
         self.iokwargs.update({'model': self.m,
@@ -113,24 +110,24 @@ class ModelLoop():
 
         return
 
-        self.io.read_model_data()
-
-        self.m.map_to_time_res()
-
-        # Write tables which are generated in dependence on the time
-        # resolution (profiles, boundary conditions).
-        self.m.get_maximum_demand()
-        self.io.write_runtime_tables()
-
-        self.m.mps = maps.Maps(self.sc_out, db=self.db)
-
-        self.m.build_model()
-
-        self.init_run_table()
-
-        self.io.init_output_tables()
-
-        self.select_run(0)
+#        self.io.read_model_data()
+#
+#        self.m.map_to_time_res()
+#
+#        # Write tables which are generated in dependence on the time
+#        # resolution (profiles, boundary conditions).
+#        self.m.get_maximum_demand()
+#        self.io.write_runtime_tables()
+#
+#        self.m.mps = maps.Maps(self._out, db=self.db)
+#
+#        self.m.build_model()
+#
+#        self.init_run_table()
+#
+#        self.io.init_output_tables()
+#
+#        self.select_run(0)
 
 
     def init_run_table(self):
@@ -235,7 +232,7 @@ class ModelLoop():
         df_add = df_add.astype(dtypes)
 
         # update instance variable and add run_name column
-        self.df_add = df_add
+#        self.df_add = df_add
 
         # can't use io method here if we want this to happen when no_output
         aql.write_sql(self.df_add, self.db, self.sc_out, 'def_loop', 'append')
