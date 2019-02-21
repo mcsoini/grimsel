@@ -199,7 +199,7 @@ class Constraints:
                         for (pp, nd, ca)
                         in set_to_list(self.ppall_ndca, [None, nd, ca]))
                     # incoming inter-node transmission
-                    + sum(get_transmission(sy, nd, nd_2, ca,    False)
+                    + sum(get_transmission(sy, nd, nd_2, ca, False)
                           for (nd, nd_2, ca)
                           in set_to_list(self.ndcnn, [None, nd, ca]))
                    )
@@ -281,19 +281,8 @@ class Constraints:
                     == self.erg_yr[pp, ca])
         self.cadd('yearly_fuel_cons', self.pp_ndcafl,
                   rule=yearly_fuel_cons_rule)
-#
-#        def yearly_chg_rule(self, pp, ca):
-#            ''''''
-#
-#            tm = self.dict_pp_tm_id[pp]
-#            tmsy_list = set_to_list(self.tmsy, [tm, None])
-#
-#            agg_erg_chg_yr = sum(self.pwr_st_ch[sy, pp, ca]
-#                                 * self.weight[tm, sy]
-#                                 for tm, sy in tmsy_list)
-#            return self.erg_ch_yr[pp, ca] == agg_erg_chg_yr
-#        self.yearly_charging = po.Constraint(self.st_ca, rule=yearly_chg_rule)
-#
+
+
 
     def add_capacity_calculation_rules(self):
         r'''
