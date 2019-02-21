@@ -1154,6 +1154,12 @@ class IO:
 
         self.modwr.run_id = run_id
         self.modwr.write_all()
+    @staticmethod
+    def _close_all_hdf_connections():
+
+        tables.file._open_files.close_all()
+
+
 # %%
 if __name__ == '__main__':
 
