@@ -86,10 +86,7 @@ class ModelLoop():
                     'nsteps': ModelLoop.nsteps_default,
                     'dev_mode': False,
                     'mkwargs': None,
-                    'iokwargs': None,
-                    'sc_inp': None,
-                    'sc_out': None,
-                    'db': None}
+                    'iokwargs': None}
 
         for key, val in defaults.items():
             setattr(self, key, val)
@@ -101,10 +98,8 @@ class ModelLoop():
 
         self.iokwargs.update({'model': self.m,
                               'dev_mode': self.dev_mode,
-                              'sql_connector': sql_connector,
-                              'db': self.db,
-                              'sc_out': self.sc_out,
-                              'sc_inp': self.sc_inp})
+#                              'sql_connector': sql_connector,
+                              'db': self.db})
 
         self.io = io.IO(**self.iokwargs)
 
