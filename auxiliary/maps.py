@@ -3,6 +3,7 @@
 
 import numpy as np
 import pandas as pd
+import wrapt
 
 import grimsel.auxiliary.sqlutils.aux_sql_func as aql
 from grimsel.auxiliary.aux_general import silence_pd_warning
