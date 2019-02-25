@@ -600,7 +600,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
                         for tm_id, frnh in self.dict_tm.items()}
 
         self.df_def_node['tm_id'] = (self.df_def_node.reset_index().nd_id
-                                               .replace(self.dict_nd_tm_id))
+                                         .replace(self.dict_nd_tm_id).values)
 
         cols_red = ['wk_id', 'mt_id', 'sy', 'weight', 'wk_weight']
         list_tm_soy = [tm.df_time_red[cols_red].assign(tm_id=tm_id) for
