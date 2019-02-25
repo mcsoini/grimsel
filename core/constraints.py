@@ -1,3 +1,14 @@
+'''
+.. |CO2| replace:: CO\ :sub:`2`\ \
+
+Model constraints
+===================
+
+All model constraints are defined in the :class:`Constraints` class, which
+serves as a mixin class to :class:`grimsel.core.ModelBase`.
+
+'''
+
 
 from functools import wraps
 
@@ -9,10 +20,10 @@ from grimsel import _get_logger
 logger = _get_logger(__name__)
 
 
+
 nnnn = [None] * 4
 nnn = [None] * 3
 nn = [None] * 2
-
 
 
 def _limit_max_sy(dct):
@@ -43,7 +54,8 @@ def _limit_max_sy(dct):
 
 class Constraints:
     '''
-    Mixin class containing all constraints.
+    Mixin class containing all constraints, included in the
+    :class:`grimsel.core.ModelBase`
     '''
 
     def cadd(self, name, *args, objclass=po.Constraint, **kwargs):
@@ -147,7 +159,7 @@ class Constraints:
               :math:`p_\mathrm{trm}` has the higher time resolution of the two
               connected nodes. On the side of the lower time resolution node,
               it is averaged over the corresponding time slots.
-            * **Consumption of produced energy carriers :math:`ca`**:
+            * **Consumption of produced energy carriers** :math:`\mathrm{ca}`:
               Generators which consume an endogenously produced energy carrier
               (e.g. electricity) to produce another energy carrier (e.g. heat)
               enter the supply constraint on the demand side
@@ -289,7 +301,7 @@ class Constraints:
         Constraints concerning endogenous capacity calculations.
 
         * The total power capacity is composed of exogenous legacy capacity,
-          retirements, and new capacity investments.
+          optimized retirements, and optimized newly installed capacity:
 
           .. math::
 
@@ -302,7 +314,7 @@ class Constraints:
 
           .. math::
 
-             & C_\mathrm{tot, p,c} = P_\mathrm{tot, p,c} * \zeta_\mathrm{p,c} \\
+             & C_\mathrm{tot, p,c} = P_\mathrm{tot, p,c} \zeta_\mathrm{p,c} \\
              & \forall \mathrm{(p,c) \in st\_ca \cup hyrs\_ca} \\
 
         '''
@@ -396,10 +408,10 @@ class Constraints:
     def add_chp_rules(self):
         r'''
         Adds all co-generation related constraints.
-        
+
         * Certain generators need to produce power following heat demand.
           This is implemented through the node-specific normalized CHP
-          profile :math:`\phi_\mathrm{chp, sy\_pf}`: The production from 
+          profile :math:`\phi_\mathrm{chp, sy\_pf}`: The production from
           power plants :math:`p_\mathrm{pp,t}` in the
           set :math:`\mathrm{sy\_chp\_ca}` must be larger than the scaled
           CHP profile
@@ -427,6 +439,25 @@ class Constraints:
 
 
     def add_monthly_total_rules(self):
+        r'''
+        Adds the ``monthly_totals`` constraint which sets the monthly energy
+        production variables:
+
+        .. math::
+
+           & E_\mathrm{m,p,c} = \sum_\mathrm{t\in sy_m} w_\mathrm{\tau(p),t}
+           p_\mathrm{t,p,c} \\
+           & \forall \mathrm{(m,p,c) \in mt \times hyrs\_ca \cup pp\_ca} \\
+
+        .. note::
+
+           * :math:`\mathrm{sy_m}` is an ad-hoc set defining the time slots
+             :math:`\mathrm{sy}` for any given month :math:`\mathrm{m}`.
+           * The resulting monthly totals :math:`E_\mathrm{m,p,c}` are
+             primarily used for hydro power constraints.
+
+        '''
+
 
         def monthly_totals_rule(self, mt, pp, ca):
             '''Calculate monthly total production (hydro only). '''
@@ -446,7 +477,22 @@ class Constraints:
                            'model scope doesn\'t cover all months.')
 
     def add_variables_rules(self):
-        '''Produced power equals output profile '''
+        r'''
+        Produced power equals output profile.
+
+        Variable renewable energy generators produce at a given output profile
+        (capacity factor per time slot). Curtailments are included at the
+        system level through dedicated technologies
+        (set :math:`\mathrm{curt \subset ppall}`).
+
+        .. math::
+
+           & p_\mathrm{t,p,c} = \phi_\mathrm{supply,t,pf(p)}
+           P_\mathrm{tot,p,c}\\
+           & \forall \mathrm{(p,c) \in pr\_ca}
+
+
+        '''
 
         def variables_prof_rule(self, sy, pp, ca):
             ''' Produced power equal output profile '''
@@ -457,6 +503,27 @@ class Constraints:
         self.cadd('variables_prof', self.sy_pr_ca, rule=variables_prof_rule)
 
     def add_ramp_rate_rules(self):
+        r'''
+        Three constraints are used to obtain the absolute ramp rates
+        :math:`|\delta_\mathrm{sy\_rp\_ca}|`:
+
+        * Difference of power production:
+
+          .. math::
+
+             & \delta_\mathrm{t,p,c} = p_\mathrm{t,p,c} - p_\mathrm{t - 1,p,c} \\
+             & \forall \mathrm{(t,p,c) \in sy\_rp\_ca} \\
+
+        * Two constraints to calculate the absolute values:
+
+          .. math::
+
+             & +1 \cdot \delta_\mathrm{t,p,c} \leqslant |\delta_\mathrm{t,p,c}| \\
+             & -1 \cdot \delta_\mathrm{t,p,c} \leqslant |\delta_\mathrm{t,p,c}| \\
+             & \forall \mathrm{(t,p,c) \in sy\_rp\_ca} \\
+
+        '''
+
 
         def calc_ramp_rate_rule(self, sy, pp, ca):
             '''Ramp rates are power output differences.'''
@@ -487,7 +554,19 @@ class Constraints:
         self.cadd('ramp_rate_abs_neg', self.sy_rp_ca, rule=ramp_rate_abs_rule)
 
     def add_energy_constraint_rules(self):
-#
+        r'''
+        Adds the ``pp_max_fuel`` constraint which limits the amount of
+        output energy carriers produced from certain fuels to the
+        value of the exogenous parameter :math:`E_\mathrm{inp,n,c,f}`:
+
+        .. math::
+
+            & \sum_\mathrm{p \in ppall} E_\mathrm{p,n,c,f}
+            \leqslant E_\mathrm{inp,n,c,f} \\
+            \forall \mathrm{(n,c,f) \in ndcafl} \\
+
+        '''
+
         def pp_max_fuel_rule(self, nd, ca, fl):
             '''Constrain energy produced from certain fuels.'''
 
@@ -519,8 +598,8 @@ class Constraints:
 
            e_\mathrm{t,p,c} = e_\mathrm{t-t,p,c} +
            \begin{cases}
-           \phi_\mathrm{inflow,t,p} e_\mathrm{inp,n(p),c,f(p)} - p_\mathrm{t, p, c} w_\mathrm{t} & \forall \mathrm{(t,p,c)\in sy\_hyrs\_ca}\\
-           (\eta_\mathrm{p,c}^{1/2} p_\mathrm{t, p, c} - \eta_\mathrm{p,c}^{-1/2} p_\mathrm{chg, t, p, c}) w_\mathrm{t}      & \forall \mathrm{(t,p,c)\in sy\_st\_ca}\\
+           \phi_\mathrm{inflow,t,p} e_\mathrm{inp,n(p),c,f(p)} - p_\mathrm{t, p, c} w_\mathrm{t, n(p)} & \forall \mathrm{(t,p,c)\in sy\_hyrs\_ca}\\
+           (\eta_\mathrm{p,c}^{1/2} p_\mathrm{chg, t, p, c} - \eta_\mathrm{p,c}^{-1/2} p_\mathrm{t, p, c}) w_\mathrm{t}      & \forall \mathrm{(t,p,c)\in sy\_st\_ca}\\
            \end{cases}
 
         '''
@@ -569,18 +648,39 @@ class Constraints:
                   rule=erg_store_level_rule)
 
     def add_hydro_rules(self):
-        '''
+        r'''
+        [#add_hydro_rules]
         Various rules constraining the operation of the hydro reservoir plants.
 
-        * The ``hy_reservoir_boundary_conditions`` constraint sets requires
-          the reservoir filling level to assume an exogenously define share
+        * The ``hy_reservoir_boundary_conditions`` constraint requires
+          the reservoir filling level to assume an exogenously defined share
           of the energy capacity during certain time slots:
 
           .. math::
 
              & e_\mathrm{t,p,c}
              = e_\mathrm{hyd\_bc,p,c} C_\mathrm{tot, p, c} \\
-             & \forall \mathrm{(t,p,c) in sy_hydbc \times hyrs_ca} \\
+             & \forall \mathrm{(t,p,c) \in sy\_hydbc \times hyrs\_ca} \\
+
+        * The ``hy_month_min`` constraint forces a certain minimum output
+          production from hydro reservoirs each month. This minimum is
+          expressed as a share of maximum monthly inflow:
+
+          .. math::
+
+             E_\mathrm{m, p, c} \geqslant & \rho_\mathrm{max\_erg\_in,p}\\
+                                & \cdot \rho_\mathrm{min\_erg\_out,p}\\
+                                & \cdot e_\mathrm{inp,n(p),c,f(p)}\\
+
+        * The ``hy_erg_min`` constraint sets a lower bound on the stored
+          energy as a fraction of the total energy capacity.
+
+          .. math::
+
+             e_\mathrm{t,p,c} \geqslant & C_\mathrm{tot,p,c} \\
+                                        & \cdot \rho_\mathrm{min\_cap,p} \\
+                                        & \forall \mathrm{(t,p,c)
+                                        \in sy\_hyrs\_ca}
 
         '''
 
@@ -590,7 +690,8 @@ class Constraints:
 
             if (sy, pp) in [i for i in self.hyd_erg_bc.sparse_iterkeys()]:
                 return (self.erg_st[sy, pp, ca]
-                        == self.hyd_erg_bc[sy, pp] * self.cap_erg_tot[pp, ca])
+                        == self.hyd_erg_bc[sy, pp]
+                           * self.cap_erg_tot[pp, ca])
             else:
                 return po.Constraint.Skip
 
@@ -622,15 +723,83 @@ class Constraints:
         self.cadd('hy_erg_min', self.sy_hyrs_ca, rule=hy_erg_min_rule)
 
     def add_yearly_cost_rules(self):
-        '''
+        r'''
         Groups the yearly cost calculation constraints:
 
-        * Fuel cost of plants with constant supply curves
-        .. math::
-           \mathrm{vc}_\mathrm{fl, ppall\_cafl\setminus lin\_cafl}
+        * Variable fuel costs :math:`c_\mathrm{fuel,p,c,f}` of
+          plants with constant supply curves:
+
+          - For fixed fuel costs :math:`\mathrm{vc}_\mathrm{fuel,fl\_nd}`:
+
+             .. math::
+
+                & c_\mathrm{fuel,p,c,f}
+                = E_\mathrm{p,n,c,f} \mathrm{vc}_\mathrm{fuel,f,n} \\
+                & \forall \mathrm{(p,n,c,f)\in ppall\_ndcafl
+                                            \setminus lin\_ndcafl} \\
+
+          - For monthly fuel costs :math:`vc_\mathrm{fuel,mt,fl\_nd}`:
+
+             .. math::
+
+                & c_\mathrm{fuel,p,c,f}
+                = \sum_\mathrm{t\in sy(p)} vc_\mathrm{fuel,m(t),f,n}
+                  p_\mathrm{t,p,c} / \eta_\mathrm{p,c}\\
+                & \forall \mathrm{(p,n,c,f)\in ppall\_ndcafl
+                                             \setminus lin\_ndcafl} \\
+
+          - For plants with cost profiles:
+
+              .. math::
+
+                & c_\mathrm{fuel,p,c,f}
+                = \sum_\mathrm{t\in sy(p)}  p_\mathrm{t,p,c} / \eta_\mathrm{p,c}
+                w_\mathrm{t, n} \cdot
+                \begin{cases}
+                -1 \cdot \phi_\mathrm{psll,t,pf(p)} & \text{if } \mathrm{p\in sll}\\
+                +1 \cdot \phi_\mathrm{pbuy,t,pf(p)}& \text{if } \mathrm{p\notin sll}\\
+                \end{cases} \\
+                & \forall \mathrm{(p,n,c,f)\in ppall\_ndcafl \setminus lin\_ndcafl} \\
+
+        * Variable operation and maintenance costs
+          :math:`\mathrm{vc}_\mathrm{O\&M,p,c,f}` for all plants:
+
+             .. math::
+
+                & c_\mathrm{om_v,p,c,f}
+                = E_\mathrm{p,n,c,f} \mathrm{vc}_\mathrm{om,p,c,f} \\
+                & \forall \mathrm{(p,c)\in ppall\_ca} \\
+
+        * Variable CO\ :sub:`2`\  emission costs: Same as variable fuel costs
+          (fixed fuel costs and monthly fuel costs costs cases), but with
+          specific cost
+          :math:`\pi_\mathrm{CO_2,[mt],nd}\cdot i_\mathrm{CO_2, fl}`.
+
+        * Total ramping cost:
+
+          .. math::
+
+             & c_\mathrm{rp,p,c}
+             = |\Delta_\mathrm{pr,p,c}| \mathrm{vc}_\mathrm{ramp,p,c} \\
+             & \forall \mathrm{(p,c)\in rp\_ca} \\
+
+        * Total fixed O&M cost:
+
+          .. math::
+
+             & c_\mathrm{om_f,p,c}
+             = P_\mathrm{tot,p,c} \mathrm{fc}_\mathrm{om,p,c} \\
+             & \forall \mathrm{(p,c)\in ppall\_ca} \\
 
 
-        *
+        * Total annualized fixed investment cost:
+
+          .. math::
+
+             & c_\mathrm{cp,p,c}
+             = P_\mathrm{new,p,c} \mathrm{fc}_\mathrm{cp,p,c} \\
+             & \forall \mathrm{(p,c)\in add\_ca} \\
+
 
         .. note::
            The fuel and emission costs of power plants with linear supply
@@ -742,6 +911,17 @@ class Constraints:
         self.cadd('calc_fc_cp', self.add_ca, rule=calc_fc_cp_rule)
 
     def get_vc_fl(self):
+        r'''
+        Get total fuel cost calculated directly from power production:
+
+        .. math::
+           \sum_\mathrm{(t,p,c)\in sy\_lin\_ca}
+           p_\mathrm{t,p,c} w_\mathrm{\tau(p),t}
+           \cdot \mathrm{vc_{f(p),n(p)}}
+           \cdot (f_\mathrm{0,p,c} + 0.5 p_\mathrm{t,p,c} f_\mathrm{1,p,c})
+
+        '''
+
         return \
         sum(self.pwr[sy, lin, ca]
             * self.weight[self.dict_pp_tm_id[lin], sy]
@@ -754,8 +934,15 @@ class Constraints:
             for (sy, lin, ca) in set_to_list(self.sy_lin_ca, nnnn))
 
     def get_vc_co(self):
-        '''
-        Auxiliary methods to generate the
+        r'''
+        Get total |CO2| emission cost calculated directly from power
+        production:
+
+        .. math::
+           \sum_\mathrm{(t,p,c)\in sy\_lin\_ca}
+           p_\mathrm{t,p,c} w_\mathrm{\tau(p),t}
+           \cdot \pi_\mathrm{CO_2, m(t), n(p)} i_\mathrm{CO_2,f}
+           \cdot (f_\mathrm{0,p,c} + 0.5 p_\mathrm{t,p,c} f_\mathrm{1,p,c})
 
         '''
 
@@ -774,30 +961,52 @@ class Constraints:
     def add_objective_rules(self):
         ''' Quadratic objective function.
 
+
         The objective function to be minimized is the sum over all system
         costs:
 
-
-
-        * Fuel costs of power plants with constant supply curve:
+        * Fuel costs of power plants with constant efficiency/supply curve:
 
         .. math::
-            \sum_\mathrm{ppall\setminus lin} \mathrm{vc}_\mathrm{fl, ppall\_cafl\setminus lin\_cafl}
+            \sum_\mathrm{(p,c,f) \in pp\_cafl \setminus lin\_cafl}
+                    c_\mathrm{fuel,p,c,f}
+
+        * |CO2| emission costs of power plants with constant efficiency:
+
+        .. math::
+            \sum_\mathrm{(p,c) \in pp\_ca \setminus lin\_ca} c_\mathrm{om_v,p,c}
 
         * Variable O\&M costs of power plants:
 
         .. math::
-            \sum_\mathrm{ppall,ca} \mathrm{vc}_\mathrm{om, ppall\_ca}
+            \sum_\mathrm{(p,c) \in ppall\_ca} c_\mathrm{om_v,p,c}
 
+        * Fixed O\&M costs of power plants:
+
+        .. math::
+            \sum_\mathrm{(p,c) \in ppall\_ca} c_\mathrm{om_f,p,c}
+
+
+        * Variable ramping costs of power plants:
+
+        .. math::
+            \sum_\mathrm{(p,c) \in rp\_ca} c_\mathrm{rp,p,c}
+
+        * Fixed investment costs of power plants:
+
+          .. math::
+             \sum_\mathrm{(p,c) \in add\_ca} c_\mathrm{cp,p,c}
+
+        * Variable fuel costs for plants with linear supply curves are
+          calculated in the method :func:`get_vc_fl`.
+
+        * Variable |CO2| emission costs for plants with linear supply curves
+          are calculated in the method :func:`get_vc_co`.
 
         .. note::
            The variable fuel and emission cost terms of the power plants with
-           linear supply curves
-
-           * :math:`\sum_\mathrm{lin,ca}\mathrm{vc_{fl\_lin\_ca}} =`
-           * :math:`\sum_\mathrm{lin,ca}\mathrm{vc_{em\_lin\_ca}} =`
-
-           are not model variables but calculated directly in the auxiliary methods
+           linear supply curves are not model variables but calculated directly
+           in the auxiliary methods
            :func:`get_vc_fl` and :func:`get_vc_fl`. See the note in the
            :func:`add_yearly_cost_rules` method documentation.
 

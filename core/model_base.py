@@ -673,8 +673,8 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
     def map_to_time_res(self):
         '''
         Generates a map between hours-of-the-year and time slots-of-the-year
-        based on the fixed time resolution self.nhours, using the class
-        timemap.TimeMap. Then maps relevant input data from hours to slots.
+        based on the fixed time resolution ``self.nhours``, using the class
+        ``timemap.TimeMap``. Then maps relevant input data from hours to slots.
         Also generates dictionaries which contain all slot ids for each
         week/month and vice versa.
 
@@ -928,7 +928,8 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
         Parameters
         ----------
-            index: tuple of pyomo sets
+        index: tuple
+            tuple of of pyomo sets
 
         '''
 

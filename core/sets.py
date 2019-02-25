@@ -1,3 +1,11 @@
+'''
+Model sets
+=================
+
+
+'''
+
+
 import pyomo.environ as po
 import pyomo.core.base.sets as poset
 import pandas as pd
@@ -198,7 +206,9 @@ class Sets:
                          ordered=True, doc='model time slots')
 
         self.sy_hydbc = po.Set(within=self.sy,
-                               initialize=set(self.df_plant_month.sy))
+                               initialize=set(self.df_plant_month.sy),
+                               doc=('Time slots with exogenously defined '
+                                    'storage level boundary conditions.'))
 
         self.mt = (po.Set(initialize=list(self.df_def_month['mt_id']),
                           doc='months')
@@ -267,7 +277,8 @@ class Sets:
         # fuels with energy constraints
         lst = self.df_def_fuel.loc[self.df_def_fuel.is_constrained==1,
                                        'fl_id'].tolist()
-        self.fl_erg = po.Set(within=self.fl, initialize=lst, ordered=True)
+        self.fl_erg = po.Set(within=self.fl, initialize=lst, ordered=True,
+                             doc='fuels with energy production constraints')
 
         # all plants with ramping costs
         vcrp_pos = (self.df_plant_encar.loc[self.df_plant_encar.vc_ramp > 0]
