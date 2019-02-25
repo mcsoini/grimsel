@@ -1,6 +1,11 @@
 '''
-Definition of parameters.
+Model parameters
+=================
+
+
 '''
+
+
 import pyomo.environ as po
 import pyomo.core.base.sets as poset
 import itertools
@@ -19,10 +24,7 @@ logger = _get_logger(__name__)
 
 class Parameters:
     r'''
-    Mixin class containing all parameters.
-    Methods:
-    define_parameters : contains all parameter defintions relevant for the model
-    padd : helper method for compact parameter definitions
+    Mixin class containing all parameter definitions.
 
     '''
 
@@ -127,12 +129,14 @@ class Parameters:
         if not self.df_parameter_month is None:
             self.apply_monthly_factors_all()
 
-
-
-
-
     def _get_param_data(self, source_dataframe):
         '''
+        Performs various checks on the
+
+        Parameters
+        ----------
+        source_dataframe - pandas.Dataframe
+
 
         '''
 
@@ -159,27 +163,29 @@ class Parameters:
 
 
     def padd(self, parameter_name, parameter_index, source_dataframe=False,
-             value_col=False, filt_col=False, filt_vals=[], mutable=False,
-             default=None):
+             value_col=False, mutable=False, default=None):
         '''
-        Parameter definition based on input dataframes
+        Parameter definition based on input dataframes.
 
         Parameters
         ----------
 
-        parameter_name (str): used as model attribute, also assumed to be the
-                          column name in case ``value_col=False``
-        parameter_index (tuple): tuple of pyomo sets to define the parameter index
-        source_dataframe (str) or (DataFrame): input dataframe containing the
-            parameter values
-        value_col -- column name in the source_dataframe, is set to the
-                     parameter name if no value is provided
-        filt_col -- column of source_dataframe for filtering
-        filt_vals -- values of filt_col for filtering
-        mutable (bool): like the pyomo parameter keyword argument
-        default (numeric): like the pyomo parameter keyword argument
+        parameter_name - str
+            used as model attribute, also assumed to be the
+            column name in case ``value_col==False``
+        parameter_index - tuple
+            tuple of pyomo sets as parameter index
+        source_dataframe - str or pandas.DataFrame
+            input dataframe (or its attribute name)
+            containing the parameter values
+        value_col - str
+            name of the ``source_dataframe`` parameter value column;
+            optional---is set to the parameter name if no value is provided
+        mutable - bool
+            the ``pyomo.environ.Param`` initializer parameter
+        default - numeric
+            the ``pyomo.environ.Param`` initializer parameter
 
-        Raises
         '''
 
         log_str = 'Assigning parameter {par} ...'.format(par=parameter_name)
@@ -190,7 +196,8 @@ class Parameters:
                            if not isinstance(parameter_index, tuple)
                            else parameter_index)
 
-        if not flag_infeasible and not self.check_valid_indices(parameter_index):
+        if (not flag_infeasible
+            and not self.check_valid_indices(parameter_index)):
             flag_infeasible = True
 
         # set data column to parameter name in case no other value is provided
@@ -217,10 +224,6 @@ class Parameters:
                     'dmnd_pf': 'dmnd_pf_id', 'tmsy': ['tm_id', 'sy'],
                     'supply_pf': 'supply_pf_id'}
 
-        # apply filter to dataframe
-        if filt_col:
-            _df = _df.loc[_df[filt_col].isin(filt_vals)]
-
         # get list of columns from sets
         index_cols = [dict_ind[pi.getname()]
                       if type(pi) in [poset.SimpleSet, poset.OrderedSimpleSet]
@@ -241,6 +244,13 @@ class Parameters:
                                                **param_kwargs))
 
     def apply_monthly_factors_all(self):
+        '''
+        Modify all relevant parameters with monthly factors.
+
+        Calls the :func:`apply_monthly_factors` method for each parameter
+        included in the ``df_parameter_month`` DataFrame.
+
+        '''
 
         # init dictionary containing the dataframes with the reshaped
         # monthly factor dataframes
@@ -254,6 +264,30 @@ class Parameters:
 
     def apply_monthly_factors(self, param):
         '''
+        Adds a monthly index to existing parameters.
+
+        For example, fuel prices are defined as yearly averages in the initial
+        parameter definition (``df_plant_node_encar`` table). Here the
+        parameter is re-initialized using the monthly factors from the
+        ``ModelBase.df_parameter_month`` input table.
+
+        Parameters
+        ----------
+        param : str
+            name of the model parameter attribute the monthly factors are
+            applied to
+
+        Raises
+        ------
+        ValueError
+            If the ``param`` is not included in the ``io.DICT_IDX``
+            table |rarr| index dictionary and therefore its index set
+            definition cannot be inferred.
+        ValueError
+            If a parameter in the ``df_parameter_month`` is associated with
+            more than one set group, e.g. ``vc_fl`` with both
+            ``(nd_id, fl_id)`` and ``(fl_id,)``
+
         '''
 
         logger.info('Applying monthly factors to parameter %s'%param)
@@ -384,51 +418,52 @@ class Parameters:
 
         doc_dict = {
         'Model structure': {
-                    'weight': r':math:`\mathrm{w_{tmsy}}`: Time slot weight, indexed by time map and time slot.',
+                    'weight': r':math:`\mathrm{w_{\tau, t}} : \forall \mathrm{(\tau, t) \in tmsy}`: Time slot weight, indexed by time map :math:`\tau` and time slot :math:`t`.',
                     },
         'Profiles': {
-                    'dmnd': r':math:`\phi_\mathrm{dmd, sy\_pf}`: Demand profile with profile id :math:`pf`',
-                    'chpprof': r':math:`\phi_\mathrm{chp, sy\_pf}`: CHP profile with profile id :math:`pf`',
-                    'supprof': r':math:`\phi_\mathrm{supply, sy\_pf}`: Supply (VRE) profile with profile id :math:`pf`',
-                    'inflowprof': r':math:`\phi_\mathrm{inflow, sy\_pf}`: Reservoir inflow profile with profile id :math:`pf`',
-                    'inflowprof': r':math:`\phi_\mathrm{inflow, sy\_pf}`: Reservoir inflow profile with profile id :math:`pf`',
-                    'pricebuyprof': r':math:`\phi_\mathrm{pbuy, sy\_pf}`: Energy carrier price profile (buying) with id :math:`pf`',
-                    'pricesllprof': r':math:`\phi_\mathrm{psell, sy\_pf}`: Energy carrier price profile (selling) with id :math:`pf`',
+                    'dmnd': r':math:`\Phi_\mathrm{dmd, t, \phi} : \forall \mathrm{(t,\phi) \in sy\_pf}`: Demand profile with profile id :math:`\phi`',
+                    'chpprof': r':math:`\Phi_\mathrm{chp, t, \phi} : \forall \mathrm{(t,\phi) \in sy\_pf}`: CHP profile with profile id :math:`\phi`',
+                    'supprof': r':math:`\Phi_\mathrm{supply, t, \phi} : \forall \mathrm{(t,\phi) \in sy\_pf}`: Supply (VRE) profile with profile id :math:`\phi`',
+                    'inflowprof': r':math:`\Phi_\mathrm{inflow, t, \phi} : \forall \mathrm{(t,\phi) \in sy\_pf}`: Reservoir inflow profile with profile id :math:`\phi`',
+                    'inflowprof': r':math:`\Phi_\mathrm{inflow, t, \phi} : \forall \mathrm{(t,\phi) \in sy\_pf}`: Reservoir inflow profile with profile id :math:`\phi`',
+                    'pricebuyprof': r':math:`\Phi_\mathrm{pbuy, t, \phi} : \forall \mathrm{(t,\phi) \in sy\_pf}`: Energy carrier price profile (buying) with id :math:`\phi`',
+                    'pricesllprof': r':math:`\Phi_\mathrm{psell, t, \phi} : \forall \mathrm{(t,\phi) \in sy\_pf}`: Energy carrier price profile (selling) with id :math:`\phi`',
                     },
         'Hydro parameters': {
-                    'min_erg_mt_out_share': r':math:`\rho_\mathrm{min\_erg\_out, hyrs}`: Minimum monthly reservoir production as share of maximum monthly inflow :math:`\rho_\mathrm{max\_erg\_in, hyrs}`.',
-                    'max_erg_mt_in_share': r':math:`\rho_\mathrm{max\_erg\_in, hyrs}`: Maximum monthly reservoir inflow .',
-                    'min_erg_share': r':math:`\mathrm{min\_erg\_share_{hyrs}}`: Maximum monthly reservoir inflow.',
-                    'hyd_erg_bc': r':math:`e_\mathrm{hyd\_bc, hyrs\_ca}`: Hydro filling level boundary conditions for specific hours as share of energy capacity :math:`\mathrm{(-)}`.',
+                    'min_erg_mt_out_share': r':math:`\rho_\mathrm{min\_erg\_out, p} : \forall \mathrm{p \in hyrs}`: Minimum monthly reservoir production as share of maximum monthly inflow :math:`\rho_\mathrm{max\_erg\_in, hyrs}` :math:`\mathrm{(-)}`.',
+                    'max_erg_mt_in_share': r':math:`\rho_\mathrm{max\_erg\_in, p} : \forall \mathrm{p \in hyrs}`: Maximum monthly reservoir inflow :math:`\mathrm{(-)}`.',
+                    'min_erg_share': r':math:`\rho_\mathrm{min_cap,p} : \forall \mathrm{p \in hyrs}`: Maximum monthly reservoir inflow :math:`\mathrm{(-)}`.',
+                    'hyd_erg_bc': r':math:`e_\mathrm{hyd\_bc, p,c} : \forall \mathrm{(p,c) \in hyrs\_ca}`: Hydro filling level boundary conditions for specific hours as share of energy capacity :math:`\mathrm{(-)}`.',
                     },
         'Grid and transmission': {
-                    'cap_trme_leg': r':math:`P_\mathrm{exp, mt, ndcnn}`: Internodal monthly export capacity.',
-                    'cap_trmi_leg': r':math:`P_\mathrm{imp, mt, ndcnn}`: Internodal monthly import capacity.',
-                    'grid_losses': r':math:`\mathrm{\eta_{grid, nd, ca}}`: Grid losses for each node and energy carrier.',
+                    'cap_trme_leg': r':math:`P_\mathrm{exp, m,n_1,n_2,c} : \forall \mathrm{(m,n_1,n_2,c) \in mt \times ndcnn}`: Internodal monthly export capacity.',
+                    'cap_trmi_leg': r':math:`P_\mathrm{imp, m,n_1,n_2,c} : \forall \mathrm{(m,n_1,n_2,c) \in mt \times ndcnn}`: Internodal monthly import capacity.',
+                    'grid_losses': r':math:`\mathrm{\eta_{grid, n,c}} : \forall \mathrm{(n,c) \in nd\_ca}`: Grid losses for each node and energy carrier.',
         },
         'Technical asset properties': {
-                    'cap_pwr_leg': r':math:`P_\mathrm{leg, ppall\_ca}`: Legacy power plant capacity :math:`\mathrm{(MW)}`.',
-                    'discharge_duration': r':math:`\zeta_\mathrm{st\_ca \setunion hyrs\_ca}`: Hydro filling level boundary conditions for specific hours as share of energy capacity :math:`\mathrm{(-)}`.',
-                    'pp_eff': r':math:`\eta_\mathrm{ppall\_ca}`: Power plant efficiency for constant supply curves :math:`\mathrm{(MWh_{el}/MWh_{fl})}`.',
-                    'erg_chp': r':math:`e_\mathrm{chp,chp\_ca}`: Heat-driven electricity generation from co-generation plants :math:`\mathrm{(MWh_{el}/yr)}`.',
-                    'st_lss_hr': r':math:`\mathrm{\epsilon_{hr, st\_ca}}`: Hourly storage leakage losses :math:`\mathrm{(1/hr)}`.',
-                    'st_lss_rt': r':math:`\mathrm{\epsilon_{rt, st\_ca}}`: Storage round-trip losses :math:`\mathrm{(-)}`.',
-                    'cap_avlb': r':math:`\mathrm{\alpha_{mt, pp\_ca}}`: Relative monthly capacity availability of dispatchable plants.',
+                    'cap_pwr_leg': r':math:`P_\mathrm{leg, p,c}: \forall \mathrm{(p,c) \in ppall\_ca}`: Legacy power plant capacity :math:`\mathrm{(MW)}`.',
+                    'discharge_duration': r':math:`\zeta_\mathrm{p,c}: \forall\mathrm{(p,c) \in st\_ca \cup hyrs\_ca}`: Hydro filling level boundary conditions for specific hours as share of energy capacity :math:`\mathrm{(-)}`.',
+                    'pp_eff': r':math:`\eta_\mathrm{p}: \forall \mathrm{p\in ppall\_ca}`: Power plant efficiency for constant supply curves :math:`\mathrm{(MWh_{el}/MWh_{fl})}`.',
+                    'erg_chp': r':math:`e_\mathrm{chp,p,c} : \forall \mathrm{(p,c) \in chp\_ca}`: Heat-driven electricity generation from co-generation plants :math:`\mathrm{(MWh_{el}/yr)}`.',
+                    'erg_inp': r':math:`e_\mathrm{inp,n,c,f} : \forall \mathrm{(n,c,f) \in nd\_ca\_fl}`: exogenous energy production by fuel and node :math:`\mathrm{(MWh_{el}/yr)}`.',
+                    'st_lss_hr': r':math:`\mathrm{\epsilon_{hr, p,c}} : \forall \mathrm{(p,c) \in st\_ca}`: Hourly storage leakage losses :math:`\mathrm{(1/hr)}`.',
+                    'st_lss_rt': r':math:`\mathrm{\epsilon_{rt, p,c} }: \forall \mathrm{(p,c) \in st\_ca}`: Storage round-trip losses :math:`\mathrm{(-)}`.',
+                    'cap_avlb': r':math:`\mathrm{\alpha_{mt, p,c}}: \forall \mathrm{(p,c) \in pp\_ca}`: Relative monthly capacity availability of dispatchable plants.',
                     },
         'Specific costs': {
-                    'vc_ramp': r':math:`vc_\mathrm{ramp, ppall\_ca}`: Specific variable ramping cost :math:`\mathrm{(EUR/MW)}`.',
-                    'vc_fl': r':math:`vc_\mathrm{fl\_nd}`: Specific fuel cost in each node :math:`\mathrm{(EUR/MWh_{fl})}`.',
-                    'vc_om': r':math:`\mathrm{vc_{om, ppall\_ca}}`: Specific variable O\&M costs :math:`\mathrm{(EUR/MWh_{el})}`.',
-                    'fc_om': r':math:`\mathrm{fc_{om, ppall\_ca}}`: Specific fixed O\&M costs :math:`\mathrm{(EUR/MW/yr)}`.',
-                    'fc_cp_ann': r':math:`\mathrm{fc_{cp, ppall\_ca}}`: Annualized specific capital investment costs :math:`\mathrm{(EUR/MW/yr)}`.',
+                    'vc_ramp': r':math:`vc_\mathrm{ramp, p,c} : \forall \mathrm{(p,c) \in ppall\_ca}`: Specific variable ramping cost :math:`\mathrm{(EUR/MW)}`.',
+                    'vc_fl': r':math:`vc_\mathrm{f,n} : \forall \mathrm{(f,n) \in fl\_nd}`: Specific fuel cost in each node :math:`\mathrm{(EUR/MWh_{fl})}`.',
+                    'vc_om': r':math:`\mathrm{vc_{om, p,c}} : \forall \mathrm{(p,c) \in ppall\_ca}`: Specific variable O\&M costs :math:`\mathrm{(EUR/MWh_{el})}`.',
+                    'fc_om': r':math:`\mathrm{fc_{om, p,c}} : \forall \mathrm{(p,c) \in ppall\_ca}`: Specific fixed O\&M costs :math:`\mathrm{(EUR/MW/yr)}`.',
+                    'fc_cp_ann': r':math:`\mathrm{fc_{cp, p,c}} : \forall \mathrm{(p,c) \in ppall\_ca}`: Annualized specific capital investment costs :math:`\mathrm{(EUR/MW/yr)}`.',
                     },
         'Linear supply curve coefficients': {
-                    'factor_lin_0': r':math:`f_\mathrm{0, lin\_ca}`: Zero-order linear supply curve efficiency coefficient :math:`\mathrm{(MWh_{fl}/MWh_{el})}`.',
-                    'factor_lin_1': r':math:`f_\mathrm{1, lin\_ca}`: First-order linear supply curve efficiency coefficient :math:`\mathrm{(MWh_{fl}/MWh_{el}/MW_{el})}`.',
+                    'factor_lin_0': r':math:`f_\mathrm{0, p,c} : \forall \mathrm{(p,c) \in lin\_ca}`: Zero-order linear supply curve efficiency coefficient :math:`\mathrm{(MWh_{fl}/MWh_{el})}`.',
+                    'factor_lin_1': r':math:`f_\mathrm{1, p,c} : \forall \mathrm{(p,c) \in lin\_ca}`: First-order linear supply curve efficiency coefficient :math:`\mathrm{(MWh_{fl}/MWh_{el}/MW_{el})}`.',
                     },
         'Emission parameters': {
-                    'price_co2': r':math:`\pi_\mathrm{CO_2, nd}`: Node-specific CO:sub:`2` price :math:`\mathrm{(EUR/t_{CO_2})}`.',
-                    'co2_int': r':math:`i_\mathrm{CO_2, fl}`: Fuel-specific CO:sub:`2` intensity :math:`\mathrm{(t_{CO_2}/MWh_{fl})}`.',
+                    'price_co2': r':math:`\pi_\mathrm{CO_2, n} : \forall \mathrm{n \in nd}`: Node-specific CO:sub:`2` price :math:`\mathrm{(EUR/t_{CO_2})}`.',
+                    'co2_int': r':math:`i_\mathrm{CO_2, f} : \forall \mathrm{f \in fl}`: Fuel-specific CO:sub:`2` intensity :math:`\mathrm{(t_{CO_2}/MWh_{fl})}`.',
                     }}
 
         doc_dict_origin = {'cap_avlb': 'merge(df_plant_encar, df_parameter_month)',
@@ -471,27 +506,21 @@ class Parameters:
 
         df.par = df.par.apply(lambda x: '``%s``'%x)
 
-        cols=['Parameter', 'Symbol', 'Doc', 'Table']
+
+        cols=['Parameter', 'Symbol', 'Domain', 'Doc', 'Table']
         df = pd.DataFrame(
                 list(df.apply(lambda x: (x['cat'], x.par,) + tuple(x.doc.split(': ')) + (x.tab,), axis=1).values),
                 columns=['cat'] + cols).set_index('cat')
 
+        df['Symbol'] = df.Symbol.apply(lambda x: r'{}'.format(x).strip(' ')) + '`'
+        df['Domain'] = ':math:`' + df.Domain.apply(lambda x: r'{}'.format(x))
+
+
         import tabulate
 
-        doc_str = '''
-Default model parameters
-------------------------
-
-The parameters are the exogenous input data of the dispatch model. They are
-defined in the Grimsel class :class:`grimsel.core.parameters.Parameters`.
-
-.. toctree::
-    doc_core_parameters
-
-        '''
-
+        doc_str = ''
         for cat in doc_dict.keys():
-            doc_str += ('\n\n')
+            doc_str += ('\n'*2)
             doc_str += (cat + '\n')
             doc_str += ('*'*len(cat) + '\n\n')
 
@@ -501,12 +530,17 @@ defined in the Grimsel class :class:`grimsel.core.parameters.Parameters`.
                                      headers=cols)
             )
 
-        fn = os.path.join(os.path.relpath('../../grimsel_docs/source', os.path.dirname(__file__)), 'doc_core_parameters.rst')
+#        fn = os.path.join(os.path.relpath('../../grimsel_docs/source', os.path.dirname(__file__)), 'doc_core_parameters.rst')
 
-        print(os.path.abspath(fn))
+#        print(os.path.abspath(fn))
+
+        return doc_str
 
 
 
-        with open(fn, 'w') as f:
-            f.write(doc_str)
-#            print(f.read())
+
+
+Parameters.__doc__ += '\n'*4 + Parameters._make_model_parameters_doc()
+
+print(Parameters.__doc__)
+

@@ -600,7 +600,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
                         for tm_id, frnh in self.dict_tm.items()}
 
         self.df_def_node['tm_id'] = (self.df_def_node.reset_index().nd_id
-                                               .replace(self.dict_nd_tm_id))
+                                         .replace(self.dict_nd_tm_id).values)
 
         cols_red = ['wk_id', 'mt_id', 'sy', 'weight', 'wk_weight']
         list_tm_soy = [tm.df_time_red[cols_red].assign(tm_id=tm_id) for
@@ -673,8 +673,8 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
     def map_to_time_res(self):
         '''
         Generates a map between hours-of-the-year and time slots-of-the-year
-        based on the fixed time resolution self.nhours, using the class
-        timemap.TimeMap. Then maps relevant input data from hours to slots.
+        based on the fixed time resolution ``self.nhours``, using the class
+        ``timemap.TimeMap``. Then maps relevant input data from hours to slots.
         Also generates dictionaries which contain all slot ids for each
         week/month and vice versa.
 
@@ -928,7 +928,8 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
         Parameters
         ----------
-            index: tuple of pyomo sets
+        index: tuple
+            tuple of of pyomo sets
 
         '''
 
