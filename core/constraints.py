@@ -1026,8 +1026,6 @@ class Constraints:
 #                        for (pp, ca) in set_to_list(self.pp_ca, nn))
                   + sum(self.vc_om_pp_yr[pp, ca]
                         for (pp, ca) in set_to_list(self.ppall_ca, nn))
-#                  + sum(self.vc_dmnd_flex_yr[nd, ca]
-#                        for (nd, ca) in set_to_list(self.ndca_EL, nn))
                   + sum(self.vc_ramp_yr[pp, ca]
                         for (pp, ca) in set_to_list(self.rp_ca, nn))
                   + sum(self.fc_om_pp_yr[pp, ca]

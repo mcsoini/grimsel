@@ -197,7 +197,8 @@ class Parameters:
                            if not isinstance(parameter_index, tuple)
                            else parameter_index)
 
-        if not flag_infeasible and not self.check_valid_indices(parameter_index):
+        if (not flag_infeasible
+            and not self.check_valid_indices(parameter_index)):
             flag_infeasible = True
 
         # set data column to parameter name in case no other value is provided
