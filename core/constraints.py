@@ -1020,10 +1020,10 @@ class Constraints:
                         in set_to_list(self.pp_cafl - self.lin_cafl, nnn))
                     # FUEL COST LINEAR
                   + self.get_vc_fl()
-                    # EMISSION COST LINEAR (NOTE: all fossil plants are linear)
+                    # EMISSION COST LINEAR
                   + self.get_vc_co()
-#                  + sum(self.vc_co2_pp_yr[pp, ca]
-#                        for (pp, ca) in set_to_list(self.pp_ca, nn))
+                  + sum(self.vc_co2_pp_yr[pp, ca]
+                        for (pp, ca) in set_to_list(self.pp_ca - self.lin_ca, nn))
                   + sum(self.vc_om_pp_yr[pp, ca]
                         for (pp, ca) in set_to_list(self.ppall_ca, nn))
                   + sum(self.vc_ramp_yr[pp, ca]
