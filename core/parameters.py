@@ -163,8 +163,7 @@ class Parameters:
 
 
     def padd(self, parameter_name, parameter_index, source_dataframe=False,
-             value_col=False, filt_col=False, filt_vals=[], mutable=False,
-             default=None):
+             value_col=False, mutable=False, default=None):
         '''
         Parameter definition based on input dataframes.
 
@@ -224,10 +223,6 @@ class Parameters:
                     'pricesll_pf': 'price_pf_id', 'pricebuy_pf': 'price_pf_id',
                     'dmnd_pf': 'dmnd_pf_id', 'tmsy': ['tm_id', 'sy'],
                     'supply_pf': 'supply_pf_id'}
-
-        # apply filter to dataframe
-        if filt_col:
-            _df = _df.loc[_df[filt_col].isin(filt_vals)]
 
         # get list of columns from sets
         index_cols = [dict_ind[pi.getname()]
