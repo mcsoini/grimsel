@@ -8,7 +8,6 @@ Created on Wed Jan  2 15:03:42 2019
 import time
 import itertools
 import os
-from odo import odo
 import tables
 
 import numpy as np
@@ -28,6 +27,7 @@ dict_tables = {lst: {tb[0]: tuple(tbb for tbb in tb[1:])
 
 
 chg_dict = table_struct.chg_dict
+
 
 def get_table_dicts():
     '''
@@ -51,9 +51,9 @@ def get_table_dicts():
 
     return dict_idx, dict_table, dict_group
 
+
 # expose as module variable for easier access
 DICT_IDX, DICT_TABLE, DICT_GROUP = get_table_dicts()
-
 
 
 class CompIO():
@@ -72,7 +72,7 @@ class CompIO():
         self.connect = connect
         self.model = model
 
-        self.columns = None # set in index setter
+        self.columns = None  # set in index setter
         self.run_id = None  # set in call to self.write_run
 
         self.index = tuple(idx) if not isinstance(idx, tuple) else idx
@@ -94,7 +94,6 @@ class CompIO():
         return self._to_df(self.comp_obj,
                            [c for c in self.index if not c == 'bool_out'])
 
-
     def init_output_table(self):
         '''
         Initialization of output table.
@@ -111,7 +110,7 @@ class CompIO():
         col_names = self.index + ('value',)
         cols = [(c,) + (self.coldict[c][0],) for c in col_names]
         cols += [('run_id', 'SMALLINT')]
-        pk = [] # pk added later for writing/appending performance
+        pk = []  # pk added later for writing/appending performance
         unique = []
 
         aql.init_table(tb_name=self.tb, cols=cols,
@@ -141,7 +140,6 @@ class CompIO():
             store.append(tb, df, data_columns=True,
                          complevel=9,
                          complib='blosc:blosclz')
-
 
     def _to_sql(self, df, tb):
 
@@ -180,7 +178,6 @@ class CompIO():
         self.columns = list(self.index + ('value',))
         self.columns = [c for c in self.columns if not c == 'bool_out']
 
-
     def get_df(self):
 
         df = self.to_df()
@@ -199,6 +196,7 @@ class CompIO():
     def _node_to_plant(self, pt):
         '''
         TODO: THIS SHOULD BE IN MAPS!!!!
+        TODO: THIS SHOULD ALSO INCLUDE ca_id FOR DMND!
         Method for translation of node_id to respective plant_id
         in the cases of demand and inter-node transmission. This is used to
         append demand/inter-nodal transmission to pwr table.
@@ -222,6 +220,7 @@ class CompIO():
 
         return 'Comp_obj: ' + str(self.comp_obj)
 
+
 class DualIO(CompIO):
     '''
     Base class for dual values. Performs the data extraction of constraint
@@ -233,7 +232,6 @@ class DualIO(CompIO):
         dat = [ico + (self.model.dual[self.comp_obj[ico]],)
                for ico in self.comp_obj]
         return pd.DataFrame(dat, columns=self.columns)
-
 
 
 class VariabIO(CompIO):
@@ -253,7 +251,7 @@ class VariabIO(CompIO):
         df = pd.Series(obj.extract_values()).fillna(0).reset_index()
         df.columns = list(cols) + ['value']
 
-        return df#pd.DataFrame(dat, columns=list(cols) + ['value'])
+        return df
 
     def post_processing(self, df):
         '''
@@ -308,12 +306,13 @@ class ParamIO(CompIO):
 
         return df
 
+
 class TransmIO(VariabIO):
-    '''
+    """
     Special methods related to the translation of nodes to
     transmission plant names and
     to the simplified representation after aggregating secondary nodes.
-    '''
+    """
 
     def post_processing(self, df):
         ''' Write aggregated transmission table to pwr. '''
@@ -332,20 +331,18 @@ class TransmIO(VariabIO):
         '''
         # mirror table to get both directions
         dfall = pd.concat([dfall,
-                           dfall.assign(nd_2_id = dfall.nd_id,
-                                        nd_id = dfall.nd_2_id,
-                                        value = -dfall.value)])
+                           dfall.assign(nd_2_id=dfall.nd_id,
+                                        nd_id=dfall.nd_2_id,
+                                        value=-dfall.value)])
 
         dict_nhours = {nd_id: self.model.dict_nd_tm[nd_id][1]
                        for nd_id in dfall.nd_id.unique()}
-
-
 
         def avg_to_nhours(x):
 
             if self.model.is_min_node[x.name]:
                 return x.reset_index()
-            else: # reduce time resolution
+            else:  # reduce time resolution
                 nhours = dict_nhours[x.name[0]]
                 nhours_2 = dict_nhours[x.nd_2_id.iloc[0]]
 
@@ -356,10 +353,6 @@ class TransmIO(VariabIO):
                 idx = [c for c in x.columns if not c == 'value']
                 x = x.pivot_table(index=idx, values='value', aggfunc=np.mean)
                 return x.reset_index()
-
-#        x = dfall.groupby(['nd_id', 'nd_2_id']).get_group((1, 5))
-#        x.name = (1, 5)
-
 
         dfall = (dfall.groupby(['nd_id', 'nd_2_id'], as_index=True)
                       .apply(avg_to_nhours)
@@ -418,17 +411,12 @@ class DmndIO(ParamIO):
         '''
 
         dict_ndpp = self._node_to_plant('DMND')
+        df['pp_id'] = df.nd_id.replace(dict_ndpp)
 
-        dict_pfpp = {val: (dict_ndpp[key[0]], key[1]) for key, val
-                     in self.model.dict_dmnd_pf.items()}
-
-        return df.join(pd.DataFrame.from_dict(dict_pfpp, orient='index',
-                                              columns=['pp_id', 'ca_id']),
-                       on='pf_id').drop('pf_id', axis=1)
+        return df
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 
 
 def skip_if_resume_loop(f):
@@ -438,6 +426,7 @@ def skip_if_resume_loop(f):
         else:
             f(self, *args, **kwargs)
     return wrapper
+
 
 def skip_if_no_output(f):
     def wrapper(self, *args, **kwargs):
@@ -471,10 +460,9 @@ class ModelWriter():
                      'coll_out': None,
                      'db': None}
 
-
     def __init__(self, **kwargs):
-
-        ''''''
+        """
+        """
 
         self.run_id = None  # set in call to self.write_run
         self.dict_comp_obj = {}
@@ -484,11 +472,10 @@ class ModelWriter():
             setattr(self, key, val)
         self.__dict__.update(kwargs)
 
-        ls = 'Output collection: %s; resume loop=%s'%(
-                                            self.cl_out, self.resume_loop)
+        ls = 'Output collection: {}; resume loop={}'.format(self.cl_out,
+                                                            self.resume_loop)
         logger.info(ls)
         self.reset_tablecollection()
-
 
     @skip_if_resume_loop
     def reset_tablecollection(self):
@@ -523,7 +510,6 @@ class ModelWriter():
 
         if os.path.isfile(fn):
 
-
             try:
                 max_run_id = pd.read_hdf(fn, 'def_loop',
                                          columns=['run_id']).run_id.max()
@@ -544,7 +530,7 @@ Hit enter to proceed.
 '''.format(fn=fn, max_run_id=max_run_id)
 )
 
-            logger.info('Dropping output file %s'%fn)
+            logger.info('Dropping output file {}'.format(fn))
             os.remove(fn)
 
     def _reset_schema(self):
@@ -642,7 +628,8 @@ Hit enter to proceed.
             for itb in self.list_all_tb:
 
                 logger.info('Deleting from ' + self.cl_out + '.' + itb
-                      + ' where run_id %s %s'%(operator, str(run_id)))
+                            + ' where run_id {} {}'.format(operator,
+                                                           str(run_id)))
                 exec_strg = '''
                             DELETE FROM {cl_out}.{tb}
                             WHERE run_id {op} {run_id};
@@ -652,10 +639,7 @@ Hit enter to proceed.
                     aql.exec_sql(exec_strg, db=self.db)
                 except pg.ProgrammingError as e:
                     logger.error(e)
-                    sys.exit()
-
-
-
+                    raise(e)
 
     @classmethod
     def post_process_index(cls, sc, db, drop=False):
@@ -804,7 +788,7 @@ class TableReader():
                 path = self.data_path
             else:
                 path = os.path.join(grimsel.__path__[0], 'input_data')
-            fn = os.path.join(path, '%s.csv'%table)
+            fn = os.path.join(path, '{}.csv'.format(table))
 
             source = fn
             tb_exists = os.path.exists(fn)
@@ -815,8 +799,8 @@ class TableReader():
                 for col, vals in filt:
                     df = df.loc[df[col].isin(vals)]
 
-        return (df if tb_exists else None), tb_exists, (' from %s'%source
-                                                        if source else '')
+        return ((df if tb_exists else None), tb_exists,
+                (' from {}'.format(source) if source else ''))
 
 
 class DataReader():
@@ -850,10 +834,7 @@ class DataReader():
             setattr(self, key, val)
         self.__dict__.update(kwargs)
 
-
         self._coldict = aql.get_coldict()
-
-
 
     def read_model_data(self):
         '''
@@ -879,7 +860,6 @@ class DataReader():
                      'def_pp_type': _flt_pt,
                      'def_encar': _flt_ca}
         tbrd.df_from_dict(dict_tb_3)
-
 
         # update filters in case the keyword argument slct_node_id holds more
         # nodes than present in the table
@@ -913,17 +893,18 @@ class DataReader():
         # initialize profile index dicts
         self.model._init_pf_dicts()
 
-        _flt_pf_supply = [('supply_pf_id', list(self.model.dict_supply_pf.values()))]
-        _flt_pf_dmnd = [('dmnd_pf_id', list(self.model.dict_dmnd_pf.values()))]
-        _flt_pf_price = [('price_pf_id', list(self.model.dict_pricebuy_pf.values())
-                                       + list(self.model.dict_pricesll_pf.values()))]
+        _flt_pf_supply = [('supply_pf_id',
+                          list(self.model.dict_supply_pf.values()))]
+        _flt_pf_dmnd = [('dmnd_pf_id',
+                        list(self.model.dict_dmnd_pf.values()))]
+        _flt_pf_price = [('price_pf_id',
+                         list(self.model.dict_pricebuy_pf.values())
+                         + list(self.model.dict_pricesll_pf.values()))]
         dict_pf_0 = {'profsupply': _flt_pf_supply,
                      'profdmnd': _flt_pf_dmnd,
                      'profprice': _flt_pf_price,
                      }
         tbrd.df_from_dict(dict_pf_0)
-
-
 
         _flt_pf = [('pf_id', (_flt_pf_price[-1][-1] + _flt_pf_dmnd[-1][-1]
                               + _flt_pf_supply[-1][-1]))]
@@ -936,15 +917,14 @@ class DataReader():
         # for;
         fl_id_ca = self.model.df_def_encar.fl_id.tolist()
         mask_del = (self.model.df_def_fuel.is_ca.isin([1])
-                & - self.model.df_def_fuel.fl_id.isin(fl_id_ca))
+                    & - self.model.df_def_fuel.fl_id.isin(fl_id_ca))
 
         self.model.df_def_fuel = self.model.df_def_fuel.loc[-mask_del]
 
         # filter table by special index name/id columns
-        self.model.df_parameter_month = self.filter_by_name_id_cols(
-                                            'df_parameter_month',
-                                            _flt_fl + _flt_nd
-                                            + _flt_pp + _flt_ca)
+        self.model.df_parameter_month = \
+            self.filter_by_name_id_cols('df_parameter_month',
+                                        _flt_fl + _flt_nd + _flt_pp + _flt_ca)
 
         self._split_profprice()
 
@@ -954,7 +934,7 @@ class DataReader():
         self._fix_df_node_connect()
 
         self.input_table_list = (list(dict_tb_1) + list(dict_tb_2)
-                                 + list(dict_tb_0)+ list(dict_tb_3)
+                                 + list(dict_tb_0) + list(dict_tb_3)
                                  + list(dict_pf_1))
 
     def _split_profprice(self):
@@ -967,7 +947,7 @@ class DataReader():
 
         for bs in ['buy', 'sll']:
 
-            tb_name = 'df_profprice%s'%bs
+            tb_name = 'df_profprice%s' % bs
 
             mask = self.model.df_def_profile.pf.str.contains('price' + bs)
             list_pd_id = self.model.df_def_profile.loc[mask].pf_id.tolist()
@@ -990,9 +970,8 @@ class DataReader():
             ac.AutoCompletePpCaFlex(self.model, self.autocomplete_curtailment)
             logger.info('#' * 60)
 
-
     def filter_by_name_id_cols(self, name_df, filt):
-        '''
+        """
         Filter a pandas DataFrame with index names in columns.
 
         This operates on pandas DataFrames where the indices are not provided
@@ -1027,7 +1006,7 @@ class DataReader():
 
         df -- filtered DataFrame
 
-        '''
+        """
 
         df = getattr(self.model, name_df)
 
@@ -1042,7 +1021,7 @@ class DataReader():
                 # loop over all filter elements
                 iflt = filt[0]
                 for iflt in filt:
-                    mask |= ( # 1. select value for current set_n_name column
+                    mask |= (  # 1. select value for current set_n_name column
                              ((df[name_col] == iflt[0])
                               # 2. select corresponding values for set_n_id col
                                & (df[id_col].isin(iflt[1])))
@@ -1074,11 +1053,7 @@ class DataReader():
             for kk, vv in names_dict.items():
                 logger.info('\tSet {} is in ({})'.format(kk, ', '.join(map(str, vv))))
 
-
         return df
-
-
-
 
     def _fix_df_node_connect(self):
         '''
@@ -1102,19 +1077,19 @@ class DataReader():
 
             df['dir'] = df.nd_id < df.nd_2_id
 
-            df_e = df.loc[df.dir].assign(nd_id = df.nd_2_id,
-                                         nd_2_id = df.nd_id,
-                                         cap_trmi_leg = df.cap_trm_leg)
-            df = df.loc[-df.dir].assign(cap_trme_leg = df.cap_trm_leg)
+            df_e = df.loc[df.dir].assign(nd_id=df.nd_2_id,
+                                         nd_2_id=df.nd_id,
+                                         cap_trmi_leg=df.cap_trm_leg)
+            df = df.loc[-df.dir].assign(cap_trme_leg=df.cap_trm_leg)
             dfn = pd.concat([df_e, df], sort=False)
             dfn = dfn.drop('cap_trm_leg', axis=1).fillna(0)
             idx = ['nd_id', 'nd_2_id', 'ca_id', 'mt_id']
             logger.info('Aggregation count in fix_df_node_connect:\n',
-                  dfn.pivot_table(index=idx, aggfunc=[min, max, len],
-                                  values=['cap_trme_leg', 'cap_trmi_leg']))
+                        dfn.pivot_table(index=idx, aggfunc=[min, max, len],
+                                        values=['cap_trme_leg',
+                                                'cap_trmi_leg']))
             dfn = dfn.pivot_table(index=idx, aggfunc=sum,
                                   values=['cap_trme_leg', 'cap_trmi_leg'])
-
 
             self.model.df_node_connect = dfn.reset_index()
 
@@ -1129,9 +1104,12 @@ class DataReader():
 
             df = getattr(self.model, 'df_' + itb)
 
-            if (df is not None and ('def_' in itb or not 'prof' in itb)):
+            if (df is not None and ('def_' in itb or 'prof' not in itb)):
 
-                print(itb)
+                log_str = 'Writing input table {} to {} output: {}.'
+                logger.info(log_str.format(itb, self.output_target,
+                                           self.cl_out))
+
                 if self.output_target == 'psql':
 
                     logger.info('Writing table {} to output.'.format(itb))
@@ -1161,8 +1139,6 @@ class DataReader():
         skip_fks = [('tm_soy', 'sy'),  # defines sy
                     ('hoy_soy', 'hy')]  # defines hy
 
-
-
         tb_name, pk = ('hoy_soy', ['hy', 'tm_id'])
         for tb_name, pk in self.runtime_tables:
 
@@ -1175,12 +1151,12 @@ class DataReader():
                 for c in df.columns:
                     col_add = [c]
 
-                    if c not in self._coldict: # same as "value"
+                    if c not in self._coldict:  # same as "value"
                         self._coldict[c] = self._coldict['value']
 
                     col_add += (list(self._coldict[c])
-                                 if (tb_name, c) not in skip_fks
-                                 else list(self._coldict[c][:1]))
+                                if (tb_name, c) not in skip_fks
+                                else list(self._coldict[c][:1]))
                     cols.append(tuple(col_add))
 
                 if self.output_target == 'psql':
@@ -1245,8 +1221,6 @@ class IO:
         self.db = self.sql_connector.db if self.sql_connector else None
         self.cl_out = defaults['cl_out']
 
-
-
     @classmethod
     def variab_to_df(cls, py_obj, sets=None):
         ''' Wrapper for backward compatibility. '''
@@ -1291,10 +1265,10 @@ class IO:
                  ('tdiff_write', 'DOUBLE PRECISION'),
                  ('run_id', 'SMALLINT'),
                  ]
-              + [(s, 'SMALLINT') for s in cols_id]
-              + [(s, 'DOUBLE PRECISION') for s in cols_step]
-              + [(s, 'VARCHAR(30)') for s in cols_val]
-              + [('info', 'VARCHAR'), ('objective', 'DOUBLE PRECISION')])
+                + [(s, 'SMALLINT') for s in cols_id]
+                + [(s, 'DOUBLE PRECISION') for s in cols_step]
+                + [(s, 'VARCHAR(30)') for s in cols_val]
+                + [('info', 'VARCHAR'), ('objective', 'DOUBLE PRECISION')])
 
         if self.modwr.output_target == 'psql':
 
@@ -1314,6 +1288,5 @@ class IO:
 
 # %%
 if __name__ == '__main__':
-
 
     pass
