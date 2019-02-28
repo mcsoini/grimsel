@@ -320,7 +320,8 @@ class TimeMap(metaclass=_UniqueInstancesMeta):
             self.df_time_red = df_time_map
         else:
 
-            df_time_map_num = df_time_map.select_dtypes(['int', 'float'])
+            df_time_map_num = df_time_map.select_dtypes(include=['integer',
+                                                                 'floating'])
             col_nonnum = [c for c in df_time_map.columns
                           if not c in df_time_map_num.columns]
             df_time_map_oth = df_time_map[col_nonnum + ['hy']].set_index('hy')
