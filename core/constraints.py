@@ -854,7 +854,7 @@ class Constraints:
                                    for sy in list_sy))
 
             # Case 2: monthly adjustment factors have been applied to vc_fl
-            elif 'vc_fl' in self.parameter_month_list:
+            elif self.dict_par['vc_fl'].has_monthly_factors:
                 sums = (sign * sum(self.weight[tm, sy]
                                    * self.vc_fl[self.dict_soy_month[(tm, sy)], fl, nd]
                                    / self.pp_eff[pp, ca]
@@ -888,7 +888,7 @@ class Constraints:
             tm = self.dict_nd_tm_id[nd]
 
             # Case 1: monthly adjustment factors have been applied to vc_fl
-            if 'price_co2' in self.parameter_month_list:
+            if self.dict_par['price_co2'].has_monthly_factors:
                 sums = sum(self.pwr[sy, pp, ca] # POWER!
                            / self.pp_eff[pp, ca] * self.weight[tm, sy]
                            * self.price_co2[mt, nd] * self.co2_int[fl]
