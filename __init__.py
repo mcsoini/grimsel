@@ -1,6 +1,8 @@
 
 #__all__ = ['auxiliary', 'core', 'plotting', 'analysis']
 
+import grimsel.grimsel as grimsel
+
 import logging
 
 def _get_logger(name):
