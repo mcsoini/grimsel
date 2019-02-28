@@ -21,3 +21,5 @@ input_data/profdmnd.csv filter=lfs diff=lfs merge=lfs -text
 input_data/profprice.csv filter=lfs diff=lfs merge=lfs -text
 input_data/def_week.csv filter=lfs diff=lfs merge=lfs -text
 input_data/profinflow.csv filter=lfs diff=lfs merge=lfs -text
+notebooks/doc_running_grimsel.ipynb filter=lfs diff=lfs merge=lfs -text
+notebooks/ filter=lfs diff=lfs merge=lfs -text
