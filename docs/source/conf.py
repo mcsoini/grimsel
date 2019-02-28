@@ -118,8 +118,7 @@ autodoc_member_order = 'bysource'
 
 print('Setting autodoc_mock_imports')
 autodoc_mock_imports = ["tables", "Pyomo", "pyomo", 
-                        "statsmodels", "sqlalchemy", 
-                        "psycopgy2"]
+                        "statsmodels", "psycopg2", "sqlalchemy"]
 print(autodoc_mock_imports)
 
 # -- Options for LaTeX output ------------------------------------------------
