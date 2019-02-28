@@ -894,8 +894,6 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         '''
         Create pyomo Solverfactory instance and adjust parameters.
 
-
-
         '''
         self.dual = po.Suffix(direction=po.Suffix.IMPORT)
 

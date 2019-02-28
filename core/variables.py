@@ -135,7 +135,6 @@ class Variables:
         var_doc = var_doc.reset_index()
         var_doc.columns = ['Attribute', 'Symbol']
 
-        x = var_doc.loc[0]
         def get_doc_row(x):
             x_spl = x.Symbol.split('\in ')
             x_spl2 = x_spl[1].split('infty)`:')

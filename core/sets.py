@@ -264,7 +264,8 @@ class Sets:
 
         mask_pp = self.df_plant_encar.pp_id.isin(self.setlst['ppall'])
         df = self.df_plant_encar.loc[mask_pp, ['pp_id', 'ca_id']].copy()
-        df['tm_id'] = (df.pp_id.replace(self.mps.dict_plant_2_node_id)
+        df['tm_id'] = (df.pp_id
+                         .replace(self.mps.dict_plant_2_node_id)
                          .replace(self.dict_nd_tm_id))
         cols = ['sy', 'pp_id', 'ca_id']
         list_syppca = pd.merge(self.df_tm_soy[['sy', 'tm_id']],
