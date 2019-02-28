@@ -987,6 +987,7 @@ class Constraints:
 
             return (# FUEL COST CONSTANT
                     sum(self.vc_fl_pp_yr[pp, ca, fl]
+                        * self.nd_weight[self.mps.dict_plant_2_node_id[pp]]
                         for (pp, ca, fl)
                         in set_to_list(self.pp_cafl - self.lin_cafl, nnn))
                     # FUEL COST LINEAR
@@ -994,14 +995,19 @@ class Constraints:
                     # EMISSION COST LINEAR
                   + self.get_vc_co()
                   + sum(self.vc_co2_pp_yr[pp, ca]
+                        * self.nd_weight[self.mps.dict_plant_2_node_id[pp]]
                         for (pp, ca) in set_to_list(self.pp_ca - self.lin_ca, nn))
                   + sum(self.vc_om_pp_yr[pp, ca]
+                        * self.nd_weight[self.mps.dict_plant_2_node_id[pp]]
                         for (pp, ca) in set_to_list(self.ppall_ca, nn))
                   + sum(self.vc_ramp_yr[pp, ca]
+                        * self.nd_weight[self.mps.dict_plant_2_node_id[pp]]
                         for (pp, ca) in set_to_list(self.rp_ca, nn))
                   + sum(self.fc_om_pp_yr[pp, ca]
+                        * self.nd_weight[self.mps.dict_plant_2_node_id[pp]]
                         for (pp, ca) in set_to_list(self.ppall_ca, nn))
                   + sum(self.fc_cp_pp_yr[pp, ca]
+                        * self.nd_weight[self.mps.dict_plant_2_node_id[pp]]
                         for (pp, ca) in set_to_list(self.add_ca, nn)))
 
         self.cadd('objective_quad', rule=objective_rule_quad,
