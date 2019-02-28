@@ -34,7 +34,7 @@ def close_con(conn):
     conn.close()
 
 
-class sql_connector():
+class SqlConnector():
     '''
     Manages connection strings for psycopg2 and sqlalchemy, open and closes
     connections.
@@ -89,7 +89,7 @@ def exec_sql(exec_str, ret_res=True, time_msg=False, db=None, con_cur=None):
     t = time.time()
 
     ''' Pass sql string to the server. '''
-    conn, cur = (sql_connector(db).get_pg_con_cur()
+    conn, cur = (SqlConnector(db).get_pg_con_cur()
                  if not con_cur else con_cur)
 
     cur.execute(exec_str)
@@ -223,7 +223,7 @@ def write_sql(df, db=None, sc=None, tb=None, if_exists=None,
 
 
     if not engine:
-        sqlc = sql_connector(db)
+        sqlc = SqlConnector(db)
         _engine = sqlc.get_sqlalchemy_engine()
     else:
         _engine = engine
@@ -481,7 +481,7 @@ def read_sql(db=None, sc=None, tb=None, filt=False, filt_func=False, drop=False,
     '''
 
     if not engine:
-        sqlc = sql_connector(db)
+        sqlc = SqlConnector(db)
         _engine = sqlc.get_sqlalchemy_engine()
     else:
         _engine = engine
