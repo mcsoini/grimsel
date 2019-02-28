@@ -332,7 +332,22 @@ class TimeMap(metaclass=_UniqueInstancesMeta):
 
             self.df_time_red = self.df_time_red.join(df_time_map_oth, on='hy')
 
+    def get_year_share(self):
+        '''
+        For a given time map, returns the share after applying ``tm_filt``.
 
+        The ``tm_filt`` parameter of the :class:`TimeMap` class allows
+        to limit the time map definition to certain months, days, etc.
+        The year share corresponds to the duration of the filtered time map
+        as a share of the total year length.
+
+        Returns
+        -------
+        float : year share of the time map
+
+        '''
+
+        return len(self.df_time_red) / (8760 / self.nhours)
 
     def _get_dst_days(self, list_months=['MAR', 'OCT']):
 
