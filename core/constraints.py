@@ -498,7 +498,7 @@ class Constraints:
         def variables_prof_rule(self, sy, pp, ca):
             ''' Produced power equal output profile '''
             left = self.pwr[sy, pp, ca]
-            return left == (self.supprof[sy, self.dict_supply_pf[(pp, ca)]]
+            return left == (self.supprof[sy, pp, ca]
                             * self.cap_pwr_tot[pp, ca])
 
         self.cadd('variables_prof', self.sy_pr_ca, rule=variables_prof_rule)
