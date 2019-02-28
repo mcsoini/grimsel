@@ -18,19 +18,42 @@ from grimsel import _get_logger
 logger = _get_logger(__name__)
 
 
-DICT_SETS_PP = {'ppall': 'all power plant types',
-                 'pp': 'dispatchable power plants with fuels',
-                 'st': 'storage plants',
-                 'pr': 'variable renewables with fixed profiles',
-                 'ror': 'run-of-river plants',
-                 'lin': 'dispatchable plants with linear supply curve',
-                 'hyrs': 'hydro reservoirs',
-                 'chp': 'plants with co-generation',
-                 'add': 'plants with capacity additions',
-                 'rem': 'plants with capacity retirements',
-                 'curt': 'dedicated curtailment technology',
-                 'sll': 'plants selling produced energy carriers',
-                 'rp': 'dispatchable plants with ramping costs'}
+DICT_SETS_DOC = {r'sy': r'model time slots : df_tm_soy : t',
+                 r'ppall': r'all power plant types : df_def_plant : p',
+                 r'pp': r'dispatchable power plants with fuels : df_def_plant : p',
+                 r'st': r'storage plants : df_def_plant : p',
+                 r'pr': r'variable renewables with fixed profiles : df_def_plant : p',
+                 r'ror': r'run-of-river plants : df_def_plant : p',
+                 r'lin': r'dispatchable plants with linear supply curve : df_def_plant : p',
+                 r'hyrs': r'hydro reservoirs : df_def_plant : p',
+                 'chp': r'plants with co-generation : df_def_plant : p',
+                 r'add': r'plants with capacity additions : df_def_plant : p',
+                 r'rem': r'plants with capacity retirements : df_def_plant : p',
+                 r'curt': r'dedicated curtailment technology : df_def_plant : p',
+                 r'sll': r'plants selling produced energy carriers : df_def_plant : p',
+                 r'rp': r'dispatchable plants with ramping costs : df_def_plant : p',
+                 r'ppall_nd': r'combined :math:`\mathrm{ppall\times nd}` set; equivalent for all subsets of :math:`\mathrm{ppall}` : df_def_plant : (p,n)',
+                 r'ppall_ndca': r'combined :math:`\mathrm{ppall\times nd\times ca}` set; equivalent for all subsets of :math:`\mathrm{ppall}` : merge(df_def_plant, df_plant_encar) : (p,n,c)',
+                 r'ppall_ndcafl': r'combined :math:`\mathrm{ppall\times nd\times ca\times fl}` set; equivalent for all subsets of :math:`\mathrm{ppall}` : merge(df_def_plant, df_plant_encar) : (p,n,c,f)',
+                 r'pp_ndcafl_sll': r'"fuels" sold by power plants :math:`\mathrm{pp}` consuming energy carrier :math:`\mathrm{ca}` : merge(df_def_plant, df_plant_encar) : (p,n,c,f)',
+                 r'sy_hydbc\subset sy': r'Time slots with exogenously defined storage level boundary conditions. : df_plant_month : t',
+                 r'mt': r'months : df_plant_month : m',
+                 r'wk': r'weeks : df_plant_week : w',
+                 r'ndcnn': r'combined node sets :math:`\mathrm{nd\times nd\times ca}` for inter-nodal transmission : df_node_connect : (n,n_2,c)',
+                 r'symin_ndcnn': r'combined node sets :math:`\mathrm{sy\times nd\times nd\times ca}` for inter-nodal transmission : merge(df_tm_soy, df_node_connect) : (t,n,n_2,c)',
+                 r'fl_erg': r'fuels with energy production constraints : df_def_fuel : f',
+                 r'tm': r'time maps : df_tm_soy : \tau',
+                 r'tmsy': r'combination of time maps and slots : df_tm_soy : (\tau,t)',
+                 r'tmsy_mt': r'all relevant combinations :math:`\mathrm{tm\times sy\times mt}` : df_tm_soy : (\tau,t,m)',
+                 r'sy_ppall_ca': r'combined :math:`\mathrm{sy\times ppall\times nd}` set; equivalent for all subsets of :math:`\mathrm{ppall}` : merge(df_plant_encar, df_tm_soy) : (t,p,c)',
+                 r'nd': r'Nodes : df_def_node : n',
+                 r'ca': r'Output energy carriers : df_def_encar : c',
+                 r'fl': r'Fuels : df_def_fuel : f',
+                 r'ndcafl': r'Relevant combinations of nodes, produced energy carriers, and fuels : df_node_fuel_encar : (n,c,f)',
+                 r'pf': r'Profiles (demand, supply, price, etc) : df_def_profile : \phi',
+                 r'sy_ndca': r'Combined :math:`\mathrm{sy\times nd\times ca}` set : merge(df_node_encar, df_tm_soy) : (t,n,c)',
+                 r'pp_ndcaca': r'combined :math:`\mathrm{pp\times nd\times ca\times ca}` set describing plants which convert one produced energy carrier into another : merge(df_def_encar, df_def_plant, df_plant_encar) : (p,n,c_{out},c)'
+                 }
 
 class Sets:
     '''
@@ -45,84 +68,19 @@ class Sets:
         Adds sets as defined by
 
         * the ``setlst`` dictionary initialized in the :func:`get_setlst`
-          method (for basic power plant sets)
-        * the DataFrame attributes of the :class:`ModelBase` class
+          method
+        * the DataFrame attributes of the :class:`ModelBase` class for more
+          complex derived sets
 
-        Consult the :class:`Variables`, :class:`Parameters`,
-        and :class:`Constraints` class for usage
+        %s
 
-        Primary base sets:
-
-        =================================  ============================================
-        Set                                Description
-        =================================  ============================================
-        :math:`\mathrm{ppall}`             all power plant types
-        :math:`\mathrm{pp\subset ppall}`   dispatchable power plants with fuels
-        :math:`\mathrm{st}`                storage plants
-        :math:`\mathrm{pr}`                variable renewables with fixed profiles
-        :math:`\mathrm{ror}`               run-of-river plants
-        :math:`\mathrm{lin}`               dispatchable plants with linear supply curve
-        :math:`\mathrm{hyrs}`              hydro reservoirs
-        :math:`\mathrm{chp}`               plants with co-generation
-        :math:`\mathrm{add}`               plants with capacity additions
-        :math:`\mathrm{rem}`               plants with capacity retirements
-        :math:`\mathrm{curt}`              dedicated curtailment technology
-        :math:`\mathrm{sll}`               plants selling produced energy carriers
-        :math:`\mathrm{rp}`                dispatchable plants with ramping costs
-        =================================  ============================================
-
-        Primary power plant sets and subsets:
-
-        ===================  ==========================
-        Set                  Description
-        ===================  ==========================
-        :math:`\mathrm{nd}`  Nodes
-        :math:`\mathrm{ca}`  (Produced) energy carriers
-        :math:`\mathrm{fl}`  Fuels
-        :math:`\mathrm{pf}`  Profiles
-        :math:`\mathrm{sy}`  model time slots
-        :math:`\mathrm{mt}`  months
-        :math:`\mathrm{wk}`  weeks
-        :math:`\mathrm{tm}`  time maps
-        ===================  ==========================
-
-        Example derived sets:
-
-        ==============================  ==============================================================================================
-        Set                             Description
-        ==============================  ==============================================================================================
-        :math:`\mathrm{ppall\_ca}`      combined :math:`\mathrm{ppall\times nd}` set
-        :math:`\mathrm{ppall\_ndca}`    combined :math:`\mathrm{ppall\times nd\times ca}` set
-        :math:`\mathrm{sy\_ppall\_ca}`  combined :math:`\mathrm{sy\times ppall\times nd}` set
-        :math:`\mathrm{ndcnn}`          combined node sets :math:`\mathrm{nd\times nd\times ca}` for inter-nodal transmission
-        :math:`\mathrm{symin\_ndcnn}`   combined node sets :math:`\mathrm{sy\times nd\times nd\times ca}` for inter-nodal transmission
-        :math:`\mathrm{tmsy}`           combination of time maps and slots
-        :math:`\mathrm{tmsy\_mt}`       all relevant combinations :math:`\mathrm{tm\times sy\times mt}`
-        ==============================  ==============================================================================================
-
-
-
-
-        .. note::
-
-           * :math:`\mathrm{sy\_ppall\_ca}`: The dispatch of a given power plant
-             :math:`\mathrm{pp}` is defined for the time slots of the corresponding
-             node. Since the time resolution and hence the number of time slots
-             potentially depends on the node, this combined set is necessary to
-             limit the variable and constraint definitions to the relevant time
-             slots of any power plant.
-           * :math:`\mathrm{symin\_ndcnn}`: If two nodes with different time
-             resolutions are connected, the transmission variable has the higher
-             time resolution of the two (*min* as in shortest time slot duration).
-             This combined set expresses this relationship for each of the
-             connected nodes.
 
         '''
 
-        self.nd = po.Set(initialize=self.setlst['nd'], doc='Nodes')
-        self.ca = po.Set(initialize=self.setlst['ca'], doc='(Produced) energy carriers')
-        self.fl = po.Set(initialize=self.setlst['fl'], doc='Fuels')
-        self.pf = po.Set(initialize=self.setlst['pf'], doc='Profiles')
+        self.nd = po.Set(initialize=self.setlst['nd'])
+        self.ca = po.Set(initialize=self.setlst['ca'])
+        self.fl = po.Set(initialize=self.setlst['fl'])
+        self.pf = po.Set(initialize=self.setlst['pf'])
 
         df_ndca = self.df_def_plant[['pp_id', 'nd_id']].set_index('pp_id')
         df_ndca = self.df_plant_encar[['pp_id', 'ca_id']].join(df_ndca,
@@ -140,29 +98,26 @@ class Sets:
             logger.info('Defining basic sets for {}'.format(iset))
 
             ''' SUB SETS PP'''
-            doc = dict(doc=DICT_SETS_PP[iset])
             setattr(self, iset,
                     po.Set(within=(None if iset == 'ppall' else self.ppall),
-                           initialize=self.setlst[iset], **doc)
+                           initialize=self.setlst[iset])
                            if iset in self.setlst.keys()
-                           else po.Set(within=self.ppall, initialize=[], **doc))
+                           else po.Set(within=self.ppall, initialize=[]))
 
             ''' SETS PP x ENCAR '''
-            doc = dict(doc=r'combined :math:`\mathrm{%s\times nd}` set'%iset)
             _df = self.df_plant_encar.copy()
             _df = _df.loc[_df['pp_id'].isin(getattr(self, iset))]
             setattr(self, iset + '_ca',
-                    po.Set(within=getattr(self, iset) * self.ca, **doc,
+                    po.Set(within=getattr(self, iset) * self.ca,
                            initialize=cols2tuplelist(_df[slct_cols])))
 
             ''' SETS PP x ND x ENCAR '''
-            doc = dict(doc=r'combined :math:`\mathrm{%s\times nd\times ca}` set'%iset)
             _df = df_ndca.copy()
             _df = _df.loc[df_ndca['pp_id'].isin(self.setlst[iset]
                           if iset in self.setlst.keys() else [])]
             setattr(self, iset + '_ndca',
                     po.Set(within=getattr(self, iset) * self.nd * self.ca,
-                           initialize=cols2tuplelist(_df), **doc))
+                           initialize=cols2tuplelist(_df)))
 
 
         # no scf fuels in the _cafl and _ndcafl
@@ -196,25 +151,19 @@ class Sets:
 
         # plants selling fuels ... only ppall, therefore outside the loop
         lst = cols2tuplelist(df.loc[df.pp_id.isin(self.setlst['sll'])])
-        doc = ('"fuels" solds by power plant :math:`pp` '
-               'consuming energy carrier :math:`ca`')
-        setattr(self, 'pp' + '_ndcafl_sll',
-                po.Set(within=self.pp_ndcafl, initialize=lst, doc=doc))
+        setattr(self, 'pp_ndcafl_sll',
+                po.Set(within=self.pp_ndcafl, initialize=lst))
 
         # temporal
         self.sy = po.Set(initialize=list(self.df_tm_soy.sy.unique()),
-                         ordered=True, doc='model time slots')
+                         ordered=True)
 
         self.sy_hydbc = po.Set(within=self.sy,
-                               initialize=set(self.df_plant_month.sy),
-                               doc=('Time slots with exogenously defined '
-                                    'storage level boundary conditions.'))
+                               initialize=set(self.df_plant_month.sy))
 
-        self.mt = (po.Set(initialize=list(self.df_def_month['mt_id']),
-                          doc='months')
+        self.mt = (po.Set(initialize=list(self.df_def_month['mt_id']))
                    if not self.df_def_month is None else None)
-        self.wk = (po.Set(initialize=list(self.df_def_week['wk_id']),
-                          doc='weeks')
+        self.wk = (po.Set(initialize=list(self.df_def_week['wk_id']))
                    if not self.df_def_week is None else None)
 
         # pp_cacafcl; used to account for conversions of ca in the supply rule
@@ -231,19 +180,13 @@ class Sets:
 
         # inter-node connections
         if not self.df_node_connect is None and not self.df_node_connect.empty:
-            doc = dict(doc='combined node sets '
-                           ':math:`\mathrm{nd\\times nd\\times ca}` '
-                           'for inter-nodal transmission')
             df = self.df_node_connect[['nd_id', 'nd_2_id', 'ca_id']]
             self.ndcnn = po.Set(within=self.nd * self.nd * self.ca,
-                             initialize=cols2tuplelist(df), ordered=True, **doc)
+                             initialize=cols2tuplelist(df), ordered=True)
 
-            doc = dict(doc='combined node sets '
-                           ':math:`\mathrm{sy\\times nd\\times nd\\times ca}` '
-                           'for inter-nodal transmission')
             df = self.df_symin_ndcnn[['symin', 'nd_id', 'nd_2_id', 'ca_id']]
             self.symin_ndcnn = po.Set(within=self.sy * self.nd
-                                             * self.nd * self.ca, **doc,
+                                             * self.nd * self.ca,
                                       initialize=cols2tuplelist(df),
                                       ordered=True)
         else:
@@ -277,14 +220,13 @@ class Sets:
         # fuels with energy constraints
         lst = self.df_def_fuel.loc[self.df_def_fuel.is_constrained==1,
                                        'fl_id'].tolist()
-        self.fl_erg = po.Set(within=self.fl, initialize=lst, ordered=True,
-                             doc='fuels with energy production constraints')
 
         # all plants with ramping costs
         vcrp_pos = (self.df_plant_encar.loc[self.df_plant_encar.vc_ramp > 0]
                         .set_index(['pp_id', 'ca_id']).index.values)
         rp = [ppca for ppca in vcrp_pos if ppca[0] in self.setlst['rp']]
         self.rp_ca = po.Set(within=self.ppall_ca, initialize=rp, ordered=True)
+        self.fl_erg = po.Set(within=self.fl, initialize=lst, ordered=True)
 
         # set pf_id for profiles
         for pf_set in ['dmnd_pf', 'supply_pf', 'pricesll_pf', 'pricebuy_pf']:
@@ -298,22 +240,19 @@ class Sets:
     def _init_tmsy_sets(self):
         '''
 
-
-        Through the node-specific time resolution the plant ids and the
-        time slots are connected.
+        The plant ids and the time slots are connected
+        through the node-specific time resolution.
         '''
 
         self.tm = po.Set(initialize=self.df_tm_soy.tm_id.unique(),
-                         ordered=True, doc='time maps')
+                         ordered=True)
 
         list_tmsy = cols2tuplelist(self.df_tm_soy[['tm_id', 'sy']])
         self.tmsy = po.Set(within=self.tm*self.sy, initialize=list_tmsy,
-                           ordered=True,
-                           doc='combination of time maps and slots')
+                           ordered=True)
 
         # only constructed if self.mt exists
-        doc = 'all relevant combinations :math:`\mathrm{tm\\times sy\\times mt}`'
-        self.tmsy_mt = (po.Set(within=self.tmsy * self.mt, doc=doc,
+        self.tmsy_mt = (po.Set(within=self.tmsy * self.mt,
                                initialize=cols2tuplelist(
                                     self.df_tm_soy[['tm_id', 'sy', 'mt_id']]))
                         if not self.mt is None else None)
@@ -346,8 +285,6 @@ class Sets:
                          'pp', 'chp', 'ror', 'lin']:
 
             set_name = 'sy_%s_ca'%slct_set
-            doc = r'combined :math:`\mathrm{sy\times %s\times nd}` set'%slct_set
-            self.delete_component(set_name)
 
             logger.info('Defining set ' + set_name)
 
@@ -355,7 +292,7 @@ class Sets:
 
             setattr(self, set_name,
                     po.Set(within=self.sy * getattr(self, slct_set) * self.ca,
-                           ordered=True, doc=doc,
+                           ordered=True,
                            initialize=[row for row in list_syppca
                                        if row[1] in set_pp]))
 
@@ -367,14 +304,6 @@ class Sets:
 
         For the most part power plant subset definitions are based on the
         binary columns *set_def_..* in the ``df_def_plant`` input table.
-
-        Exceptions are:
-
-        * Power plant subsets defined as set unions of the above
-          (:math:`pf`, :math:`rp`)
-        * Profile sets from the ``df_fuel_node_encar`` (price profiles),
-          ``df_plant_encar`` (supply profiles) and ``df_node_encar``
-          (demand profiles) input tables.
 
         '''
         # define lists for set initialization
@@ -428,7 +357,8 @@ class Sets:
 #
 
     @silence_pd_warning
-    def _get_set_docs(self):
+    @staticmethod
+    def _get_set_docs():
         '''
         Convenience method to extract all set docs from a :class:`ModelBase`
         instance.
@@ -439,55 +369,99 @@ class Sets:
 
         to_math = lambda x: ':math:`\mathrm{%s}`'%x
 
-        dict_doc = {name: comp.doc for name, comp in self.__dict__.items()
-                    if type(comp) in (poset.SimpleSet, poset.OrderedSimpleSet)
-#                    and (not '_' in name)
-                    and comp.doc
-                    }
-
         comb_sets = ['ndcnn', 'tmsy']
 
-        cols = ['Set', 'Description']
-        df_doc = pd.Series(dict_doc).reset_index()
-        df_doc.columns = cols
+        cols = ['Set', 'Members', 'Description', 'Source table']
+        df_doc = pd.Series(DICT_SETS_DOC).reset_index()
+        df_doc[['Description', 'Source', 'Members']] = pd.DataFrame(df_doc[0].apply(lambda x: tuple(x.split(' : '))).tolist())
+        df_doc = df_doc.drop(0, axis=1)
+        df_doc.columns = ['Set', 'Description', 'Source table', 'Members']
+        df_doc.Members = df_doc.Members.apply(lambda x: ':math:`\mathrm{%s}`'%(x))
+        df_doc['Source table'] = df_doc['Source table'].apply(lambda x: '``%s``'%(x))
+        df_doc = df_doc[cols]
+
 
         mask_not_under = ~df_doc.Set.str.contains('_')
         mask_not_ndca = ~df_doc.Set.str.contains('_ndca')
         mask_not_ca = ~df_doc.Set.str.contains('_ca')
 
-        print('\nPrimary base sets:\n')
 
-        df_doc_pp = df_doc.loc[df_doc.Set.isin(DICT_SETS_PP)
-                               & mask_not_under]
-        df_doc_pp['Set'] = df_doc_pp.Set.apply(to_math)
-        print(tabulate.tabulate(df_doc_pp.applymap(lambda x: x.replace('_', '\_')),
-                                tablefmt='rst', headers=cols,
-                                showindex=False))
+        list_pp = ['ppall', 'pp', 'st', 'pr', 'ror', 'lin', 'hyrs', 'chp',
+                   'add', 'rem', 'curt', 'sll', 'rp']
 
-        print('\nPrimary power plant sets and subsets:\n')
-
-
-        df_doc_oth = df_doc.loc[~df_doc.Set.isin(DICT_SETS_PP)
+        df_doc_oth = df_doc.loc[~df_doc.Set.isin(list_pp)
                                 & ~df_doc.Set.isin(comb_sets)
                                 & mask_not_under]
         df_doc_oth['Set'] = df_doc_oth.Set.apply(to_math)
-        print(tabulate.tabulate(df_doc_oth.applymap(lambda x: x.replace('_', '\_')),
+        table_base = (tabulate.tabulate(df_doc_oth,
                                 headers=cols,
                                 tablefmt='rst', showindex=False))
 
-        df_doc_oth = df_doc.loc[(df_doc.Set.isin(comb_sets)
-                                | ~mask_not_under) & mask_not_ndca & mask_not_ca]
-        df_doc_oth['Set'] = df_doc_oth.Set.apply(to_math)
 
-        print('\nExample derived sets:\n')
+
+        df_doc_pp = df_doc.loc[df_doc.Set.isin(list_pp)
+                               & mask_not_under]
+        df_doc_pp['Set'] = df_doc_pp.Set.apply(to_math)
+        df_doc_pp.Set = df_doc_pp.Set.apply(lambda x: x.replace('}', '\subset ppall}').replace('ppall\subset ', ''))
+        table_pp = (tabulate.tabulate(df_doc_pp,
+                                tablefmt='rst', headers=cols,
+                                showindex=False))
+
+
+
+        df_doc_oth = df_doc.loc[(df_doc.Set.isin(comb_sets)
+                                | ~mask_not_under)]
+        df_doc_oth['Set'] = df_doc_oth.Set.apply(to_math)
 
         df_doc_ppca = df_doc.loc[~mask_not_ca | ~mask_not_ndca]
         df_doc_ppca['Set'] = df_doc_ppca.Set.apply(to_math)
         df_doc_ppca = df_doc_ppca.loc[df_doc_ppca.Set.str.contains('ppall')
                         | df_doc_ppca.Set.str.endswith('sll')]
-        print(tabulate.tabulate(pd.concat([df_doc_ppca, df_doc_oth]).applymap(lambda x: x.replace('_', '\_')), headers=cols,
-                                tablefmt='rst', showindex=False))
+        df_doc_oth = pd.concat([df_doc_ppca, df_doc_oth])
+        df_doc_oth.Set = df_doc_oth.Set.apply(lambda x: x.replace('_', '\_'))
+        table_derived = tabulate.tabulate(df_doc_oth, headers=cols,
+                                tablefmt='rst', showindex=False)
+
+        doc_str = r'''
+
+.. table:: **Primary base sets**
+    :widths: 15 10 100 30
+
+    %s
+
+.. table:: **Primary power plant sets and subsets**
+    :widths: 15 10 100 30
+
+    %s
+
+.. table:: **Key derived sets**
+    :widths: 15 10 100 30
+
+    %s
+
+.. note::
+
+   * :math:`\mathrm{sy\_ppall\_ca}`: The operation (power production/charging)
+     of a given plant :math:`\mathrm{pp}` is defined for each of the time
+     slots of the
+     corresponding node. Since the time resolution and hence the
+     number of time slots potentially depends on the node, this
+     combined set is necessary to limit the variable and constraint
+     definitions to the relevant time slots of any power plant.
+   * :math:`\mathrm{symin\_ndcnn}`: If two nodes with different time
+     resolutions are connected, the transmission variable has the
+     higher time resolution of the two (*min* as in "smallest time slot
+     duration"). This combined set expresses this relationship for
+     each of the connected nodes.
+
+'''%(table_base.replace('\n', '\n    '),
+           table_pp.replace('\n', '\n    '),
+           table_derived.replace('\n', '\n    '))
+
+        return doc_str
 
 
 
 
+Sets.define_sets.__doc__ = Sets.define_sets.__doc__%Sets._get_set_docs()
+print(Sets.define_sets.__doc__)

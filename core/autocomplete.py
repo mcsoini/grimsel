@@ -189,7 +189,13 @@ class AutoComplete(abc.ABC):
 
 
     def concatenate(self):
-        ''' Concatenate existing and new rows. '''
+        '''
+        Concatenate existing and new rows.
+
+        Fills the values of the new columns with default values as specified
+        in the ``new_cols`` class attribute dictionary.
+
+        '''
 
         add_cols = [c for c in self.df_add.columns if c in self._df.columns]
         setattr(self.m, self.df_name,

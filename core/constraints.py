@@ -1,11 +1,9 @@
 '''
-.. |CO2| replace:: CO\ :sub:`2`\ \
-
 Model constraints
 ===================
 
 All model constraints are defined in the :class:`Constraints` class, which
-serves as a mixin class to :class:`grimsel.core.ModelBase`.
+serves as a mixin class to :class:`grimsel.core.model_base.ModelBase`.
 
 '''
 
@@ -55,7 +53,7 @@ def _limit_max_sy(dct):
 class Constraints:
     '''
     Mixin class containing all constraints, included in the
-    :class:`grimsel.core.ModelBase`
+    :class:`grimsel.core.model_base.ModelBase`
     '''
 
     def cadd(self, name, *args, objclass=po.Constraint, **kwargs):
@@ -81,13 +79,14 @@ class Constraints:
         setattr(self, name, obj)
 
     def add_transmission_bounds_rules(self):
-        '''
+        r'''
         Add transmission bounds.
 
         .. math::
 
-           -C_\mathrm{import} \leqslant p_{\mathrm{trm}, t}
-           \leqslant C_\mathrm{export}
+           & -P_\mathrm{imp,m,n,n_2,c} \leqslant p_\mathrm{trm,t,n,n_2,c}
+           \leqslant P_\mathrm{exp,m,n,n_2,c} \\
+           & \forall \mathrm{(t,n,n_2,c) \in symin\_ndcnn} \\
 
         .. note::
            This method modifies the ``trm`` transmission power Pyomo
@@ -108,22 +107,22 @@ class Constraints:
 
     def add_supply_rules(self):
         r'''
-        Adds the supply rule: Balance supply/demand in each node for teach
-        time slot :math:`sy`, node :math:`nd` and, produced energy
-        carrier :math:`ca`.
+        Adds the supply rule: Balance supply/demand in each node for each
+        time slot :math:`\mathrm{t}`, node :math:`\mathrm{n}` and,
+        produced energy carrier :math:`\mathrm{c}`.
 
         * The supply side consists of the power production
-          :math:`p_\mathrm{sy\_pp\_ca}` from all plants producing energy
-          carrier :math:`ca`. This is reduced by the curtailed and the sold
-          power. Additionally, imports or exports from connected nodes
-          enter this side of the equation depending on the directionality
-          definition in the combinaed set :math:`ndcnn` (see the **note**
-          below).
+          :math:`p_\mathrm{t,p,c}` from all plants producing energy
+          carrier :math:`\mathrm{c}`. This is reduced by the curtailed
+          and the sold power. Additionally, imports or exports from
+          connected nodes enter this side of the equation depending on the
+          directionality definition in the combined set :math:`\mathrm{ndcnn}`
+          (see the **note** below).
         * The demand side consists of the exogenous demand profile, the storage
           charging power, the relevant imports and exports, depending on the
-          direction definition, and the consumtion of energy carrier
-          :math:`\mathrm{ca}` for the production of energy carrier
-          :math:`\mathrm{ca_{out}}` (see the **note** below).
+          direction definition, and the consumption of energy carrier
+          :math:`\mathrm{c}` for the production of other energy carriers
+          :math:`\mathrm{c_{out}}`.
 
         .. math::
 
@@ -131,13 +130,12 @@ class Constraints:
                - \sum_\mathrm{sell}p_\mathrm{sy\_sell\_ca}
                - \sum_\mathrm{curt}p_\mathrm{sy\_curt\_ca} \\
            & + \sum_\mathrm{nd_2} p_\mathrm{trm, nd_2 \rightarrow nd} \\
-           & = \\
-           & \phi_\mathrm{dmnd, sy(nd), pf(nd, ca)} \\
-           & + \sum_\mathrm{st_{nd}} p_\mathrm{chg,sy\_st\_ca}\\
+           & = \phi_\mathrm{dmd, t, n, c} \\
+           & + \sum_\mathrm{p \in st_n} p_\mathrm{chg,t,p,c}\\
            & + \sum_\mathrm{nd_2} p_\mathrm{trm, nd \rightarrow nd_2} \\
-           & + \sum_\mathrm{pp} p_\mathrm{sy\_pp\_ca_{out}} /
-               \eta_\mathrm{pp\_ca} \\
-
+           & + \sum_\mathrm{(p, n, c_{out}, c)\in pp\_ndcaca}
+               p_\mathrm{t,p,c_{out}} / \eta_\mathrm{p,c_{out}} \\
+           & \forall \mathrm{(t,n,c) \in sy\_nd\_ca} \\
 
         .. note::
 
@@ -145,8 +143,8 @@ class Constraints:
               between nodes is expressed through the variables
               :math:`p_\mathrm{trm, symin_ndcnn}`. These variables can be
               positive or negative depending on the power flow direction.
-              Since only one direction is included in the :math:`ndcnn` set,
-              e.g.
+              Since only one direction is included in the
+              :math:`\mathrm{ndcnn}` set, e.g.
 
               .. math::
 
@@ -173,20 +171,25 @@ class Constraints:
             If called by supply rule, the order nd, nd_2 is always the ndcnn
             order, therefore also trm order.
 
-            Case 1: nd has higher time resolution (min) |rarr| just use
-                    trm[tm, sy, nd, nd_2, ca]
-            Case 2: nd has lower time resolution (not min) -> average
-                    avg(trm[tm, all the sy, nd, nd_2, ca])
-
-                    self.dict_sysy[nd, nd_2, sy]
+            * **Case 1**: ``nd`` has higher time resolution (min) |rarr| just
+              use ``trm[tm, sy, nd, nd_2, ca]``
+            * **Case 2**: ``nd`` has lower time resolution (not min) |rarr|
+              average ``avg(trm[tm, sy_2, nd, nd_2, ca])`` for all ``sy_2``
+              defined by the
+               ``grimsel.core.model_base.ModelBase.dict_sysy[nd, nd_2, sy]``
 
             Parameters
             ----------
-                - sy (int): current time slot in nd
-                - nd (int): outgoing node
-                - nd_2 (int): incoming node
-                - ca (int): energy carrier
-                - export (bool): True if export else False
+            sy : int
+                current time slot in nd
+            nd : int
+                outgoing node
+            nd_2 : int
+                incoming node
+            ca : int
+                energy carrier
+            export : bool
+                True if export else False
 
             '''
             if self.is_min_node[(nd if export else nd_2,
@@ -212,13 +215,15 @@ class Constraints:
                         in set_to_list(self.ppall_ndca, [None, nd, ca]))
                     # incoming inter-node transmission
                     + sum(get_transmission(sy, nd, nd_2, ca, False)
+                          / self.nd_weight[nd]
                           for (nd, nd_2, ca)
                           in set_to_list(self.ndcnn, [None, nd, ca]))
                    )
             exports = sum(get_transmission(sy, nd, nd_2, ca, True)
+                          / self.nd_weight[nd]
                           for (nd, nd_2, ca)
                           in set_to_list(self.ndcnn, [nd, None, ca]))
-            dmnd = (self.dmnd[sy, self.dict_dmnd_pf[(nd, ca)]]
+            dmnd = (self.dmnd[sy, nd, ca]
                     + sum(self.pwr_st_ch[sy, st, ca] for (st, nd, ca)
                           in set_to_list(self.st_ndca, [None, nd, ca]))
                     # demand of plants using ca as an input
@@ -236,30 +241,28 @@ class Constraints:
         r'''
         Calculation of yearly totals from time slot power variables.
 
-
-        * Total energy production by plant and output energy carrier
+        * Total energy production by plant and output energy carrier:
 
           .. math::
 
-             & E_\mathrm{ppall\_ca}
-             = \sum_\mathrm{sy} p_\mathrm{sy\_ppall\_ca} \mathrm{w_{tmsy}} \\
-             & \forall \mathrm{ppall, ca} \\
+             & E_\mathrm{p,c}
+             = \sum_\mathrm{t} p_\mathrm{t,p,c} {w_\mathrm{\tau,t}} \\
+             & \forall \mathrm{(p, c) \in ppall\_ca} \\
 
-        * Total absolute ramping power
-
-        .. math::
-
-           & \Delta p_\mathrm{rp\_ca}|
-           = \sum_\mathrm{sy} |\delta p_\mathrm{sy\_rp\_ca}| \\
-           & \qquad \forall \mathrm{rp, ca} \\
-
-        * Total energy production by plant, fuel and output energy carrier
+        * Total absolute ramping power:
 
         .. math::
 
-           & E_\mathrm{ppall\_ca}
-           = \sum_\mathrm{sy} p_\mathrm{sy\_ppall\_ca} \mathrm{w_{tmsy}} \\
-           & \forall \mathrm{ppall, ca} \\
+           & |\Delta p_\mathrm{p,c}|
+           = \sum_\mathrm{t} |\delta p_\mathrm{t,p,c}| \\
+           & \forall \mathrm{(p, c) \in rp\_ca} \\
+
+        * Total energy production by plant, fuel and output energy carrier:
+
+          .. math::
+
+             & E_\mathrm{p,n,c,f} = E_\mathrm{p,c} \\
+             & \forall \mathrm{(p, n,c,f) \in pp\_ndcafl} \\
 
         '''
 
@@ -346,7 +349,9 @@ class Constraints:
         r'''
         Power and stored energy are constrained by the respective capacities:
 
-        * Output power of generators:
+        * Output power of generators (note: variable renewables with
+          exogenous supply (i.e. capacity factor) profile are explicitly
+          excluded):
 
           .. math::
 
@@ -412,17 +417,13 @@ class Constraints:
         * Certain generators need to produce power following heat demand.
           This is implemented through the node-specific normalized CHP
           profile :math:`\phi_\mathrm{chp, sy\_pf}`: The production from
-          power plants :math:`p_\mathrm{pp,t}` in the
-          set :math:`\mathrm{sy\_chp\_ca}` must be larger than the scaled
-          CHP profile
-
-        :math:`\phi_\mathrm{chp,n,t}`:
+          power plants must be larger than the scaled CHP profile:
 
         .. math::
 
-           & p_\mathrm{pp,t} \geqslant \phi_\mathrm{chp,n,t}
-           \mathrm{e}_\mathrm{chp,pp} \\
-           & \forall \mathrm{(sy,pp,ca)} \in \mathrm{sy\_chp\_ca}
+           & p_\mathrm{t,p,c} \geqslant \phi_\mathrm{chp,t,n,c}
+           \mathrm{e}_\mathrm{chp,p,c} \\
+           & \forall \mathrm{(t,p,c)} \in \mathrm{sy\_chp\_ca}
 
 
         '''
@@ -447,7 +448,7 @@ class Constraints:
 
            & E_\mathrm{m,p,c} = \sum_\mathrm{t\in sy_m} w_\mathrm{\tau(p),t}
            p_\mathrm{t,p,c} \\
-           & \forall \mathrm{(m,p,c) \in mt \times hyrs\_ca \cup pp\_ca} \\
+           & \forall \mathrm{(m,p,c) \in mt \times hyrs\_ca} \\
 
         .. note::
 
@@ -481,16 +482,16 @@ class Constraints:
         Produced power equals output profile.
 
         Variable renewable energy generators produce at a given output profile
-        (capacity factor per time slot). Curtailments are included at the
-        system level through dedicated technologies
-        (set :math:`\mathrm{curt \subset ppall}`).
+        (capacity factor per time slot).
+
+        .. note::
+            Curtailments are included at the system level through dedicated
+            technologies (set :math:`\mathrm{curt \subset ppall}`).
 
         .. math::
 
-           & p_\mathrm{t,p,c} = \phi_\mathrm{supply,t,pf(p)}
-           P_\mathrm{tot,p,c}\\
-           & \forall \mathrm{(p,c) \in pr\_ca}
-
+           & p_\mathrm{t,p,c} = \Phi_\mathrm{supply,t,p,c} P_\mathrm{tot,p,c}\\
+           & \forall \mathrm{(t,p,c) \in sy\_pr\_ca}
 
         '''
 
@@ -504,10 +505,11 @@ class Constraints:
 
     def add_ramp_rate_rules(self):
         r'''
-        Three constraints are used to obtain the absolute ramp rates
+        Three constraints are used to obtain the absolute hourly ramp rates
         :math:`|\delta_\mathrm{sy\_rp\_ca}|`:
 
-        * Difference of power production:
+        * Difference of power production (as in the
+          :func:`add_charging_level_rules` constraint time is circular):
 
           .. math::
 
@@ -556,14 +558,14 @@ class Constraints:
     def add_energy_constraint_rules(self):
         r'''
         Adds the ``pp_max_fuel`` constraint which limits the amount of
-        output energy carriers produced from certain fuels to the
+        output energy produced from certain fuels to the
         value of the exogenous parameter :math:`E_\mathrm{inp,n,c,f}`:
 
         .. math::
 
             & \sum_\mathrm{p \in ppall} E_\mathrm{p,n,c,f}
             \leqslant E_\mathrm{inp,n,c,f} \\
-            \forall \mathrm{(n,c,f) \in ndcafl} \\
+            & \forall \mathrm{(n,c,f) \in ndcafl} \\
 
         '''
 
@@ -592,14 +594,25 @@ class Constraints:
 
     def add_charging_level_rules(self):
         r'''
-        Adds the constraint determining the stored energy.
+        Adds the constraint determining the stored energy: The energy in the
+        current time slot :math:`e_\mathrm{t,p,c}` is equal what's left from
+        the last time slot :math:`e_\mathrm{t-1,p,c}` plus
+
+        * inflow minus production in the case of reservoirs and run-of-river
+          plants
+        * charging minus discharging in the case of pure storage plants
+          without inflow
+
+        Time is circular, i.e. the first time slot follows after the last.
 
         .. math::
 
            e_\mathrm{t,p,c} = e_\mathrm{t-t,p,c} +
            \begin{cases}
-           \phi_\mathrm{inflow,t,p} e_\mathrm{inp,n(p),c,f(p)} - p_\mathrm{t, p, c} w_\mathrm{t, n(p)} & \forall \mathrm{(t,p,c)\in sy\_hyrs\_ca}\\
-           (\eta_\mathrm{p,c}^{1/2} p_\mathrm{chg, t, p, c} - \eta_\mathrm{p,c}^{-1/2} p_\mathrm{t, p, c}) w_\mathrm{t}      & \forall \mathrm{(t,p,c)\in sy\_st\_ca}\\
+           (\phi_\mathrm{inflow,t,p} e_\mathrm{inp,n(p),c,f(p)} - p_\mathrm{t, p, c}) w_\mathrm{t, n(p)} \\
+           \qquad \qquad \forall \mathrm{(t,p,c)\in sy\_hyrs\_ca \cup sy\_ror\_ca}\\
+           (\eta_\mathrm{p,c}^{1/2} p_\mathrm{chg, t, p, c} - \eta_\mathrm{p,c}^{-1/2} p_\mathrm{t, p, c}) w_\mathrm{t} \\
+           \qquad \qquad \forall \mathrm{(t,p,c)\in sy\_st\_ca}\\
            \end{cases}
 
         '''
@@ -649,7 +662,6 @@ class Constraints:
 
     def add_hydro_rules(self):
         r'''
-        [#add_hydro_rules]
         Various rules constraining the operation of the hydro reservoir plants.
 
         * The ``hy_reservoir_boundary_conditions`` constraint requires
@@ -658,13 +670,15 @@ class Constraints:
 
           .. math::
 
-             & e_\mathrm{t,p,c}
+             & \rho_\mathrm{t,p,c}
              = e_\mathrm{hyd\_bc,p,c} C_\mathrm{tot, p, c} \\
              & \forall \mathrm{(t,p,c) \in sy\_hydbc \times hyrs\_ca} \\
 
         * The ``hy_month_min`` constraint forces a certain minimum output
           production from hydro reservoirs each month. This minimum is
-          expressed as a share of maximum monthly inflow:
+          expressed as a share of maximum monthly inflow (which itself is
+          a share :math:`\rho_\mathrm{max\_erg\_in,p}` of the total yearly
+          inflow energy :math:`e_\mathrm{inp,n,c,f}`):
 
           .. math::
 
@@ -734,16 +748,16 @@ class Constraints:
              .. math::
 
                 & c_\mathrm{fuel,p,c,f}
-                = E_\mathrm{p,n,c,f} \mathrm{vc}_\mathrm{fuel,f,n} \\
+                = E_\mathrm{p,n,c,f} \mathrm{vc}_\mathrm{f,n} \\
                 & \forall \mathrm{(p,n,c,f)\in ppall\_ndcafl
                                             \setminus lin\_ndcafl} \\
 
-          - For monthly fuel costs :math:`vc_\mathrm{fuel,mt,fl\_nd}`:
+          - For monthly fuel costs :math:`vc_\mathrm{m,d,n}`:
 
              .. math::
 
                 & c_\mathrm{fuel,p,c,f}
-                = \sum_\mathrm{t\in sy(p)} vc_\mathrm{fuel,m(t),f,n}
+                = \sum_\mathrm{t\in sy\_pp\_ca|_{p,c}} \mathrm{vc_{m(t),f,n}}
                   p_\mathrm{t,p,c} / \eta_\mathrm{p,c}\\
                 & \forall \mathrm{(p,n,c,f)\in ppall\_ndcafl
                                              \setminus lin\_ndcafl} \\
@@ -753,43 +767,48 @@ class Constraints:
               .. math::
 
                 & c_\mathrm{fuel,p,c,f}
-                = \sum_\mathrm{t\in sy(p)}  p_\mathrm{t,p,c} / \eta_\mathrm{p,c}
-                w_\mathrm{t, n} \cdot
+                = \sum_\mathrm{t\in sy\_ppall\_ca|_{p,c}}
+                p_\mathrm{t,p,c} / \eta_\mathrm{p,c}
+                w_\mathrm{\tau(p),t} \cdot
                 \begin{cases}
-                -1 \cdot \phi_\mathrm{psll,t,pf(p)} & \text{if } \mathrm{p\in sll}\\
-                +1 \cdot \phi_\mathrm{pbuy,t,pf(p)}& \text{if } \mathrm{p\notin sll}\\
+                -1 \cdot \Phi_\mathrm{psll,t,\phi(p)}
+                    & \text{if } \mathrm{p\in sll} \\
+                +1 \cdot \Phi_\mathrm{pbuy,t,\phi(p)}
+                    & \text{if } \mathrm{p\notin sll} \\
                 \end{cases} \\
-                & \forall \mathrm{(p,n,c,f)\in ppall\_ndcafl \setminus lin\_ndcafl} \\
+                & \forall \mathrm{(p,n,c,f)
+                \in ppall\_ndcafl \setminus lin\_ndcafl} \\
 
         * Variable operation and maintenance costs
-          :math:`\mathrm{vc}_\mathrm{O\&M,p,c,f}` for all plants:
+          :math:`\mathrm{vc}_\mathrm{om,p,c}` for all plants:
 
              .. math::
 
-                & c_\mathrm{om_v,p,c,f}
-                = E_\mathrm{p,n,c,f} \mathrm{vc}_\mathrm{om,p,c,f} \\
+                & c_\mathrm{om_v,p,c}
+                = E_\mathrm{p,c} \mathrm{vc}_\mathrm{om,p,c} \\
                 & \forall \mathrm{(p,c)\in ppall\_ca} \\
 
-        * Variable CO\ :sub:`2`\  emission costs: Same as variable fuel costs
-          (fixed fuel costs and monthly fuel costs costs cases), but with
+        * Variable |CO2|  emission costs: Same as variable fuel costs
+          (fixed fuel costs and monthly fuel costs cases), but with
           specific cost
-          :math:`\pi_\mathrm{CO_2,[mt],nd}\cdot i_\mathrm{CO_2, fl}`.
+           :math:`\pi_\mathrm{CO_2,[m],n}\cdot i_\mathrm{CO_2, f}`.
 
         * Total ramping cost:
 
           .. math::
 
              & c_\mathrm{rp,p,c}
-             = |\Delta_\mathrm{pr,p,c}| \mathrm{vc}_\mathrm{ramp,p,c} \\
+             = |\Delta_\mathrm{p,c}| \mathrm{vc}_\mathrm{ramp,p,c} \\
              & \forall \mathrm{(p,c)\in rp\_ca} \\
 
-        * Total fixed O&M cost:
+        * Total fixed O&M cost (only relevant for plants with capacity
+          additions and retirements):
 
           .. math::
 
              & c_\mathrm{om_f,p,c}
              = P_\mathrm{tot,p,c} \mathrm{fc}_\mathrm{om,p,c} \\
-             & \forall \mathrm{(p,c)\in ppall\_ca} \\
+             & \forall \mathrm{(p,c)\in add\_ca \cup rem\_ca} \\
 
 
         * Total annualized fixed investment cost:
@@ -797,7 +816,7 @@ class Constraints:
           .. math::
 
              & c_\mathrm{cp,p,c}
-             = P_\mathrm{new,p,c} \mathrm{fc}_\mathrm{cp,p,c} \\
+             = P_\mathrm{new,p,c} {c}_\mathrm{cp,p,c} \\
              & \forall \mathrm{(p,c)\in add\_ca} \\
 
 
@@ -962,7 +981,7 @@ class Constraints:
         ''' Quadratic objective function.
 
 
-        The objective function to be minimized is the sum over all system
+        The objective function to be minimized is the sum of all system
         costs:
 
         * Fuel costs of power plants with constant efficiency/supply curve:
@@ -974,7 +993,7 @@ class Constraints:
         * |CO2| emission costs of power plants with constant efficiency:
 
         .. math::
-            \sum_\mathrm{(p,c) \in pp\_ca \setminus lin\_ca} c_\mathrm{om_v,p,c}
+            \sum_\mathrm{(p,c) \in pp\_ca \setminus lin\_ca} c_\mathrm{em,p,c}
 
         * Variable O\&M costs of power plants:
 
