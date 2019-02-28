@@ -15,3 +15,5 @@ def _get_logger(name):
         logger.addHandler(f_handler)
 
     return logger
+
+logger = _get_logger(__name__)
