@@ -609,7 +609,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         self.df_tm_soy = pd.concat(list_tm_soy, axis=0)
         list_tm_soy_full = [tm.df_time_red.assign(tm_id=tm_id)
                             for tm_id, tm in self.tm_objs.items()]
-        self.df_tm_soy_full = pd.concat(list_tm_soy_full, axis=0)
+        self.df_tm_soy_full = pd.concat(list_tm_soy_full, axis=0, sort=True)
         list_hoy_soy = [tm.df_hoy_soy.assign(tm_id=tm_id)
                         for tm_id, tm in self.tm_objs.items()]
         self.df_hoy_soy = pd.concat(list_hoy_soy, axis=0)
