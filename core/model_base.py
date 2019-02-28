@@ -715,6 +715,8 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
             self._map_profile_to_time_resolution(df=df_tbsoy, itb=itb, idx=idx)
 
+        self._get_maximum_demand()
+
 
     def _add_tm_columns(self, df):
         '''
@@ -847,7 +849,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
         self.df_plant_encar[lstfc] /= tm_filt_weight
 
-    def get_maximum_demand(self):
+    def _get_maximum_demand(self):
         '''
         Calculation of maximum demand (in MW) with adjusted time resolution.
 
