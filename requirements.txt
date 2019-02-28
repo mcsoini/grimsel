@@ -1,1 +1,13 @@
-
+tabulate==0.8.3
+sh==1.12.14
+statsmodels==0.9.0
+matplotlib==2.2.3
+tables==3.4.4
+numpy==1.15.1
+pandas==0.23.4
+psycopg2==2.7.6.1
+SQLAlchemy==1.2.11
+Pyomo==5.5.0
+setuptools==40.2.0
+xlrd==1.1.0
+wrapt==1.11.1
