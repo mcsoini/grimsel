@@ -115,6 +115,8 @@ htmlhelp_basename = 'grimseldoc'
 
 autodoc_member_order = 'bysource'
 
+ autodoc_mock_imports = ['tables'] 
+
 # -- Options for LaTeX output ------------------------------------------------
 
 latex_elements = {
