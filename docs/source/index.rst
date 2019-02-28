@@ -7,7 +7,10 @@
 Welcome to the Grimsel docs
 ===========================
 
-Flexible energy system optimization framework driven by relational input data.
+Flexible energy system optimization framework based on relational input data.
+
+.. important::
+   This documentation is work in progress.
 
 ===========================
 
