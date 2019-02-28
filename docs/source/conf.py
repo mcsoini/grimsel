@@ -116,10 +116,20 @@ htmlhelp_basename = 'grimseldoc'
 autodoc_member_order = 'bysource'
 
 
-print('Setting autodoc_mock_imports')
-autodoc_mock_imports = ["tables", "Pyomo", "pyomo",
-                        "statsmodels", "psycopg2", "sqlalchemy"]
-print(autodoc_mock_imports)
+ autodoc_mock_imports = ["tables",
+                         "statsmodels", "psycopg2", "sqlalchemy"]
+# print('Setting autodoc_mock_imports')
+# print(autodoc_mock_imports)
+
+import sys
+from unittest.mock import MagicMock
+
+class Mock(MagicMock):
+    @classmethod
+    def __getattr__(cls, name):
+        return MagicMock()
+ MOCK_MODULES = ["Pyomo", "pyomo"]
+sys.modules.update((mod_name, Mock) for mod_name in MOCK_MODULES)
 
 # -- Options for LaTeX output ------------------------------------------------
 
