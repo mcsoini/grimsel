@@ -85,7 +85,6 @@ class ModelLoop():
 
         defaults = {
                     'nsteps': ModelLoop.nsteps_default,
-                    'dev_mode': False,
                     'mkwargs': None,
                     'iokwargs': None}
 
@@ -97,10 +96,7 @@ class ModelLoop():
 
         self.m = model_base.ModelBase(**self.mkwargs)
 
-        self.iokwargs.update({'model': self.m,
-                              'dev_mode': self.dev_mode,
-#                              'sql_connector': sql_connector,
-                              'db': self.db})
+        self.iokwargs.update({'model': self.m})
 
         self.io = io.IO(**self.iokwargs)
 
@@ -232,7 +228,8 @@ class ModelLoop():
 
         # can't use io method here if we want this to happen when no_output
         if self.io.modwr.output_target == 'psql':
-            aql.write_sql(df_add, self.db, self.io.cl_out, 'def_loop', 'append')
+            aql.write_sql(df_add, self.io.sql_connector.db,
+                          self.io.cl_out, 'def_loop', 'append')
         elif self.io.modwr.output_target == 'hdf5':
             with pd.HDFStore(self.io.cl_out, mode='a') as store:
                 store.append('def_loop', df_add, data_columns=True,
