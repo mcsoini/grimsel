@@ -929,54 +929,6 @@ class Constraints:
 
         self.cadd('calc_fc_cp', self.add_ca, rule=calc_fc_cp_rule)
 
-    def get_vc_fl(self):
-        r'''
-        Get total fuel cost calculated directly from power production:
-
-        .. math::
-           \sum_\mathrm{(t,p,c)\in sy\_lin\_ca}
-           p_\mathrm{t,p,c} w_\mathrm{\tau(p),t}
-           \cdot \mathrm{vc_{f(p),n(p)}}
-           \cdot (f_\mathrm{0,p,c} + 0.5 p_\mathrm{t,p,c} f_\mathrm{1,p,c})
-
-        '''
-
-        return \
-        sum(self.pwr[sy, lin, ca]
-            * self.weight[self.dict_pp_tm_id[lin], sy]
-            * self.vc_fl[self.dict_soy_month[(self.dict_pp_tm_id[lin], sy)],
-                         self.mps.dict_plant_2_fuel_id[lin],
-                         self.mps.dict_plant_2_node_id[lin]]
-            * (self.factor_lin_0[lin, ca]
-               + 0.5 * self.pwr[sy, lin, ca]
-                     * self.factor_lin_1[lin, ca])
-            for (sy, lin, ca) in set_to_list(self.sy_lin_ca, nnnn))
-
-    def get_vc_co(self):
-        r'''
-        Get total |CO2| emission cost calculated directly from power
-        production:
-
-        .. math::
-           \sum_\mathrm{(t,p,c)\in sy\_lin\_ca}
-           p_\mathrm{t,p,c} w_\mathrm{\tau(p),t}
-           \cdot \pi_\mathrm{CO_2, m(t), n(p)} i_\mathrm{CO_2,f}
-           \cdot (f_\mathrm{0,p,c} + 0.5 p_\mathrm{t,p,c} f_\mathrm{1,p,c})
-
-        '''
-
-        return \
-        sum(self.pwr[sy, lin, ca] * self.weight[self.dict_pp_tm_id[lin], sy]
-            * (self.price_co2[self.dict_soy_month[(self.dict_pp_tm_id[lin], sy)],
-                              self.mps.dict_plant_2_node_id[lin]]
-               if 'price_co2' in self.parameter_month_list
-               else self.price_co2[self.mps.dict_plant_2_node_id[lin]])
-            * self.co2_int[self.mps.dict_plant_2_fuel_id[lin]]
-                * (self.factor_lin_0[lin, ca]
-                   + 0.5 * self.pwr[sy, lin, ca]
-                   * self.factor_lin_1[lin, ca])
-            for (sy, lin, ca) in set_to_list(self.sy_lin_ca, nnnn))
-
     def add_objective_rules(self):
         ''' Quadratic objective function.
 
@@ -1054,5 +1006,54 @@ class Constraints:
 
         self.cadd('objective_quad', rule=objective_rule_quad,
                   sense=po.minimize, objclass=po.Objective)
+
+    def get_vc_fl(self):
+        r'''
+        Get total fuel cost calculated directly from power production:
+
+        .. math::
+           \sum_\mathrm{(t,p,c)\in sy\_lin\_ca}
+           p_\mathrm{t,p,c} w_\mathrm{\tau(p),t}
+           \cdot \mathrm{vc_{f(p),n(p)}}
+           \cdot (f_\mathrm{0,p,c} + 0.5 p_\mathrm{t,p,c} f_\mathrm{1,p,c})
+
+        '''
+
+        return \
+        sum(self.pwr[sy, lin, ca]
+            * self.weight[self.dict_pp_tm_id[lin], sy]
+            * self.vc_fl[self.dict_soy_month[(self.dict_pp_tm_id[lin], sy)],
+                         self.mps.dict_plant_2_fuel_id[lin],
+                         self.mps.dict_plant_2_node_id[lin]]
+            * (self.factor_lin_0[lin, ca]
+               + 0.5 * self.pwr[sy, lin, ca]
+                     * self.factor_lin_1[lin, ca])
+            * self.nd_weight[self.mps.dict_plant_2_node_id[lin]]
+            for (sy, lin, ca) in set_to_list(self.sy_lin_ca, nnn))
+
+    def get_vc_co(self):
+        r'''
+        Get total |CO2| emission cost calculated directly from power
+        production:
+
+        .. math::
+           \sum_\mathrm{(t,p,c)\in sy\_lin\_ca}
+           p_\mathrm{t,p,c} w_\mathrm{\tau(p),t}
+           \cdot \pi_\mathrm{CO_2, m(t), n(p)} i_\mathrm{CO_2,f}
+           \cdot (f_\mathrm{0,p,c} + 0.5 p_\mathrm{t,p,c} f_\mathrm{1,p,c})
+
+        '''
+
+        return \
+        sum(self.pwr[sy, lin, ca] * self.weight[self.dict_pp_tm_id[lin], sy]
+            * (self.price_co2[self.dict_soy_month[(self.dict_pp_tm_id[lin], sy)],
+                              self.mps.dict_plant_2_node_id[lin]]
+               if self.dict_par['price_co2'].has_monthly_factors
+               else self.price_co2[self.mps.dict_plant_2_node_id[lin]])
+            * self.co2_int[self.mps.dict_plant_2_fuel_id[lin]]
+                * (self.factor_lin_0[lin, ca]
+                   + 0.5 * self.pwr[sy, lin, ca] * self.factor_lin_1[lin, ca])
+            * self.nd_weight[self.mps.dict_plant_2_node_id[lin]]
+            for (sy, lin, ca) in set_to_list(self.sy_lin_ca, nnn))
 
 
