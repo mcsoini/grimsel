@@ -302,13 +302,13 @@ class Sets:
         '''
         # define lists for set initialization
         self.setlst = {}
-        _df = self.df_def_plant
-        self.setlst['ppall'] = _df.loc[_df['set_def_tr'] == 0,
-                                       'pp_id'].tolist()
-        for ippset in _df.columns[_df.columns.str.contains('set_def')]:
-            # Note: index starting at 8 removes prefix set_def_
-            self.setlst[ippset[8:]] = _df.loc[_df[ippset] == 1,
-                                              'pp_id'].tolist()
+        df = self.df_def_plant
+
+        self.setlst['ppall'] = (df.query('set_def_tr == 0 & set_def_dmd == 0')
+                                  .pp_id.tolist())
+        for ippset in df.columns[df.columns.str.contains('set_def')]:
+            # Note: index starting at 8 removes prefix set_def_ from col name
+            self.setlst[ippset[8:]] = df.loc[df[ippset] == 1, 'pp_id'].tolist()
         mask_node = self.df_def_node['nd_id'].isin(self.slct_node_id)
         self.setlst['nd'] = self.df_def_node.loc[mask_node]['nd_id'].tolist()
         self.setlst['ca'] = self.df_def_encar['ca_id'].get_values().tolist()
