@@ -117,7 +117,7 @@ autodoc_member_order = 'bysource'
 
 
 print('Setting autodoc_mock_imports')
-autodoc_mock_imports = ["tables", "Pyomo", "pyomo", "matplotlib", 
+autodoc_mock_imports = ["tables", "Pyomo", "pyomo", 
                         "statsmodels",
                         "psycopgy2"]
 print(autodoc_mock_imports)
