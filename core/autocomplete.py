@@ -22,6 +22,8 @@ class AutoComplete(abc.ABC):
     Base class for the autocompletion of model input DataFrames.
     '''
 
+    new_cols = {}
+
     def __init__(self, m):
 
         format_list = [self.df_name, type(self).__name__]
@@ -197,9 +199,15 @@ class AutoComplete(abc.ABC):
 
         '''
 
-        add_cols = [c for c in self.df_add.columns if c in self._df.columns]
-        setattr(self.m, self.df_name,
-                pd.concat([self._df, self.df_add[add_cols]], sort=False))
+        add_cols = [c for c in self.df_add.columns
+                    if c in self._df.columns] + list(self.new_cols)
+
+        df_new = pd.concat([self._df, self.df_add[add_cols]], sort=False)
+
+        for col, def_val in self.new_cols.items():
+            df_new[col] = df_new[col].fillna(def_val)
+
+        setattr(self.m, self.df_name, df_new)
         self._df = getattr(self.m, self.df_name)
 
 
@@ -428,6 +436,8 @@ class AutoCompleteFuelDmnd(AutoCompleteFuel):
 
 class AutoCompletePlantDmnd(AutoCompletePlant):
 
+    new_cols = {'set_def_dmd': 0}
+
     def __init__(self, m, autocomplete_curtailment):
 
         self.autocomplete_curtailment = autocomplete_curtailment
@@ -457,6 +467,10 @@ class AutoCompletePlantDmnd(AutoCompletePlant):
 
         self.add_id_cols()
         self.add_zero_cols()
+
+        mask_dmnd = ~self.df_add.pt.str.contains('FLEX')
+        self.df_add['set_def_dmd'] = 0
+        self.df_add.loc[mask_dmnd, 'set_def_dmd'] = 1
 
         mask_flex = self.df_add.pt.str.contains('FLEX')
         self.df_add.loc[mask_flex, 'set_def_curt'] = 1
