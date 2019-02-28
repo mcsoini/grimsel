@@ -24,7 +24,6 @@ import string
 import random
 
 #from grimsel.auxiliary.aux_general import get_config
-import grimsel.config as config
 
 # %%
 
@@ -45,10 +44,10 @@ class SqlConnector():
         self.db = db
 
         config_dict = {
-        'user': config.PSQL_USER,
-        'password': config.PSQL_PASSWORD,
-        'host': config.PSQL_HOST,
-        'port': config.PSQL_PORT
+        'user': None,
+        'password': None,
+        'host': None,
+        'port': None
         }
 
         for kw, val in config_dict.items():
@@ -1274,10 +1273,10 @@ def dump_by_table_sh(sc, db, target_dir):
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
 
-    db_format = dict(user=config.PSQL_USER,
-                     pw=config.PSQL_PASSWORD,
-                     host=config.PSQL_HOST,
-                     port=config.PSQL_PORT,
+    db_format = dict(user=None,
+                     pw=None,
+                     host=None,
+                     port=None,
                      db=db)
     dbname = 'postgresql://{user}:{pw}@{host}:{port}/{db}'.format(**db_format)
 
@@ -1341,10 +1340,10 @@ def read_by_table(db, sc,
 
     reset_schema(sc, db, warn=warn_reset_schema)
 
-    db_format = dict(user=config.PSQL_USER,
-                     pw=config.PSQL_PASSWORD,
-                     host=config.PSQL_HOST,
-                     port=config.PSQL_PORT,
+    db_format = dict(user=None,
+                     pw=None,
+                     host=None,
+                     port=None,
                      db=db)
     dbname = 'postgresql://{user}:{pw}@{host}:{port}/{db}'.format(**db_format)
 
