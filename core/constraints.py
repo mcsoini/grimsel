@@ -709,8 +709,9 @@ class Constraints:
             else:
                 return po.Constraint.Skip
 
-        self.cadd('hy_reservoir_boundary_conditions', self.sy_hyrs_ca,
-                  rule=hy_reservoir_boundary_conditions_rule)
+        if hasattr(self, 'hyd_erg_bc'):
+            self.cadd('hy_reservoir_boundary_conditions', self.sy_hyrs_ca,
+                      rule=hy_reservoir_boundary_conditions_rule)
 
         def hy_month_min_rule(self, mt, pp, nd, ca, fl):
             '''Reservoirs minimum monthlyl power production.'''
