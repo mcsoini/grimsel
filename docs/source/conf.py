@@ -118,18 +118,41 @@ autodoc_member_order = 'bysource'
 
 autodoc_mock_imports = ["tables",
                          "statsmodels", "psycopg2", "sqlalchemy"]
-# print('Setting autodoc_mock_imports')
-# print(autodoc_mock_imports)
+
+
 
 import sys
-from unittest.mock import MagicMock
 
-class Mock(MagicMock):
+class Mock(object):
+    __all__ = []
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def __call__(self, *args, **kwargs):
+        return Mock()
+
     @classmethod
     def __getattr__(cls, name):
-        return MagicMock()
-MOCK_MODULES = ["Pyomo", "pyomo", "pyomo.environ"]
-sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+        if name in ('__file__', '__path__'):
+            return '/dev/null'
+        elif name[0] == name[0].upper():
+            mockType = type(name, (), {})
+            mockType.__module__ = __name__
+            return mockType
+        else:
+            return Mock()
+
+MOCK_MODULES = [
+    'pyomo', 'pyomo.core', 'pyomo.opt', 'pyomo.environ',
+    'pyomo.core.base.sets', 'pyomo.core.base.objective'
+]
+
+for m in MOCK_MODULES:
+    sys.modules[m] = Mock()
+
+
+
 
 # -- Options for LaTeX output ------------------------------------------------
 
