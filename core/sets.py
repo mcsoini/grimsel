@@ -220,12 +220,6 @@ class Sets:
         # fuels with energy constraints
         lst = self.df_def_fuel.loc[self.df_def_fuel.is_constrained==1,
                                        'fl_id'].tolist()
-
-        # all plants with ramping costs
-        vcrp_pos = (self.df_plant_encar.loc[self.df_plant_encar.vc_ramp > 0]
-                        .set_index(['pp_id', 'ca_id']).index.values)
-        rp = [ppca for ppca in vcrp_pos if ppca[0] in self.setlst['rp']]
-        self.rp_ca = po.Set(within=self.ppall_ca, initialize=rp, ordered=True)
         self.fl_erg = po.Set(within=self.fl, initialize=lst, ordered=True)
 
         # set pf_id for profiles
