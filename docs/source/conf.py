@@ -115,8 +115,8 @@ htmlhelp_basename = 'grimseldoc'
 
 autodoc_member_order = 'bysource'
 
- autodoc_mock_imports = ["tables", "Pyomo", "matplotlib", "statsmodels", "numpy",
-                         "psycopgy2"] 
+autodoc_mock_imports = ["tables", "Pyomo", "matplotlib", "statsmodels",
+                        "numpy", "psycopgy2"]
 
 # -- Options for LaTeX output ------------------------------------------------
 
