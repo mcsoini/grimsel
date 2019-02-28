@@ -418,41 +418,40 @@ class Parameters:
 
         doc_dict = {
         'Model structure': {
-                    'weight': r':math:`\mathrm{w_{\tau, t}} : \forall \mathrm{(\tau, t) \in tmsy}`: Time slot weight, indexed by time map :math:`\tau` and time slot :math:`t`.',
+                    'weight': r':math:`{w_\mathrm{\tau, t}} : \forall \mathrm{(\tau, t) \in tmsy}`: Time slot weight, indexed by time map :math:`\tau` and time slot :math:`t`.',
                     },
         'Profiles': {
-                    'dmnd': r':math:`\Phi_\mathrm{dmd, t, \phi} : \forall \mathrm{(t,\phi) \in sy\_pf}`: Demand profile with profile id :math:`\phi`',
-                    'chpprof': r':math:`\Phi_\mathrm{chp, t, \phi} : \forall \mathrm{(t,\phi) \in sy\_pf}`: CHP profile with profile id :math:`\phi`',
-                    'supprof': r':math:`\Phi_\mathrm{supply, t, \phi} : \forall \mathrm{(t,\phi) \in sy\_pf}`: Supply (VRE) profile with profile id :math:`\phi`',
-                    'inflowprof': r':math:`\Phi_\mathrm{inflow, t, \phi} : \forall \mathrm{(t,\phi) \in sy\_pf}`: Reservoir inflow profile with profile id :math:`\phi`',
-                    'inflowprof': r':math:`\Phi_\mathrm{inflow, t, \phi} : \forall \mathrm{(t,\phi) \in sy\_pf}`: Reservoir inflow profile with profile id :math:`\phi`',
-                    'pricebuyprof': r':math:`\Phi_\mathrm{pbuy, t, \phi} : \forall \mathrm{(t,\phi) \in sy\_pf}`: Energy carrier price profile (buying) with id :math:`\phi`',
-                    'pricesllprof': r':math:`\Phi_\mathrm{psell, t, \phi} : \forall \mathrm{(t,\phi) \in sy\_pf}`: Energy carrier price profile (selling) with id :math:`\phi`',
+                    'dmnd': r':math:`\Phi_\mathrm{dmd, t, n,c} : \forall \mathrm{(t,n,c) \in sy\_ndca}`: Demand profile',
+                    'chpprof': r':math:`\Phi_\mathrm{chp, t, n,c} : \forall \mathrm{(t,n,c) \in sy\_ndca}`: CHP profile',
+                    'supprof': r':math:`\Phi_\mathrm{supply, t, p,c} : \forall \mathrm{(t,p,c) \in sy\_pp\_ca}`: Supply (VRE) profile',
+                    'inflowprof': r':math:`\Phi_\mathrm{inflow, t, p,c} : \forall \mathrm{(t,p,c) \in sy\_hyrs\_ca \cup sy\_ror\_ca}`: Reservoir and run-of-river inflow profile',
+                    'pricebuyprof': r':math:`\Phi_\mathrm{pbuy, t, \phi} : \forall \mathrm{(t,\phi) \in sy\times pf}`: Energy carrier price profile (buying)',
+                    'pricesllprof': r':math:`\Phi_\mathrm{psell, t, \phi} : \forall \mathrm{(t,\phi) \in sy\times pf}`: Energy carrier price profile (selling)',
                     },
         'Hydro parameters': {
                     'min_erg_mt_out_share': r':math:`\rho_\mathrm{min\_erg\_out, p} : \forall \mathrm{p \in hyrs}`: Minimum monthly reservoir production as share of maximum monthly inflow :math:`\rho_\mathrm{max\_erg\_in, hyrs}` :math:`\mathrm{(-)}`.',
                     'max_erg_mt_in_share': r':math:`\rho_\mathrm{max\_erg\_in, p} : \forall \mathrm{p \in hyrs}`: Maximum monthly reservoir inflow :math:`\mathrm{(-)}`.',
-                    'min_erg_share': r':math:`\rho_\mathrm{min_cap,p} : \forall \mathrm{p \in hyrs}`: Maximum monthly reservoir inflow :math:`\mathrm{(-)}`.',
-                    'hyd_erg_bc': r':math:`e_\mathrm{hyd\_bc, p,c} : \forall \mathrm{(p,c) \in hyrs\_ca}`: Hydro filling level boundary conditions for specific hours as share of energy capacity :math:`\mathrm{(-)}`.',
+                    'min_erg_share': r':math:`\rho_\mathrm{min\_cap,p} : \forall \mathrm{p \in hyrs}`: Maximum monthly reservoir inflow :math:`\mathrm{(-)}`.',
+                    'hyd_erg_bc': r':math:`\rho_\mathrm{hyd\_bc, t,p} : \forall \mathrm{(t,p) \in sy\_hydbc \times hyrs}`: Hydro filling level boundary conditions for specific hours as share of energy capacity :math:`\mathrm{(-)}`.',
                     },
         'Grid and transmission': {
                     'cap_trme_leg': r':math:`P_\mathrm{exp, m,n_1,n_2,c} : \forall \mathrm{(m,n_1,n_2,c) \in mt \times ndcnn}`: Internodal monthly export capacity.',
                     'cap_trmi_leg': r':math:`P_\mathrm{imp, m,n_1,n_2,c} : \forall \mathrm{(m,n_1,n_2,c) \in mt \times ndcnn}`: Internodal monthly import capacity.',
                     'grid_losses': r':math:`\mathrm{\eta_{grid, n,c}} : \forall \mathrm{(n,c) \in nd\_ca}`: Grid losses for each node and energy carrier.',
         },
-        'Technical asset properties': {
+        'Technical properties of assets': {
                     'cap_pwr_leg': r':math:`P_\mathrm{leg, p,c}: \forall \mathrm{(p,c) \in ppall\_ca}`: Legacy power plant capacity :math:`\mathrm{(MW)}`.',
-                    'discharge_duration': r':math:`\zeta_\mathrm{p,c}: \forall\mathrm{(p,c) \in st\_ca \cup hyrs\_ca}`: Hydro filling level boundary conditions for specific hours as share of energy capacity :math:`\mathrm{(-)}`.',
-                    'pp_eff': r':math:`\eta_\mathrm{p}: \forall \mathrm{p\in ppall\_ca}`: Power plant efficiency for constant supply curves :math:`\mathrm{(MWh_{el}/MWh_{fl})}`.',
-                    'erg_chp': r':math:`e_\mathrm{chp,p,c} : \forall \mathrm{(p,c) \in chp\_ca}`: Heat-driven electricity generation from co-generation plants :math:`\mathrm{(MWh_{el}/yr)}`.',
-                    'erg_inp': r':math:`e_\mathrm{inp,n,c,f} : \forall \mathrm{(n,c,f) \in nd\_ca\_fl}`: exogenous energy production by fuel and node :math:`\mathrm{(MWh_{el}/yr)}`.',
+                    'discharge_duration': r':math:`\zeta_\mathrm{p,c}: \forall\mathrm{(p,c) \in st\_ca \cup hyrs\_ca}`: Ratio of energy capacity and power capacity for energy storing assets :math:`\mathrm{(hours)}`.',
+                    'pp_eff': r':math:`\eta_\mathrm{p,c}: \forall \mathrm{(p,c)\in pp\_ca\setminus lin\_ca}`: Power plant efficiency for constant supply curves :math:`\mathrm{(MWh_{c}/MWh_{fl})}`.',
+                    'erg_chp': r':math:`e_\mathrm{chp,p,c} : \forall \mathrm{(p,c) \in chp\_ca}`: Heat-driven electricity generation from co-generation plants :math:`\mathrm{(MWh_{el}/yr)}`; used to scale the CHP profile :math:`\Phi_\mathrm{chp,t,n,c}`.',
+                    'erg_inp': r':math:`e_\mathrm{inp,n,c,f} : \forall \mathrm{(n,c,f) \in ndcafl}`: exogenous energy production by fuel and node :math:`\mathrm{(MWh_{el}/yr)}`.',
                     'st_lss_hr': r':math:`\mathrm{\epsilon_{hr, p,c}} : \forall \mathrm{(p,c) \in st\_ca}`: Hourly storage leakage losses :math:`\mathrm{(1/hr)}`.',
                     'st_lss_rt': r':math:`\mathrm{\epsilon_{rt, p,c} }: \forall \mathrm{(p,c) \in st\_ca}`: Storage round-trip losses :math:`\mathrm{(-)}`.',
                     'cap_avlb': r':math:`\mathrm{\alpha_{mt, p,c}}: \forall \mathrm{(p,c) \in pp\_ca}`: Relative monthly capacity availability of dispatchable plants.',
                     },
         'Specific costs': {
-                    'vc_ramp': r':math:`vc_\mathrm{ramp, p,c} : \forall \mathrm{(p,c) \in ppall\_ca}`: Specific variable ramping cost :math:`\mathrm{(EUR/MW)}`.',
-                    'vc_fl': r':math:`vc_\mathrm{f,n} : \forall \mathrm{(f,n) \in fl\_nd}`: Specific fuel cost in each node :math:`\mathrm{(EUR/MWh_{fl})}`.',
+                    'vc_ramp': r':math:`\mathrm{vc_{ramp, p,c}} : \forall \mathrm{(p,c) \in ppall\_ca}`: Specific variable ramping cost :math:`\mathrm{(EUR/MW)}`.',
+                    'vc_fl': r':math:`\mathrm{vc_{f,n}} : \forall \mathrm{(f,n) \in fl\_nd}`: Specific fuel cost in each node :math:`\mathrm{(EUR/MWh_{fl})}`.',
                     'vc_om': r':math:`\mathrm{vc_{om, p,c}} : \forall \mathrm{(p,c) \in ppall\_ca}`: Specific variable O\&M costs :math:`\mathrm{(EUR/MWh_{el})}`.',
                     'fc_om': r':math:`\mathrm{fc_{om, p,c}} : \forall \mathrm{(p,c) \in ppall\_ca}`: Specific fixed O\&M costs :math:`\mathrm{(EUR/MW/yr)}`.',
                     'fc_cp_ann': r':math:`\mathrm{fc_{cp, p,c}} : \forall \mathrm{(p,c) \in ppall\_ca}`: Annualized specific capital investment costs :math:`\mathrm{(EUR/MW/yr)}`.',
@@ -462,8 +461,8 @@ class Parameters:
                     'factor_lin_1': r':math:`f_\mathrm{1, p,c} : \forall \mathrm{(p,c) \in lin\_ca}`: First-order linear supply curve efficiency coefficient :math:`\mathrm{(MWh_{fl}/MWh_{el}/MW_{el})}`.',
                     },
         'Emission parameters': {
-                    'price_co2': r':math:`\pi_\mathrm{CO_2, n} : \forall \mathrm{n \in nd}`: Node-specific CO:sub:`2` price :math:`\mathrm{(EUR/t_{CO_2})}`.',
-                    'co2_int': r':math:`i_\mathrm{CO_2, f} : \forall \mathrm{f \in fl}`: Fuel-specific CO:sub:`2` intensity :math:`\mathrm{(t_{CO_2}/MWh_{fl})}`.',
+                    'price_co2': r':math:`\pi_\mathrm{CO_2, n} : \forall \mathrm{n \in nd}`: Node-specific |CO2| price :math:`\mathrm{(EUR/t_{CO_2})}`.',
+                    'co2_int': r':math:`i_\mathrm{CO_2, f} : \forall \mathrm{f \in fl}`: Fuel-specific |CO2| intensity :math:`\mathrm{(t_{CO_2}/MWh_{fl})}`.',
                     }}
 
         doc_dict_origin = {'cap_avlb': 'merge(df_plant_encar, df_parameter_month)',
@@ -520,19 +519,19 @@ class Parameters:
 
         doc_str = ''
         for cat in doc_dict.keys():
-            doc_str += ('\n'*2)
-            doc_str += (cat + '\n')
-            doc_str += ('*'*len(cat) + '\n\n')
-
-            doc_str += (
-            tabulate.tabulate(df.loc[df.index.get_level_values('cat') == cat],
+            table_str = tabulate.tabulate(df.loc[df.index.get_level_values('cat') == cat],
                                      tablefmt='rst', showindex=False,
                                      headers=cols)
-            )
+            table_str = table_str.replace('\n', '\n    ')
 
-#        fn = os.path.join(os.path.relpath('../../grimsel_docs/source', os.path.dirname(__file__)), 'doc_core_parameters.rst')
+            table_dir_str = '.. table:: **{}**\n\n    '.format(cat)
+            table_str = table_dir_str + table_str
 
-#        print(os.path.abspath(fn))
+            doc_str += ('\n'*2)
+
+            doc_str += table_str
+
+#        print(doc_str)
 
         return doc_str
 
