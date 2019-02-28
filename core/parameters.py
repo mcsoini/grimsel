@@ -10,128 +10,182 @@ import pyomo.environ as po
 import pyomo.core.base.sets as poset
 import itertools
 import pandas as pd
-import os
+import wrapt
+from collections import namedtuple
 
-from grimsel.auxiliary.aux_m_func import pdef, set_to_list
+from grimsel.auxiliary.aux_m_func import set_to_list
 import grimsel.core.io as io
 from grimsel import _get_logger
 
 logger = _get_logger(__name__)
 
+class ParameterAdder:
+    '''
+    Takes care of initializing, setting, and resetting a single parameter.
 
-
-
-
-class Parameters:
-    r'''
-    Mixin class containing all parameter definitions.
+    Parameters
+    ----------
+    parameter_name : str
+        used as model attribute, also assumed to be the
+        column name in case ``value_col==False``
+    parameter_index : tuple
+        tuple of pyomo sets as parameter index
+    source_dataframe : str or pandas.DataFrame
+        input dataframe (or its attribute name)
+        containing the parameter values
+    value_col : str
+        name of the ``source_dataframe`` parameter value column;
+        optional---is set to the parameter name if no value is provided
+    mutable : bool
+        passed to the ``pyomo.environ.Param`` initialization
+    default : numeric
+        parameter default value; passed to the ``pyomo.environ.Param``
+        initialization
 
     '''
 
-    # holds the names of all parameters which got modified by monthly factors
-    parameter_month_list = []
 
-    def define_parameters(self):
+    def __init__(self, m, par):
+
+
+        self.m = m
+        self.parameter_name = par.parameter_name
+        self.source_dataframe = par.source_dataframe
+        self.filt_cols = par.filt_cols
+        self.filt_vals = par.filt_vals
+        self.param_kwargs = {'mutable': par.mutable,
+                             'default': par.default}
+
+        log_str = ('Assigning parameter '
+                   '{par} ...'.format(par=self.parameter_name))
+        logger.info(log_str)
+
+
+        self.parameter_index = ((par.parameter_index,)
+                           if not isinstance(par.parameter_index, tuple)
+                           else par.parameter_index)
+
+
+
+
+        self.value_col = (par.value_col
+                          if par.value_col else self.parameter_name)
+
+
+        self.has_monthly_factors = (
+            self.parameter_name
+            in self.m.df_parameter_month.parameter.unique())
+
+        self.index_cols = (par.index_cols
+                           if par.index_cols else self._get_index_cols())
+
+#        return
+
+        self.df, self.flag_infeasible = self._get_param_data()
+
+        if (not self.flag_infeasible
+            and not self.m.check_valid_indices(self.parameter_index)):
+            self.flag_infeasible = True
+
+        # check if column exists in table
+        if not self.flag_infeasible and self.value_col not in self.df.columns:
+            logger.warning(' failed (column doesn\'t exist).')
+            self.flag_infeasible = True
+
+
+        if self.has_monthly_factors:
+            df_mt, sets_new = self._apply_monthly_factors(self.df)
+
+            self._df = df_mt
+            self.index_cols = list(sets_new)
+
+            # get set objects
+            self.parameter_index = (self.m.mt, *self.parameter_index)
+
+            # modify IO class attribute to get the output table indices right
+            io.DICT_IDX[self.parameter_name] = sets_new
+
+    @property
+    def df(self):
         '''
-        Adds all parameters to the model.
+        ``df`` is the DataFrame holding the parameter data. It is implemented
+        as a property so it can't be changed after initialization of the
+        :class:`ParameterAdder` object.
+        '''
+        return self._df
 
-        Selects appropriate data from the input DataFrames. Calls the method
-        :func:Parameters.padd.
+    @df.setter
+    def df(self, val):
+
+        if hasattr(self, 'df'):
+            raise RuntimeError('Trying to set frozen attribute '
+                               'ParameterAdder.df')
+        else:
+            self._df = val
+
+
+
+
+    @wrapt.decorator
+    def _if_is_feasible(f, self, args, kwargs):
+        if not self.flag_infeasible:
+            return f(*args, **kwargs)
+        else:
+            pass
+
+    @_if_is_feasible
+    def init_update(self, *args):
+        '''
+
+        Parameters
+        ----------
+        args
+            The :func:`_get_data_dict` parameters ``(df, monthly_fact_col)``
 
         '''
 
-        mut = {'mutable': True}
-        inf = {'default': float('inf')}
+        data = self._get_data_dict(*args)
 
-        logger.info('Profile parameters:')
-        self.padd('dmnd', (self.sy, self.dmnd_pf), 'df_profdmnd_soy', 'value', **mut, default=0) # Complete information on demand
-        self.padd('chpprof', (self.sy, self.nd, self.ca), 'df_profchp_soy', 'value', **mut) # Relative heat demand profile.
-        self.padd('supprof', (self.sy, self.supply_pf), 'df_profsupply_soy', 'value', **mut) # Supply from variable generators.
-        self.padd('inflowprof', (self.sy, self.hyrs | self.ror, self.ca), 'df_profinflow_soy', 'value', **mut) # Hydro inflow profiles.
+        if not hasattr(self.m, self.parameter_name):
+            # new parameter
+            log_str = ' ok.'
 
-        self.padd('pricebuyprof', (self.sy, self.pricebuy_pf), 'df_profpricebuy_soy', 'value', **mut) # Relative heat demand profile.
-        self.padd('pricesllprof', (self.sy, self.pricesll_pf), 'df_profpricesll_soy', 'value', **mut) # Relative heat demand profile.
+            self.param_kwargs['initialize'] = data
+            setattr(self.m, self.parameter_name,
+                    po.Param(*self.parameter_index, **self.param_kwargs)
+                    )
+        else:
+            # update parameter values
+            log_str = ' parameter exists: updating.'
+            for key, val in data.items():
+                getattr(self.m, self.parameter_name)[key] = val
 
-        logger.info('Hydro parameters')
-        self.padd('min_erg_mt_out_share', (self.hyrs,), 'df_hydro') # minimum monthly production as share of max_erg_mt_in_share.
-        self.padd('max_erg_mt_in_share', (self.hyrs,), 'df_hydro') # maximum monthly inflow as share of yearly total.
-        self.padd('min_erg_share', (self.hyrs,), 'df_hydro', **mut) # minimum filling level as share of cap_erg.
+        logger.info(log_str)
 
-        logger.info('Defining general parameters')
-        self.padd('weight', (self.tmsy,), self.df_tm_soy) # Weight per time slot.
-        self.padd('grid_losses', (self.nd, self.ca), self.df_node_encar, **mut) # Grid losses.
-
-        self.padd('cap_trme_leg', (self.mt, self.ndcnn,), 'df_node_connect', **mut) # Cross-node transmission capacity.
-        self.padd('cap_trmi_leg', (self.mt, self.ndcnn,), 'df_node_connect', **mut) # Cross-node transmission capacity.
-
-        logger.info('Defining ramping parameters')
-        _df = self.df_plant_encar.set_index(['pp_id', 'ca_id'])
-        list_rp_ca = set_to_list(self.rp_ca, [None, None])
-        _df = _df.loc[list_rp_ca, 'vc_ramp'].reset_index()
-        self.padd('vc_ramp', (self.ppall, self.ca), _df, **mut) # .
-
-        logger.info('Defining pp parameters')
-        _df = self.df_plant_encar.copy()
-        _df = _df.loc[_df['pp_id'].isin(self.setlst['pp'])]
-        self.padd('pp_eff', (self.ppall, self.ca), _df, default=1) # .
-        self.padd('cf_max', (self.pp, self.ca), _df, **mut) # .
-        df = self.df_plant_encar.loc[self.df_plant_encar.pp_id.isin(self.chp)]
-        self.padd('erg_chp', (self.pp, self.ca), df, **mut)
-
-        logger.info('Defining fuel parameters')
-        self.padd('erg_inp', (self.ndcafl), 'df_fuel_node_encar', **mut)
-        self.padd('vc_fl', (self.fl, self.nd), 'df_fuel_node_encar', default=0, **mut) # EUR/MWh_el
-
-        _df = self.df_plant_encar.copy()
-        _df = _df.loc[_df.pp_id.isin(self.setlst['lin'])]
-        self.padd('factor_lin_0', (self.lin, self.ca), _df, default=0, **mut) # EUR/MWh_el
-        self.padd('factor_lin_1', (self.lin, self.ca), _df, default=0, **mut) # EUR/MWh_el
-        self.padd('price_co2', (self.nd,), 'df_def_node', **mut) # EUR/MWh_el
-        _df = self.df_def_fuel.loc[self.df_def_fuel.fl_id.isin(self.setlst['fl'])]
-        self.padd('co2_int', (self.fl,), _df, **mut) # t/MWh_fl
-
-        logger.info('Defining parameters for all generators')
-        _df = self.df_plant_encar.copy()
-        _df = _df.loc[_df['pp_id'].isin(self.setlst['ppall'])]
-        sets = (self.pp | self.pr | self.ror | self.st | self.hyrs
-                | self.curt | self.lin, self.ca)
-        self.padd('cap_pwr_leg', sets, _df, **mut) # .
-        self.padd('vc_om', sets, _df, **mut) # .
-        self.padd('fc_om', sets, _df, **mut, default=0) # .
-
-        _df = _df.loc[_df['pp_id'].isin(self.setlst['pp'])]
-        self.padd('cap_avlb', (self.pp, self.ca), _df, **mut) # .
-
-        logger.info('Defining parameters investment')
-        _df = self.df_plant_encar.copy()
-        _df = _df.loc[_df['pp_id'].isin(self.setlst['add'])]
-        self.padd('fc_cp_ann', (self.add, self.ca), _df, **mut) # .
-
-        logger.info('Defining st + hybrid parameters')
-        _df = self.df_plant_encar.copy()
-        _df = _df.loc[_df['pp_id'].isin(self.setlst['st'])]
-        self.padd('st_lss_hr', (self.st, self.ca), _df, **mut)
-        self.padd('st_lss_rt', (self.st, self.ca), _df, **mut)
-
-        logger.info('Defining hy parameters')
-        self.padd('hyd_erg_bc', (self.sy_hydbc, self.hyrs), self.df_plant_month)
-
-        logger.info('Defining st + hyrs parameters')
-        _df = self.df_plant_encar
-        _df = (_df.loc[_df['pp_id'].isin(self.setlst['st'] + self.setlst['hyrs'])])
-        self.padd('discharge_duration', (self.st | self.hyrs, self.ca), _df, **mut)
-
-        logger.info('Defining parameter for investment and retirement control')
-        self.capchnge_max = po.Param(initialize=float('inf'), **mut)
-
-        # applying monthly adjustment factors to some parameters as defined
-        # in the self.df_parameter_month input table
-        if not self.df_parameter_month is None:
-            self.apply_monthly_factors_all()
-
-    def _get_param_data(self, source_dataframe):
+    def _get_data_dict(self, df=False, monthly_fact_col=None):
         '''
-        Performs various checks on the
+        Returns a data dictionary for internal or external data.
+
+        '''
+
+        if isinstance(df, bool) and not df:
+            # case no df input -> use internal data
+            df = self.df
+        else:
+            # case external df cols don't have mt_id but index_cols does
+            if (not 'mt_id' in df.columns) and ('mt_id' in self.index_cols):
+                # apply monthly factors to external df
+                df, _ = (self._apply_monthly_factors(df) if not monthly_fact_col
+                         else self._apply_monthly_factors(df, monthly_fact_col))
+            else:
+                # use external df as is
+                df = df
+
+        return df.set_index(self.index_cols)[self.value_col].to_dict()
+
+    def _get_param_data(self):
+        '''
+        Performs various checks
 
         Parameters
         ----------
@@ -143,10 +197,10 @@ class Parameters:
         df = pd.DataFrame()
         flag_empty = False
 
-        if type(source_dataframe) is str:
+        if type(self.source_dataframe) is str:
 
-            if hasattr(self, source_dataframe):
-                df = getattr(self, source_dataframe)
+            if hasattr(self.m, self.source_dataframe):
+                df = getattr(self.m, self.source_dataframe).copy()
                 if df is None:
                     logger.warning('... failed (source_dataframe is None).')
                     df = pd.DataFrame()
@@ -156,62 +210,31 @@ class Parameters:
                 df = pd.DataFrame()
                 flag_empty = True
 
-        elif type(source_dataframe) is pd.DataFrame:
-            df = source_dataframe
+        elif type(self.source_dataframe) is pd.DataFrame:
+            df = self.source_dataframe.copy()
+
+        if (not flag_empty) and (self.filt_cols and self.filt_vals):
+            df = df.set_index(self.filt_cols).loc[self.filt_vals]
+            df = df.reset_index()
+
+        # check if column exists in table
+        if not flag_empty and self.value_col not in df.columns:
+            logger.warning(' failed (column doesn\'t exist).')
+            flag_empty = True
+        else:
+            df = df[self.index_cols + [self.value_col]]
 
         return df, flag_empty
 
-
-    def padd(self, parameter_name, parameter_index, source_dataframe=False,
-             value_col=False, mutable=False, default=None):
+    def _get_index_cols(self):
         '''
-        Parameter definition based on input dataframes.
-
-        Parameters
-        ----------
-
-        parameter_name - str
-            used as model attribute, also assumed to be the
-            column name in case ``value_col==False``
-        parameter_index - tuple
-            tuple of pyomo sets as parameter index
-        source_dataframe - str or pandas.DataFrame
-            input dataframe (or its attribute name)
-            containing the parameter values
-        value_col - str
-            name of the ``source_dataframe`` parameter value column;
-            optional---is set to the parameter name if no value is provided
-        mutable - bool
-            the ``pyomo.environ.Param`` initializer parameter
-        default - numeric
-            the ``pyomo.environ.Param`` initializer parameter
+        Translate the ``parameter_index`` set objects to column names.
 
         '''
-
-        log_str = 'Assigning parameter {par} ...'.format(par=parameter_name)
-
-        _df, flag_infeasible = self._get_param_data(source_dataframe)
-
-        parameter_index = ((parameter_index,)
-                           if not isinstance(parameter_index, tuple)
-                           else parameter_index)
-
-        if (not flag_infeasible
-            and not self.check_valid_indices(parameter_index)):
-            flag_infeasible = True
-
-        # set data column to parameter name in case no other value is provided
-        if not value_col:
-            value_col = parameter_name
-
-        # check if column exists in table
-        if not flag_infeasible and value_col not in _df.columns:
-            logger.warning(log_str + ' failed (column doesn\'t exist).')
-            flag_infeasible = True
 
         # dictionary sets -> column names
         dict_ind = {'sy': 'sy', 'sy_hydbc': 'sy', 'nd': 'nd_id', 'ca': 'ca_id',
-                    'pr': 'pp_id',
+                    'pr': 'pp_id', 'chp': 'pp_id',
                     'ror': 'pp_id', 'pp': 'pp_id', 'add': 'pp_id',
                     'fl': 'fl_id', 'fl_prof': 'fl_id',
                     'ppall': 'pp_id', 'hyrs': 'pp_id', 'wk': 'wk_id',
@@ -220,49 +243,88 @@ class Parameters:
                     'st': 'pp_id', 'lin': 'pp_id',
                     'ndfl_prof': ['nd_id', 'fl_id'],
                     'ndcafl': ['nd_id', 'ca_id', 'fl_id'],
+                    'sy_ndca': ['sy', 'nd_id', 'ca_id'],
                     'pricesll_pf': 'price_pf_id', 'pricebuy_pf': 'price_pf_id',
                     'dmnd_pf': 'dmnd_pf_id', 'tmsy': ['tm_id', 'sy'],
-                    'supply_pf': 'supply_pf_id'}
+                    'supply_pf': 'supply_pf_id',
+                    'sy_pr_ca': ['sy', 'pp_id', 'ca_id']}
 
         # get list of columns from sets
         index_cols = [dict_ind[pi.getname()]
                       if type(pi) in [poset.SimpleSet, poset.OrderedSimpleSet]
                       else 'pp_id' # Exception: Set unions are always pp
-                      for pi in parameter_index]
+                      for pi in self.parameter_index]
 
         index_cols = [[c] if not type(c) == list else c for c in index_cols]
         index_cols = list(itertools.chain.from_iterable(index_cols))
 
-        # set parameter
-        param_kwargs = dict(mutable=mutable,
-                            default=default)
-        if not flag_infeasible:
-            param_kwargs['initialize'] = pdef(_df, index_cols, value_col)
-            logger.info(log_str + ' ok.')
+        return index_cols
 
-        setattr(self, parameter_name, po.Param(*parameter_index,
-                                               **param_kwargs))
 
-    def apply_monthly_factors_all(self):
+
+
+
+
+    def _expand_to_months(self, df0):
         '''
-        Modify all relevant parameters with monthly factors.
+        Adds an additional month column to the input df.
 
-        Calls the :func:`apply_monthly_factors` method for each parameter
-        included in the ``df_parameter_month`` DataFrame.
+        Parameters
+        ----------
+        df0 : pd.DataFrame
+            Table to be expanded
+
+        Returns
+        -------
+        pd.DataFrame
+            table with additional month columnd
 
         '''
 
-        # init dictionary containing the dataframes with the reshaped
-        # monthly factor dataframes
-        self.dict_monthly_factors = {}
-        self.parameter_month_dict = {}
+        list_mts = self.m.df_parameter_month.mt_id.unique().tolist()
 
-        for param in self.df_parameter_month.parameter.unique():
-            self.apply_monthly_factors(param)
+        sets = [c for c in df0.columns if not c == 'value']
+        old_index = df0[list(sets)].apply(tuple, axis=1).tolist()
+        new_index = list(itertools.product(list_mts, old_index))
+        new_index = [(cc[0],) + cc[1] for cc in new_index]
+
+        df1 = pd.DataFrame(new_index)
+
+        return df1
 
 
 
-    def apply_monthly_factors(self, param):
+    def _get_monthly_factors(self):
+        '''
+        Returns monthly factors DataFrame for joining with the
+        original parameter data.
+
+        '''
+
+        param = self.parameter_name
+
+        param_mask = self.m.df_parameter_month.parameter == param
+        dff = self.m.df_parameter_month.loc[param_mask].copy()
+        name_cols = [c for c in dff.columns if '_name' in c]
+
+
+        if len(dff[name_cols].drop_duplicates()) > 1:
+            raise ValueError('apply_monthly_factors: Detected '
+                             + 'inconsistent '
+                             + 'sets for parameter {}. '.format(param)
+                             + 'Each parameter must have one set '
+                             + 'group only.')
+
+        # rename set_id columns using the set_name values
+        set_dict = dff[name_cols].iloc[0].T.to_dict()
+        set_dict = {kk.replace('name', 'id'): vv
+                    for kk, vv in set_dict.items()}
+        dff = dff.rename(columns=set_dict)
+
+        return dff
+
+
+    def _apply_monthly_factors(self, df, val_col='mt_fact'):
         '''
         Adds a monthly index to existing parameters.
 
@@ -290,18 +352,14 @@ class Parameters:
 
         '''
 
+        param = self.parameter_name
+
         logger.info('Applying monthly factors to parameter %s'%param)
 
-        list_mts = self.df_parameter_month.mt_id.unique().tolist()
-
-        dff = self.df_parameter_month.loc[self.df_parameter_month.parameter
-                                          == param].copy()
-
-        # get list of corresponding sets from the IO list
         try:
             sets_io = io.DICT_IDX[param]
         except:
-            raise ValueError(('ModelBase.apply_monthly_factors: '
+            raise ValueError(('ModelBase._apply_monthly_factors: '
                               + 'Parameter {} '
                               + 'not included in the IO '
                               + 'parameter list.').format(param))
@@ -309,109 +367,183 @@ class Parameters:
         sets = tuple([st for st in sets_io if not st == 'mt_id'])
         sets_new = ('mt_id',) + sets
 
-        # get data from component
-        df0 = io.IO.param_to_df(getattr(self, param), sets)
-
-        # expand old index to months
-        new_index = list(itertools.product(list_mts,
-                                           df0[list(sets)].apply(tuple, axis=1)
-                                                          .tolist()))
-        new_index = [(cc[0],) + cc[1] for cc in new_index]
-
-        # initialize new dataframe
-        df1 = pd.DataFrame(new_index, columns=sets_new)
-
-        # join original data
-        df1 = df1.join(df0.set_index(list(sets)), on=sets)
-
-        # get set name columns
-        name_cols = [c for c in dff.columns if '_name' in c]
-
-        # check consistency set name for this parameter
-        if len(dff[name_cols]
-                    .drop_duplicates()) > 1:
-            raise ValueError('apply_monthly_factors: Detected inconsistent '
-                             + 'sets for parameter {}. '.format(param)
-                             + 'Each parameter must have one set '
-                             + 'group only.')
-
-        # rename set_id columns using the set_name values
-        set_dict = dff[name_cols].iloc[0].T.to_dict()
-        set_dict = {kk.replace('name', 'id'): vv
-                    for kk, vv in set_dict.items()}
-        dff = dff.rename(columns=set_dict)
-
-        self.dict_monthly_factors.update({param: dff.copy()})
-
-        val_col = 'mt_fact'
+        df0 = df
+        df1 = self._expand_to_months(df0)
+        df1.columns = sets_new + (self.value_col,)
 
         # join monthly factors
-        df1 = df1.join(dff.set_index(list(sets_new))[val_col], on=sets_new)
+        df_fact = self._get_monthly_factors().set_index(list(sets_new))[val_col]
+
+        df1 = df1.join(df_fact, on=sets_new)
         df1[val_col] = df1[val_col].fillna(1)
 
         # apply monthly factor
-        df1['value'] *= df1.mt_fact
+        df1[self.value_col
+            ] *= df1[val_col]
 
-        # delete previous parameter object
-        self.delete_component(param)
-
-        # get set objects
-        param_index = tuple([getattr(self, ss.replace('_id', ''))
-                             for ss in sets_new])
-
-        # save final tables in dict
-        self.parameter_month_dict[param] = df1
-
-        # add new parameter component
-        self.padd(param, param_index, df1, value_col='value', default=1,
-                  mutable=True)
-
-        # store this in the class attribute so we can make case
-        # distinctions in the constraints
-        self.parameter_month_list.append(param)
-
-        # modify IO class attribute to get the output table indices right
-        io.DICT_IDX[param] = sets_new
+        return df1[list(sets_new + (self.value_col,))], sets_new
 
 
 
-##############################################################################
-##### TODO: GENERALIZE THIS TO METHOD "reset_parameter"
+if __name__ == '__main__':
 
-    def set_erg_max_runs(self):
+    fields = ('parameter_name', 'parameter_index', 'source_dataframe',
+              'value_col', 'filt_cols', 'filt_vals', 'mutable', 'default',
+              'index_cols')
+    defaults = (None,) * 6 + (True, None, None)
+    Par = namedtuple('Par', fields)
+    Par.__new__.__defaults__ = defaults
+
+    par = Par('vc_fl', (ml.m.fl, ml.m.nd), 'df_fuel_node_encar', default=0)
+#    par = Par('weight', ml.m.tmsy, 'df_tm_soy')
+#    par = Par('cf_max', (ml.m.pp, ml.m.ca), 'df_plant_encar', None, ['pp_id'], ml.m.pp)
+    par = Par('inflowprof', (ml.m.sy_hyrs_ca | ml.m.sy_ror_ca), 'df_profinflow_soy', 'value', index_cols=['sy', 'pp_id', 'ca_id'])
+
+    ml.m.dict_monthly_factors = {}
+
+    parameter = ParameterAdder(ml.m, par)
+
+    self = parameter
+
+#    self.source_dataframe
+
+#    self.init_update()
+
+# %%
+class Parameters:
+    r'''
+    Mixin class for the :class:`grimsel.core.model_base.ModelBase` class
+    containing all parameter definitions.
+
+    '''
+
+    def add_parameters(self):
         '''
-        Reset erg_max parameters, using the corresponding column from the
-        fuel_encar tables.
+        Adds all parameters to the model.
+
+        Generates :class:`ParameterAdder` instances for each of the parameters
+        and calls their :meth:`ParameterAdder.init_update` method.
+
+        '''
+# %%
+        if __name__ == '__main__':
+            self = ml.m
+
+        fields = ('parameter_name', 'parameter_index', 'source_dataframe',
+                  'value_col', 'filt_cols', 'filt_vals', 'mutable', 'default',
+                  'index_cols')
+        defaults = (None,) * 6 + (True, None, None)
+        Par = namedtuple('Par', fields)
+        Par.__new__.__defaults__ = defaults
+
+        df_dmnd = self.translate_pf_id(
+                        self.df_profdmnd_soy.rename(
+                                columns={'dmnd_pf_id': 'pf_id'}))
+
+        df_sppl = self.translate_pf_id(
+                        self.df_profsupply_soy.rename(
+                                columns={'supply_pf_id': 'pf_id'}))
+
+        list_par = (
+        Par('dmnd', self.sy_ndca, df_dmnd, 'value'),
+        Par('supprof', self.sy_pr_ca, df_sppl, 'value'),
+        Par('chpprof', (self.sy_ndca),
+            'df_profchp_soy', 'value'),
+        Par('inflowprof', (self.sy_hyrs_ca | self.sy_ror_ca),
+            'df_profinflow_soy', 'value', index_cols=['sy', 'pp_id', 'ca_id']),
+
+        Par('pricebuyprof', (self.sy, self.pricebuy_pf),
+            'df_profpricebuy_soy', 'value'),
+        Par('pricesllprof', (self.sy, self.pricesll_pf),
+            'df_profpricesll_soy', 'value'),
+
+        Par('min_erg_mt_out_share', self.hyrs, 'df_hydro'),
+        Par('max_erg_mt_in_share', self.hyrs, 'df_hydro'),
+        Par('min_erg_share', self.hyrs, 'df_hydro'),
+
+        Par('weight', self.tmsy, 'df_tm_soy'),
+        Par('grid_losses', (self.nd, self.ca), 'df_node_encar'),
+
+        Par('cap_trme_leg', (self.mt, self.ndcnn),
+            'df_node_connect'),
+        Par('cap_trmi_leg', (self.mt, self.ndcnn),
+            'df_node_connect'),
+
+        Par('vc_ramp', (self.ppall, self.ca), 'df_plant_encar', None,
+            ['pp_id', 'ca_id'], set_to_list(self.rp_ca, [None, None])),
+
+        Par('pp_eff', (self.pp - self.lin, self.ca), 'df_plant_encar', None, ['pp_id'],
+            self.pp, default=1),
+        Par('cf_max', (self.pp, self.ca), 'df_plant_encar', None, ['pp_id'],
+            self.pp),
+
+        Par('erg_chp', (self.chp, self.ca), 'df_plant_encar', None, ['pp_id'],
+            self.chp),
+
+        Par('erg_inp', self.ndcafl,
+            'df_fuel_node_encar'),
+        Par('vc_fl', (self.fl, self.nd),
+            'df_fuel_node_encar', default=0),
+
+        Par('factor_lin_0', (self.lin, self.ca),
+            'df_plant_encar', None, ['pp_id'], self.lin, default=0),
+        Par('factor_lin_1', (self.lin, self.ca),
+            'df_plant_encar', None, ['pp_id'], self.lin, default=0),
+
+        Par('price_co2', self.nd, 'df_def_node'),
+        Par('nd_weight', self.nd, 'df_def_node', default=1),
+
+        Par('co2_int', self.fl, 'df_def_fuel'),
+
+        Par('cap_pwr_leg', (self.ppall_ca),
+            'df_plant_encar', None, ['pp_id'], self.ppall,
+            index_cols=['pp_id', 'ca_id']),
+        Par('vc_om', (self.ppall, self.ca),
+            'df_plant_encar', None, ['pp_id'], self.ppall),
+        Par('fc_om', (self.add | self.rem, self.ca),
+            'df_plant_encar', None, ['pp_id'], self.ppall, default=0),
+        Par('fc_cp_ann', (self.add, self.ca),
+            'df_plant_encar', None, ['pp_id'], self.add),
+
+        Par('cap_avlb', (self.pp, self.ca),
+            'df_plant_encar', None, ['pp_id'], self.pp),
+
+        Par('st_lss_hr', (self.st, self.ca),
+            'df_plant_encar', None, ['pp_id'], self.st),
+        Par('st_lss_rt', (self.st, self.ca),
+            'df_plant_encar', None, ['pp_id'], self.st),
+        Par('discharge_duration', (self.st | self.hyrs, self.ca),
+            'df_plant_encar', None, ['pp_id'], self.st | self.hyrs),
+
+        Par('hyd_erg_bc', (self.sy_hydbc, self.hyrs), 'df_plant_month'),
+        )
+
+
+        self.dict_par = {}
+        for par in list_par:
+            parameter = ParameterAdder(self, par)
+            self.dict_par[par.parameter_name] = parameter
+            parameter.init_update()
+
+
+    def reset_all_parameters(self):
+        '''
+        Reset all parameters to their original values.
+
+        This can be used prior to the model parameter variations to reset
+        all of the input data.
+
         '''
 
-        df = self.df_fuel_encar
-        erg_max_new = pdef(df, ['nd_id', 'ca_id', 'fl_id'], 'erg_max_runs')
-        for indcafl, erg_max_val in erg_max_new.items():
-            self.erg_max[indcafl] = erg_max_val
+        for name, par in self.dict_par.items():
 
-    def set_cap_pwr_leg(self, slct_pp_id=None):
-        '''
-        Reset cap_pwr_leg parameter, using the corresponding column from the
-        plant_encar table.
-        '''
-        if slct_pp_id is None:
-            slct_pp_id = self.setlst['ppall']
+            logger.info('Resetting parameter {}'.format(name))
 
-        _df = self.df_plant_encar.copy()
-        mask_pp = _df['pp_id'].isin(slct_pp_id)
-        _df = _df.loc[mask_pp].set_index(['pp_id', 'ca_id'])['cap_pwr_leg']
-        cap_dict = _df.to_dict()
+            par.init_update()
 
-        for ppca, val in cap_dict.items():
-            self.cap_pwr_leg[ppca].value = val
 
-    def set_cf_max_runs(self):
-        df = self.df_plant_encar
-        df = df.loc[df['pp_id'].isin(self.setlst['pp'])]
-        cf_max_new = pdef(df, ['pp_id', 'ca_id'], 'cf_max_runs')
-        for ippca, cf_max_val in cf_max_new.items():
-            logger.info('set_cf_max_runs: %s, %s'%(str(ippca), str(cf_max_val)))
-            self.cf_max[ippca] = cf_max_val
+
+# %%
 
     @staticmethod
     def _make_model_parameters_doc():
@@ -541,5 +673,4 @@ class Parameters:
 
 Parameters.__doc__ += '\n'*4 + Parameters._make_model_parameters_doc()
 
-print(Parameters.__doc__)
 
