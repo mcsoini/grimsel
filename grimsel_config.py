@@ -4,6 +4,9 @@
 import os
 import grimsel
 
+logger = grimsel._get_logger(__name__)
+
+
 try:
     import grimsel.config_local as conf_local
     PATH_CSV = conf_local.PATH_CSV
@@ -26,17 +29,19 @@ try:
 
 except Exception as e:
     print(e)
-    raise RuntimeError('Please set configuration parameters in '
-                       'grimsel/config_local.py, e.g. \n\n'
+    logger.error('''
+Please set configuration parameters in
+grimsel/config_local.py, e.g.
 
-                       'import os\n'
-                       'FN_XLSX = os.path.abspath(\'../DATA/input.xlsx\')\n'
-                       'DATABASE = \'database_name\'\n'
-                       'SCHEMA = \'model_input_schema_name\'\n'
+import os
+FN_XLSX = os.path.abspath(\'../DATA/input.xlsx\')
+DATABASE = \'database_name\'
+SCHEMA = 'model_input_schema_name'
 
-                       'PSQL_USER = \'user\'\n'
-                       'PSQL_PASSWORD = \'password\'\n'
-                       'PSQL_PORT = 5432\n'
-                       'PSQL_HOST = \'localhost\'\n'
-                       )
+PSQL_USER = 'user'
+PSQL_PASSWORD = 'password'
+PSQL_PORT = 5432
+PSQL_HOST = 'localhost'
+'''
+)
 
