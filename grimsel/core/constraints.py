@@ -215,6 +215,7 @@ class Constraints:
                 return avg
 
         def supply_rule(self, sy, nd, ca):
+            ''' Balance supply/demand '''
 
             list_neg = self.setlst['sll'] + self.setlst['curt']
             prod = (# power output; negative if energy selling plant
@@ -244,7 +245,6 @@ class Constraints:
             return prod == dmnd * (1 + self.grid_losses[nd, ca]) + exports
 
         self.cadd('supply', self.sy_ndca, rule=supply_rule)
-
 
     def add_energy_aggregation_rules(self):
         r'''
