@@ -94,14 +94,23 @@ class Constraints:
 
         '''
 
+        dict_weight = self.df_def_node.set_index('nd_id').nd_weight.to_dict()
+
         if hasattr(self, 'trm'):
             for sy, nd1, nd2, ca in self.trm:
+
+                # get node with max weight
+                nd_w = max([nd1, nd2], key=lambda x: dict_weight[x])
 
                 tm = self.dict_ndnd_tm_id[nd1, nd2]
 
                 mt = self.dict_soy_month[(tm, sy)]
-                ub = self.cap_trme_leg[mt, nd1, nd2, ca]
-                lb = - self.cap_trmi_leg[mt, nd1, nd2, ca]
+
+                ub = (self.cap_trme_leg[mt, nd1, nd2, ca]
+                      * self.nd_weight[nd_w])
+                lb = - (self.cap_trmi_leg[mt, nd1, nd2, ca]
+                        * self.nd_weight[nd_w])
+
                 self.trm[(sy, nd1, nd2, ca)].setub(ub)
                 self.trm[(sy, nd1, nd2, ca)].setlb(lb)
 
