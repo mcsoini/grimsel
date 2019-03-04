@@ -417,6 +417,35 @@ class Parameters:
 
     '''
 
+
+    def _get_df_supply(self):
+        '''
+        Returns ``df_profsupply_soy`` table with ``'pp_id', 'ca_id'`` columns
+        if not empty, else empty table wih corresponding columns.
+        '''
+
+        if self.df_profsupply_soy.empty:
+            return pd.DataFrame(columns=['sy', 'pp_id', 'ca_id', 'value'])
+        else:
+            return self.translate_pf_id(
+                       self.df_profsupply_soy.rename(
+                           columns={'supply_pf_id': 'pf_id'}))
+
+    def _get_df_demand(self):
+        '''
+        Returns ``df_profdmnd_soy`` table with ``'nd_id', 'ca_id'`` columns
+        if not empty, else empty table wih corresponding columns.
+        '''
+
+        if self.df_profdmnd_soy.empty:
+            return pd.DataFrame(columns=['sy', 'nd_id', 'ca_id', 'value'])
+        else:
+            return self.translate_pf_id(
+                       self.df_profdmnd_soy.rename(
+                           columns={'dmnd_pf_id': 'pf_id'}))
+
+
+
     def add_parameters(self):
         '''
         Adds all parameters to the model.
@@ -436,17 +465,10 @@ class Parameters:
         Par = namedtuple('Par', fields)
         Par.__new__.__defaults__ = defaults
 
-        df_dmnd = self.translate_pf_id(
-                        self.df_profdmnd_soy.rename(
-                                columns={'dmnd_pf_id': 'pf_id'}))
-
-        df_sppl = self.translate_pf_id(
-                        self.df_profsupply_soy.rename(
-                                columns={'supply_pf_id': 'pf_id'}))
 
         list_par = (
-        Par('dmnd', self.sy_ndca, df_dmnd, 'value'),
-        Par('supprof', self.sy_pr_ca, df_sppl, 'value'),
+        Par('dmnd', self.sy_ndca, self._get_df_demand(), 'value'),
+        Par('supprof', self.sy_pr_ca, self._get_df_supply(), 'value'),
         Par('chpprof', (self.sy_ndca),
             'df_profchp_soy', 'value'),
         Par('inflowprof', (self.sy_hyrs_ca | self.sy_ror_ca),
