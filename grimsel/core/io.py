@@ -978,15 +978,19 @@ class DataReader():
         as column names but as row entries in special columns.
         E.g., instead of
 
-              | nd_id | fl_id | value |
-              |-------|-------|-------|
-              | 1     | 2     |   1.2 |
+        ===== ===== =====
+        nd_id fl_id value
+        ===== ===== =====
+        1     2     1.2
+        ===== ===== =====
 
         we have
 
-            | set_1_name | set_2_name | set_1_id | set_2_id | value |
-            |------------|------------|----------|----------|-------|
-            | nd_id      | fl_id      | 1        | 2        |   1.2 |
+        ========== ========== ======== ======== =======
+        set_1_name set_2_name set_1_id set_2_id value
+        ========== ========== ======== ======== =======
+        nd_id      fl_id      1        2        1.2
+        ========== ========== ======== ======== =======
 
         This allows to combine structurally different tables.
 
@@ -994,17 +998,19 @@ class DataReader():
         column pairs, each of which is filtered with respect to all elements
         in the filt parameter.
 
-        -----------------------------------------------------------------------
-        Parameters:
+        Parameters
+        ==========
 
-        df -- DataFrame as described above
-        filt -- filtering list of the same format as for
-                aql.read_sql(..., filt)
+        df : pandas DataFrame
+            as described above
+        filt : list
+            filtering list of the same format as the
+            :func:`grimsel.auxiliary.sqlutils.aux_sql_func.read_sql`
+            parameter
 
-        -----------------------------------------------------------------------
-        Returns:
-
-        df -- filtered DataFrame
+        Returns
+        =======
+            filtered DataFrame
 
         """
 
