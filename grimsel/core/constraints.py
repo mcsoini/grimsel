@@ -861,7 +861,9 @@ class Constraints:
                                    * pprf[sy, pf]
                                    / self.pp_eff[pp, ca]
                                    * self.pwr[sy, pp, ca]
-                                   for sy in list_sy))
+                                   for (sy, _, _)
+                                   in set_to_list(self.sy_pp_ca,
+                                                  [None, pp, ca])))
 
             # Case 2: monthly adjustment factors have been applied to vc_fl
             elif self.dict_par['vc_fl'].has_monthly_factors:
