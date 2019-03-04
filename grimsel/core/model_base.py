@@ -645,6 +645,69 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         self.dict_tm_symax = {tm: max(list_sy) for tm, list_sy
                               in self.dict_tm_sy.items()}
 
+        self._make_minimum_time_map()
+
+
+    def _make_minimum_time_map(self):
+        '''
+        Generate table mapping all time maps to the minimum time map.
+
+        This is mainly used in the post-analysis to map all data to uniform
+        time slots.
+
+        Example
+        =======
+
+        In the example below the minimum time map ``tm_id == 2`` indexes
+        the table ``self.df_symin_all``
+
+        ======= ======= =======
+        sy_min  tm_id   sy
+        ======= ======= =======
+        0       0       0
+        1       0       1
+        2       0       2
+        3       0       3
+        4       0       4
+        0       1       0
+        1       1       0
+        2       1       1
+        3       1       1
+        ...     ...     ...
+        ======= ======= =======
+
+
+
+        '''
+
+        # identify time map with minimum nhours
+        dict_nhours_to_tm = {tm[1]: self.dict_nd_tm_id[nd]
+                             for nd, tm in self.dict_nd_tm.items()}
+        tm_nhoursmin = dict_nhours_to_tm[min(dict_nhours_to_tm)]
+
+        # identify time map with minimum freq (for joining on hy)
+
+        dict_freq_to_tm = {tm[0]: self.dict_nd_tm_id[nd]
+                           for nd, tm in self.dict_nd_tm.items()}
+        tm_freqmin = dict_freq_to_tm[min(dict_freq_to_tm)]
+
+        df = self._tm_objs[tm_freqmin].df_time_map.set_index('hy')[[]]
+
+        for tm_id, tm_obj in self._tm_objs.items():
+            df = df.join(tm_obj.df_time_map.set_index('hy').sy.rename(tm_id))
+
+        df = df.fillna(method='ffill', axis=0)
+
+        df = df.assign(sy_min=df[tm_nhoursmin]).set_index('sy_min')
+
+        # if the timemap tm_nhoursmin has nhours > freq there are duplicates
+        df = df.drop_duplicates().reset_index()
+
+        # stack to make the tm_ids a columns
+
+        self.df_sy_min_all = (df.set_index('sy_min').stack().reset_index()
+                                .rename(columns={'level_1': 'tm_id', 0: 'sy'}))
+
 
     def _soy_map_hydro_bcs(self):
         ''' Map hydro boundary conditions (which refer to the beginning
