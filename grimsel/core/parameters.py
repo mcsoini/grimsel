@@ -189,7 +189,7 @@ class ParameterAdder:
 
         Parameters
         ----------
-        source_dataframe - pandas.Dataframe
+        source_dataframe : pandas.Dataframe
 
 
         '''
