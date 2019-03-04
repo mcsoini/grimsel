@@ -370,6 +370,9 @@ class TransmIO(VariabIO):
 
         dfagg = pd.concat([dfexp, dfimp], axis=0)
 
+        dfagg['value'] /= dfagg.nd_id.replace(
+                                self.model.df_def_node.set_index('nd_id')
+                                                      .nd_weight.to_dict())
         return dfagg
 
     def _translate_trm(self, df):
