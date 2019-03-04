@@ -588,44 +588,48 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
         self.dict_nd_tm = self._get_nhours_nodes(self.nhours)
 
-        self.dict_tm = {ntm: frnh for ntm, frnh
-                        in enumerate(set(self.dict_nd_tm.values()))}
+        # generate unique time map ids
+        dict_tm = {ntm: frnh for ntm, frnh
+                   in enumerate(set(self.dict_nd_tm.values()))}
 
-        self.dict_nd_tm_id = {nd: {val: key for key, val
-                                   in self.dict_tm.items()}[tm]
+        self.dict_nd_tm_id = {nd:
+                              {val: key for key, val in dict_tm.items()}[tm]
                               for nd, tm in self.dict_nd_tm.items()}
 
-        self.tm_objs = {tm_id: timemap.TimeMap(tm_filt=self.tm_filt,
-                                       nhours=frnh[1], freq=frnh[0])
-                        for tm_id, frnh in self.dict_tm.items()}
+        self._tm_objs = {tm_id:
+                   timemap.TimeMap(tm_filt=self.tm_filt,
+                                   nhours=frnh[1], freq=frnh[0])
+                   for tm_id, frnh in dict_tm.items()}
 
         self.df_def_node['tm_id'] = (self.df_def_node.reset_index().nd_id
                                          .replace(self.dict_nd_tm_id).values)
 
         cols_red = ['wk_id', 'mt_id', 'sy', 'weight', 'wk_weight']
-        list_tm_soy = [tm.df_time_red[cols_red].assign(tm_id=tm_id) for
-                       tm_id, tm in self.tm_objs.items()]
 
+        list_tm_soy = [tm.df_time_red[cols_red].assign(tm_id=tm_id) for
+                       tm_id, tm in self._tm_objs.items()]
         self.df_tm_soy = pd.concat(list_tm_soy, axis=0)
+
         list_tm_soy_full = [tm.df_time_red.assign(tm_id=tm_id)
-                            for tm_id, tm in self.tm_objs.items()]
+                            for tm_id, tm in self._tm_objs.items()]
         self.df_tm_soy_full = pd.concat(list_tm_soy_full, axis=0, sort=True)
+
         list_hoy_soy = [tm.df_hoy_soy.assign(tm_id=tm_id)
-                        for tm_id, tm in self.tm_objs.items()]
+                        for tm_id, tm in self._tm_objs.items()]
         self.df_hoy_soy = pd.concat(list_hoy_soy, axis=0)
 
-        _df = self.df_tm_soy
+        df = self.df_tm_soy
 
         # get dictionaries month/week <-> time slots;
         # these are used in the constraint definitions
         cl, nm = ('wk_id', 'week')
         for cl, nm in [('wk_id', 'week'), ('mt_id', 'month')]:
 
-            dct = _df.pivot_table(index=['tm_id', cl],
-                                  values='sy', aggfunc=list).sy.to_dict()
+            dct = df.pivot_table(index=['tm_id', cl],
+                                 values='sy', aggfunc=list).sy.to_dict()
             setattr(self, 'dict_' + nm + '_soy', dct)
 
-            dct = _df.set_index(['tm_id', 'sy'])[cl].to_dict()
+            dct = df.set_index(['tm_id', 'sy'])[cl].to_dict()
             setattr(self, 'dict_soy_' + nm, dct)
 
 
