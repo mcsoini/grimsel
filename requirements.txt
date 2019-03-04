@@ -2,6 +2,7 @@ tabulate==0.8.3
 sphinx==1.7.8
 sh==1.12.14
 statsmodels==0.9.0
+scipy==1.2.1
 matplotlib==2.2.3
 tables==3.4.4
 numpy==1.15.1
