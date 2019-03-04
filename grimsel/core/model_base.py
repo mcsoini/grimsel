@@ -428,9 +428,10 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
                     and name_dict.endswith('_pf')}
 
         if sum(pf_arrs.values()) > 1:
-            raise IndexError('Ambiguous pf array in translate_pf_id.')
+            raise ValueError('Ambiguous pf array in translate_pf_id '
+                             'or df empty.')
         elif sum(pf_arrs.values()) == 0:
-            raise IndexError('No pf array found for table with columns '
+            raise ValueError('No pf array found for table with columns '
                              '%s'%df.columns.tolist())
         else:
             pf_dict = {val: key for key, val in pf_arrs.items()}[True]
