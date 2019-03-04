@@ -814,6 +814,7 @@ class DataReader():
     runtime_tables = [('tm_soy', ['sy', 'tm_id']),
                       ('hoy_soy', ['hy', 'tm_id']),
                       ('tm_soy_full', ['sy', 'tm_id']),
+                      ('sy_min_all', ['sy_min', 'tm_id']),
                       ]
 
     def __init__(self, **kwargs):
