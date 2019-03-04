@@ -36,7 +36,8 @@ class Maps():
                    'encar': 'ca',
                    'node': 'nd',
                    'plant': 'pp',
-                   'pp_type': 'pt'}
+                   'pp_type': 'pt',
+                   'run': 'run'}
 
     list_id_tbs_rev = {val: key for key, val in list_id_tbs.items()}
 
@@ -51,6 +52,10 @@ class Maps():
         else:
             self._dict_tb = self._adjust_input_tables(dict_tb)
 
+
+        if 'run' in self._dict_tb:
+            self.list_id_tbs['run'] = list(c for c in self._dict_tb['run']
+                                           if c.endswith('_vl'))
 
         self._make_id_dicts()
         self._make_color_dicts()
@@ -67,7 +72,7 @@ class Maps():
 
         for name, df in dict_tb.items():
 
-            name_idx = Maps.list_id_tbs[name] + '_id'
+            name_idx = self.list_id_tbs[name] + '_id'
 
             if name_idx in df.columns:
 
@@ -228,12 +233,12 @@ class Maps():
         '''
 
         for inme, df in self._dict_tb.items():
+            if not inme == 'run':
+                idx = Maps.list_id_tbs[inme]
 
-            idx = Maps.list_id_tbs[inme]
-
-            dict_0 = df[idx].to_dict()
-            setattr(self, 'dict_%s'%idx, dict_0)
-            setattr(self, 'dict_%s_id'%idx, rev_dict(dict_0))
+                dict_0 = df[idx].to_dict()
+                setattr(self, 'dict_%s'%idx, dict_0)
+                setattr(self, 'dict_%s_id'%idx, rev_dict(dict_0))
 
         self.dict_nd_2 = getattr(self, 'dict_nd', None)
         self.dict_nd_2_id = getattr(self, 'dict_nd_id', None)
@@ -271,10 +276,17 @@ class Maps():
 
                 col_name = iid + ('_id' if not keep_cols else '')
                 df.loc[:, col_name] = df[iid + '_id'].replace(idict)
+            elif iid == 'run':
+                df = self.run_id_to_names(df)
 
         return df
 
+    def run_id_to_names(self, df):
 
+        ddfrun = self._dict_tb['run']
+        ddfrun = ddfrun[[c for c in ddfrun.columns if c.endswith('_vl')]]
+
+        return df.join(ddfrun, on='run_id')
 
     @wrapt.decorator
     def param_to_list(f, self, *args, **kwargs):
