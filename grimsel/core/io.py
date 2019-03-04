@@ -514,7 +514,7 @@ class ModelWriter():
         if os.path.isfile(fn):
 
             try:
-                max_run_id = pd.read_hdf(fn, 'def_loop',
+                max_run_id = pd.read_hdf(fn, 'def_run',
                                          columns=['run_id']).run_id.max()
             except Exception as e:
                 logger.error(e)
@@ -625,7 +625,7 @@ Hit enter to proceed.
                               if not len(itb) == 3)
                          for itb_list in self.list_collect]
         self.list_all_tb = list(itertools.chain(*list_all_tb_0))
-        self.list_all_tb += ['def_loop']
+        self.list_all_tb += ['def_run']
 
         if run_id:
             for itb in self.list_all_tb:
@@ -1269,7 +1269,7 @@ class IO:
 
     def _init_loop_table(self, cols_id, cols_step, cols_val):
 
-        tb_name = 'def_loop'
+        tb_name = 'def_run'
         cols = ([('tdiff_solve', 'DOUBLE PRECISION'),
                  ('tdiff_write', 'DOUBLE PRECISION'),
                  ('run_id', 'SMALLINT'),
