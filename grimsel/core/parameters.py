@@ -473,7 +473,7 @@ class Parameters:
             ['pp_id', 'ca_id'], set_to_list(self.rp_ca, [None, None])),
 
         Par('pp_eff', (self.pp - self.lin, self.ca), 'df_plant_encar', None, ['pp_id'],
-            self.pp, default=1),
+            self.pp - self.lin, default=1),
         Par('cf_max', (self.pp, self.ca), 'df_plant_encar', None, ['pp_id'],
             self.pp),
 
