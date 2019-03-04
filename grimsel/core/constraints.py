@@ -215,7 +215,7 @@ class Constraints:
                         in set_to_list(self.ppall_ndca, [None, nd, ca]))
                     # incoming inter-node transmission
                     + sum(get_transmission(sy, nd, nd_2, ca, False)
-                          / self.nd_weight[nd]
+                          / self.nd_weight[nd_2]
                           for (nd, nd_2, ca)
                           in set_to_list(self.ndcnn, [None, nd, ca]))
                    )
