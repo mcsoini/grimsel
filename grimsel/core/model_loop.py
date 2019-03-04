@@ -30,11 +30,11 @@ reload(model_loop_modifier)
 class ModelLoop():
     '''
     Defines the model loop framework. Main attribute is the dataframe
-    df_def_loop.
+    df_def_run.
 
      -> variables:
          - dicts
-         - def_loop
+         - def_run
      -> functions:
          - generate run name
          - _print_run_title
@@ -59,12 +59,12 @@ class ModelLoop():
           ('swct', 1, np.arange),   # country
           ]
     @property
-    def df_def_loop(self):
-        return self._df_def_loop
+    def df_def_run(self):
+        return self._df_def_run
 
-    @df_def_loop.setter
-    def df_def_loop(self, df_def_loop):
-        self._df_def_loop = df_def_loop
+    @df_def_run.setter
+    def df_def_run(self, df_def_run):
+        self._df_def_run = df_def_run
         self.restore_run_id()
 
 #    def init_output_schema(self):
@@ -124,13 +124,13 @@ class ModelLoop():
 
     def init_run_table(self):
         '''
-        Initializes the ``df_def_loop`` table by expanding the ``nsteps`` list.
+        Initializes the ``df_def_run`` table by expanding the ``nsteps`` list.
 
         Expands the ``nsteps`` parameter to the corresponding DataFrame.
-        The resulting attribute ``df_def_loop`` contains all relevant
+        The resulting attribute ``df_def_run`` contains all relevant
         combinations of the model change indices as defined in ``nsteps``.
 
-        Also initializes the output ``def_loop`` table, if required.
+        Also initializes the output ``def_run`` table, if required.
         '''
 
         _nsteps = [list(ist) + ([0, 1] if ist[-1] == np.linspace else [])
@@ -153,7 +153,7 @@ class ModelLoop():
         self.cols_val = [c + '_vl' for c in self.cols_step]
         cols_all = self.cols_id + self.cols_step + self.cols_val
 
-        self.df_def_loop = pd.DataFrame(full_all, columns=cols_all)
+        self.df_def_run = pd.DataFrame(full_all, columns=cols_all)
 
         if not self.io.resume_loop:
             self.init_loop_table()
@@ -165,7 +165,7 @@ class ModelLoop():
 
         self.run_id = slct_run_id
 
-        lpsrs = self.df_def_loop.loc[self.df_def_loop.run_id
+        lpsrs = self.df_def_run.loc[self.df_def_run.run_id
                                      == slct_run_id].iloc[0]
 
         self.dct_vl = lpsrs.loc[lpsrs.index.str.contains('_vl')].to_dict()
@@ -186,7 +186,7 @@ class ModelLoop():
                    info=''):
         '''
         Generate single-line pandas.DataFrame to be appended to the
-        output def_loop table. Options:
+        output def_run table. Options:
         - zero_row == True: Row filled with zeros for calibration run
         - zero_row == False: Loop params copied to row
         '''
@@ -199,7 +199,7 @@ class ModelLoop():
         dtypes = {col: dtp  for dtp, cols in dtypes.items() for col in cols}
 
         if zero_row:
-            df_add = aql.read_sql(self.io.db, self.sc_out, 'def_loop')
+            df_add = aql.read_sql(self.io.db, self.sc_out, 'def_run')
             df_add.loc[0] = 0
             df_add[self.cols_step + self.cols_id + self.cols_step] = -1
             df_add['info'] = info
@@ -229,10 +229,10 @@ class ModelLoop():
         # can't use io method here if we want this to happen when no_output
         if self.io.modwr.output_target == 'psql':
             aql.write_sql(df_add, self.io.sql_connector.db,
-                          self.io.cl_out, 'def_loop', 'append')
+                          self.io.cl_out, 'def_run', 'append')
         elif self.io.modwr.output_target == 'hdf5':
             with pd.HDFStore(self.io.cl_out, mode='a') as store:
-                store.append('def_loop', df_add, data_columns=True,
+                store.append('def_run', df_add, data_columns=True,
                              min_itemsize=30 # set string length!
                              )
 
@@ -241,7 +241,7 @@ class ModelLoop():
 
         sep = '*' * 60
         run_id_str = 'run_id = %d of %d'%(self.run_id,
-                                          self.df_def_loop['run_id'].max())
+                                          self.df_def_run['run_id'].max())
         sw_strs = [str(c[0]) + ' = ' + str(c[1])
                   for c in self.dct_vl.items()]
 
@@ -253,15 +253,15 @@ class ModelLoop():
 
     def restore_run_id(self):
         '''
-        Reset run_id index after external manipulation of the df_def_loop
+        Reset run_id index after external manipulation of the df_def_run
         '''
 
-        cols_not_run_id = [c for c in self._df_def_loop.columns
+        cols_not_run_id = [c for c in self._df_def_run.columns
                            if not c == 'run_id']
-        self._df_def_loop = self._df_def_loop[cols_not_run_id]
-        self._df_def_loop = self._df_def_loop.reset_index(drop=True)
-        self._df_def_loop = self._df_def_loop.reset_index()
-        self._df_def_loop = self._df_def_loop.rename(columns={'index':
+        self._df_def_run = self._df_def_run[cols_not_run_id]
+        self._df_def_run = self._df_def_run.reset_index(drop=True)
+        self._df_def_run = self._df_def_run.reset_index()
+        self._df_def_run = self._df_def_run.rename(columns={'index':
                                                               'run_id'})
 
     def perform_model_run(self, zero_run=False, warmstart=True):
@@ -269,8 +269,8 @@ class ModelLoop():
         TODO: This is a mess.
 
         Calls model_base run methods, io writing methods, and appends to
-        def_loop. Also takes care of time measurement for reporting in
-        the corresponding def_loop columns.
+        def_run. Also takes care of time measurement for reporting in
+        the corresponding def_run columns.
 
         Keyword arguments:
         zero_run -- boolean; perform a zero run (method do_zero_run in model_base)
@@ -306,7 +306,7 @@ class ModelLoop():
             self.io.write_run(run_id=self.run_id)
             tdiff_write = time.time() - t
 
-            # append to def_loop table
+            # append to def_run table
             self.append_row(False, info=stat,
                             tdiff_solve=tdiff_solve, tdiff_write=tdiff_write)
 
