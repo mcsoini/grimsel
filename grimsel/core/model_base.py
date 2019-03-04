@@ -575,7 +575,6 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         cols = ['tm_min_id', 'symin', 'nd_id', 'nd_2_id', 'ca_id']
         self.df_symin_ndcnn = pd.concat(list_df).reset_index()[cols]
 
-
     def _init_time_map(self):
         '''
         Create a TimeMap instance and obtain derived attributes.
@@ -642,8 +641,6 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         pv_kws = dict(index='tm_id', values='sy', aggfunc=unq_list)
         self.dict_tm_sy = self.df_hoy_soy.pivot_table(**pv_kws).sy.to_dict()
 
-        self.dict_tm_symax = {tm: max(list_sy) for tm, list_sy
-                              in self.dict_tm_sy.items()}
 
         self._make_minimum_time_map()
 
