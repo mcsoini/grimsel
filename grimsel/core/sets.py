@@ -459,4 +459,3 @@ class Sets:
 
 
 Sets.define_sets.__doc__ = Sets.define_sets.__doc__%Sets._get_set_docs()
-print(Sets.define_sets.__doc__)
