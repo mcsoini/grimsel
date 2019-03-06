@@ -36,6 +36,9 @@ class SqlConnector():
     '''
     Manages connection strings for psycopg2 and sqlalchemy, open and closes
     connections.
+
+    TODO: Could pass config module to __init__ for config_dict initialization.
+
     '''
 
     def __init__(self, db, **kwargs):
