@@ -117,6 +117,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
                     'tm_filt': False,
                     'verbose_solver': True,
                     'constraint_groups': None,
+                    'symbolic_solver_labels': False,
                     'skip_runs': False,
                     'nthreads': False}
         for key, val in defaults.items():
@@ -1049,12 +1050,12 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
             self.results.Solver = [{'Termination condition':
                                     'Skipped due to skip_runs=True.'}]
         else:
-            self.results = self.solver.solve(self, tee=self.verbose_solver,
-                                             keepfiles=True,
-                                             warmstart=warmstart,
-                                             solnfile=self.solutionfile,
-                                             logfile=self.logfile,
-                                             warmstart_file=self.warmstartfile)
+            slv_kw = dict(tee=self.verbose_solver, keepfiles=True,
+                          warmstart=warmstart, solnfile=self.solutionfile,
+                          logfile=self.logfile,
+                          symbolic_solver_labels=self.symbolic_solver_labels,
+                          warmstart_file=self.warmstartfile)
+            self.results = self.solver.solve(self, **slv_kw)
             self.warmstartfile = self.solutionfile
             sf, isf = self.switch_soln_file(self.isolnfile)
             self.solutionfile, self.isolnfile = [sf, isf]
