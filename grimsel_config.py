@@ -8,7 +8,7 @@ logger = grimsel._get_logger(__name__)
 
 
 try:
-    import grimsel.config_local as conf_local
+    import config_local as conf_local
     PATH_CSV = conf_local.PATH_CSV
 except Exception as e:
     print(e)
@@ -17,7 +17,7 @@ except Exception as e:
     print('Using default csv path %s'%PATH_CSV)
 
 try:
-    import grimsel.config_local as conf_local
+    import config_local as conf_local
     FN_XLSX = conf_local.FN_XLSX
     DATABASE = conf_local.DATABASE
     SCHEMA = conf_local.SCHEMA
