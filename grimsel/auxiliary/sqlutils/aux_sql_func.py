@@ -23,6 +23,7 @@ import os
 import string
 import random
 
+import grimsel_config as config
 
 # %%
 
@@ -46,12 +47,11 @@ class SqlConnector():
         self.db = db
 
         config_dict = {
-        'user': None,
-        'password': None,
-        'host': None,
-        'port': None
+        'user': config.PSQL_USER,
+        'password': config.PSQL_PASSWORD,
+        'host': config.PSQL_HOST,
+        'port': config.PSQL_PORT,
         }
-
         for kw, val in config_dict.items():
             setattr(self, kw, val)
         self.__dict__.update(**kwargs)
