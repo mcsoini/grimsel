@@ -23,7 +23,6 @@ import os
 import string
 import random
 
-#from grimsel.auxiliary.aux_general import get_config
 
 # %%
 
@@ -86,8 +85,8 @@ class SqlConnector():
 
 def exec_sql(exec_str, ret_res=True, time_msg=False, db=None, con_cur=None):
     t = time.time()
+    ''' Pass sql query to the server. '''
 
-    ''' Pass sql string to the server. '''
     conn, cur = (SqlConnector(db).get_pg_con_cur()
                  if not con_cur else con_cur)
 
@@ -525,7 +524,6 @@ def read_sql(db=None, sc=None, tb=None, filt=False, filt_func=False, drop=False,
                                 limit_str=limit_str)
         if verbose:
             print(exec_str)
-
 
         df = pd.DataFrame(exec_sql(exec_str, db=db), columns=cols)
 
