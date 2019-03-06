@@ -138,7 +138,7 @@ def get_column_string(cols, kind):
 
 # %%
 
-def get_sql_tables(sc, db=None):
+def get_sql_tables(sc, db=None, con_cur=None):
     '''
     Returns list of tables in schema
     '''
@@ -149,7 +149,7 @@ def get_sql_tables(sc, db=None):
                WHERE table_schema = \'{sc}\'
                AND table_type = \'BASE TABLE\'
                '''.format(sc=sc)
-    return [itb[0] for itb in exec_sql(exec_str, db=db)]
+    return [itb[0] for itb in exec_sql(exec_str, db=db, con_cur=con_cur)]
 
 
 # %%
@@ -636,7 +636,7 @@ coldict = {
            'pf_id': ('SMALLINT', '{sc}.def_profile(pf_id)'),
           }
 
-def get_coldict(sc=None, db=None, fk_include_missing=False):
+def get_coldict(sc=None, db=None, fk_include_missing=False, con_cur=None):
     ''' Adding SQL schema name to foreign keys in coldict. '''
 
 
@@ -646,7 +646,7 @@ def get_coldict(sc=None, db=None, fk_include_missing=False):
             _val = tuple(ivv.format(sc=sc) for ivv in vv)
             if len(_val) > 1:
                 if (not _val[1].split('.')[1].split('(')[0]
-                         in get_sql_tables(sc, db)):
+                         in get_sql_tables(sc, db, con_cur=con_cur)):
                     _val = (_val[0],)
             _coldict[kk] = [iv.format(sc) for iv in _val]
     else:
@@ -716,7 +716,7 @@ Hit enter to proceed.
         warn_exists()
 
         # apply default data type and foreign key to the columns if not provided
-        _coldict = get_coldict(ref_schema, db)
+        _coldict = get_coldict(ref_schema, db, con_cur=con_cur)
 
         if not bool_auto_fk:
             _coldict = {col: (typeref[0],)
