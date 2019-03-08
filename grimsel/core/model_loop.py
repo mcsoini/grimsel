@@ -223,9 +223,6 @@ class ModelLoop():
 
         df_add = df_add.astype(dtypes)
 
-        # update instance variable and add run_name column
-#        self.df_add = df_add
-
         # can't use io method here if we want this to happen when no_output
         if self.io.modwr.output_target == 'psql':
             aql.write_sql(df_add, self.io.sql_connector.db,
@@ -235,7 +232,6 @@ class ModelLoop():
                 store.append('def_run', df_add, data_columns=True,
                              min_itemsize=30 # set string length!
                              )
-
 
     def _print_run_title(self, warmstartfile, solutionfile):
 

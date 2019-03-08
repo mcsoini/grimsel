@@ -1179,36 +1179,6 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
                 for kk, vv in dict_peak_1.items():
                     getattr(self, iattr)[kk] = vv
 
-
-    def fix_scenario_plants(self):
-        '''
-        Make sure exogenously defined capacities cannot be optimized.
-        '''
-        for tc in self.setlst['scen']:
-            self.cap_pwr_new[(tc, 0)].fix()
-            self.cap_pwr_rem[(tc, 0)].fix()
-
-
-    def do_zero_run(self):
-        '''
-        Perform a single model run without capacity retirements/additions
-        '''
-
-        # set price of co2 to 5
-        for ipp in self.price_co2:
-            self.price_co2[ipp] = 5
-
-        # no retirements or investments of capacity
-        self.capchnge_max = 0
-
-        tstr = '** First run without investments and retirements **'
-        print('*' * len(tstr) + '\n' + tstr + '\n' + '*' * len(tstr))
-
-        self.run(warmstart=False)
-
-        # retirements or investments parameter back to inf
-        self.capchnge_max = float('Inf')
-
     def activation(self, bool_act=False, constraint_list=False,
                    subset=False, verbose=False):
         ''' Changes activation of a list of constraints to bool_act '''
