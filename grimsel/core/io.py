@@ -55,6 +55,7 @@ def get_table_dicts():
 # expose as module variable for easier access
 DICT_IDX, DICT_TABLE, DICT_GROUP = get_table_dicts()
 
+DTYPE_DICT = {}
 
 class CompIO():
     '''
@@ -126,16 +127,24 @@ class CompIO():
 
         return df
 
-    def _to_hdf5(self, df, tb):
+    def _make_hdf_type_dict(self, tb):
 
-        with pd.HDFStore(self.cl, mode='a') as store:
+        if not tb in DTYPE_DICT:
 
             try:
-                dtype_dict = store.get_node(tb).table.coldtypes
-                df = df.astype({key: val for key, val in dtype_dict.items()
-                                if key in df.columns})
+                with pd.HDFStore(self.cl, mode='a') as store:
+                    DTYPE_DICT[tb] = store.get_node(tb).table.coldtypes
             except Exception as e:
                 print(e)
+
+    def _to_hdf5(self, df, tb):
+
+        self._make_hdf_type_dict()
+
+        df = df.astype({key: val for key, val in DTYPE_DICT[tb].items()
+                       if key in df.columns})
+
+        with pd.HDFStore(self.cl, mode='a') as store:
 
             store.append(tb, df, data_columns=True,
                          complevel=9,
