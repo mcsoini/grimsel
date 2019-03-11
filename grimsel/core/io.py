@@ -148,7 +148,8 @@ class CompIO():
         dtype_dict.update({col: np.dtype('int32') for col in df.columns
                            if not col in ('value', 'bool_out')})
 
-        df = df.astype(dtype_dict)
+        df = df.astype({col: dtype for col, dtype in dtype_dict.items()
+                        if col in df.columns})
 
         with pd.HDFStore(self.cl, mode='a') as store:
 
