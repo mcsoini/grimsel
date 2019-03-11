@@ -51,6 +51,7 @@ par = [
     ('vc_dmnd_flex', ('nd_id', 'ca_id')),
     ('vc_fl', ('fl_id', 'nd_id')),
     ('co2_int', ('fl_id',)),
+    ('nd_weight', ('nd_id',)),
     ('factor_lin_0', ('pp_id', 'ca_id')),
     ('factor_lin_1', ('pp_id', 'ca_id')),
     ('vc_om', ('pp_id', 'ca_id')),
