@@ -55,7 +55,7 @@ def get_table_dicts():
 # expose as module variable for easier access
 DICT_IDX, DICT_TABLE, DICT_GROUP = get_table_dicts()
 
-DTYPE_DICT = {}
+#DTYPE_DICT = {}
 
 class CompIO():
     '''
@@ -127,28 +127,33 @@ class CompIO():
 
         return df
 
-    def _make_hdf_type_dict(self, tb):
-
-        if not tb in DTYPE_DICT:
-
-            try:
-                with pd.HDFStore(self.cl, mode='a') as store:
-                    DTYPE_DICT[tb] = store.get_node(tb).table.coldtypes
-            except Exception as e:
-                print(e)
+#    def _make_hdf_type_dict(self, tb):
+#
+#        if not tb in DTYPE_DICT:
+#
+#            try:
+#                with pd.HDFStore(self.cl, mode='r') as store:
+#                    DTYPE_DICT[tb] = store.get_node(tb).table.coldtypes
+#                    DTYPE_DICT[tb].update({'value': np.dtype('float64')})
+#            except Exception as e:
+#                print(e)
+#            return True
+#        else:
+#            return False
 
     def _to_hdf5(self, df, tb):
 
-        self._make_hdf_type_dict()
+        dtype_dict = {'value': np.dtype('float64'),
+                      'bool_out': np.dtype('bool')}
+        dtype_dict.update({col: np.dtype('int32') for col in df.columns
+                           if not col in ('value', 'bool_out')})
 
-        df = df.astype({key: val for key, val in DTYPE_DICT[tb].items()
-                       if key in df.columns})
+        df = df.astype(dtype_dict)
 
         with pd.HDFStore(self.cl, mode='a') as store:
 
             store.append(tb, df, data_columns=True,
-                         complevel=9,
-                         complib='blosc:blosclz')
+                         complevel=9, complib='blosc:blosclz')
 
     def _to_sql(self, df, tb):
 
