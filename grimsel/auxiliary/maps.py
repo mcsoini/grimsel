@@ -53,7 +53,7 @@ class Maps():
             self._dict_tb = self._adjust_input_tables(dict_tb)
 
 
-        if 'run' in self._dict_tb:
+        if 'run' in self._dict_tb and self._dict_tb['run'] is not None:
             self.list_id_tbs['run'] = list(c for c in self._dict_tb['run']
                                            if c.endswith('_vl'))
 
@@ -137,10 +137,7 @@ class Maps():
             if tb_name in list_tb_sql:
                  tb = aql.read_sql(self.db, self.sc, tb_name)
                  tb = tb.set_index(iind + '_id')
-            else:
-                 tb = None
-
-            dict_tb[inme] = tb
+                 dict_tb[inme] = tb
 
         return dict_tb
 
