@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 import psycopg2 as pg
 
+import grimsel
 import grimsel.auxiliary.sqlutils.aux_sql_func as aql
 import grimsel.core.autocomplete as ac
 import grimsel.core.table_struct as table_struct
@@ -738,7 +739,8 @@ class TableReader():
 
         if not self.sc_inp and not self.data_path:
             logger.warning('Falling back to grimsel default csv tables.')
-            self.data_path = os.path.join(grimsel.__path__[0], 'input_data')
+            self.data_path = os.path.abspath(os.path.join(grimsel.__path__[0],
+                                                          '..', 'input_data'))
 
 
         self.table_list = self._get_table_list()
@@ -789,7 +791,7 @@ class TableReader():
             else:
                 filt = ('filtered by ' if len(vv) > 0 else '') +\
                    ', '.join([vvv[0] + ' in ' + str(vvv[1]) for vvv in vv
-                              if not len(vvv[1]) is 0])
+                              if not len(vvv[1]) == 0])
                 logger.info(('Reading input table {tb} {flt} from '
                        '{source_str}').format(tb=kk, flt=filt,
                                               source_str=source_str))
@@ -802,10 +804,7 @@ class TableReader():
                 df = aql.read_sql(self.sqlc.db, self.sc_inp, table, filt)
             source = '%s %s.%s'%(self.sqlc.db, self.sc_inp, table)
         else:
-            if self.data_path:
-                path = self.data_path
-            else:
-                path = os.path.join(grimsel.__path__[0], 'input_data')
+            path = self.data_path
             fn = os.path.join(path, '{}.csv'.format(table))
 
             source = fn
