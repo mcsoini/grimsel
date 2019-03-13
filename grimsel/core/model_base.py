@@ -783,7 +783,9 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
             df_tbsoy = getattr(self, name_df)
 
-            self._map_profile_to_time_resolution(df=df_tbsoy, itb=itb, idx=idx)
+            setattr(self, 'df_prof' + itb + '_soy',
+                    self.map_profile_to_time_resolution(df=df_tbsoy,
+                                                        idx=idx, itb=itb))
 
         self._get_maximum_demand()
 
@@ -841,7 +843,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         return df[cols + ['tm_id']]
 
 
-    def _map_profile_to_time_resolution(self, df, itb, idx):
+    def map_profile_to_time_resolution(self, df, idx, itb=None):
         '''
         Maps a single profile table to the selected nodal time resolution.
 
@@ -885,9 +887,8 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         val = ['value']
 
         if df is None or df.empty:
-            setattr(self, 'df_prof' + itb + '_soy',
-                    pd.DataFrame(columns=idx + val))
-            return None
+            # empty table
+            return pd.DataFrame(columns=idx + val)
 
         if not 'tm_id' in df.columns:
             df = self._add_tm_columns(df)
@@ -900,19 +901,16 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
                 raise IndexError('map_to_time_res: Multiple tm_ids '
                                  'found for pf_ids of %s profiles.'%itb)
 
-        df['hy'] = df.hy.astype(float)
-
         ind = ['hy', 'tm_id']
+        df[ind] = df[ind].astype(float)
         df = df.join(self.df_hoy_soy.set_index(ind), on=ind)
-
-        df[val] = df[val].astype(float)
         df = df.pivot_table(values=val, index=idx,
                             aggfunc=np.mean).reset_index()
 
         if df.empty:
             df = pd.DataFrame(columns=idx + val)
 
-        setattr(self, 'df_prof' + itb + '_soy', df)
+        return df
 
     def adjust_cost_time(self):
         '''
