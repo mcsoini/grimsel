@@ -56,19 +56,39 @@ def get_table_dicts():
 # expose as module variable for easier access
 DICT_IDX, DICT_TABLE, DICT_GROUP = get_table_dicts()
 
-#DTYPE_DICT = {}
+class _HDFWriter:
+    ''' Mixing class for :class:`CompIO` and :class:`DataReader`. '''
 
-class CompIO():
+    def write_hdf(self, tb, df, put_append):
+        '''
+        Opens connection to HDF file and writes output.
+
+        Parameters
+        ----------
+        put_append: str, one of `('append', 'put')`
+            Write one-time table to the output file (`'put'`) or append
+            to existing table (`'append'`).
+
+        '''
+
+
+        with pd.HDFStore(self.cl_out, mode='a') as store:
+
+            method_put_append = getattr(store, put_append)
+            method_put_append(tb, df, data_columns=True, format='table',
+                              complevel=9, complib='blosc:blosclz')
+
+class CompIO(_HDFWriter):
     '''
     A CompIO instance takes care of extracting a single variable/parameter from
     the model and of writing a single table to the database.
     '''
 
-    def __init__(self, tb, cl, comp_obj, idx, connect, output_target,
+    def __init__(self, tb, cl_out, comp_obj, idx, connect, output_target,
                  model=None):
 
         self.tb = tb
-        self.cl = cl
+        self.cl_out = cl_out
         self.comp_obj = comp_obj
         self.output_target = output_target
         self.connect = connect
@@ -116,8 +136,8 @@ class CompIO():
         unique = []
 
         aql.init_table(tb_name=self.tb, cols=cols,
-                       schema=self.cl,
-                       ref_schema=self.cl, pk=pk,
+                       schema=self.cl_out,
+                       ref_schema=self.cl_out, pk=pk,
                        unique=unique, bool_auto_fk=False, db=self.connect.db,
                        con_cur=self.connect.get_pg_con_cur())
 
@@ -152,22 +172,19 @@ class CompIO():
         df = df.astype({col: dtype for col, dtype in dtype_dict.items()
                         if col in df.columns})
 
-        with pd.HDFStore(self.cl, mode='a') as store:
-
-            store.append(tb, df, data_columns=True,
-                         complevel=9, complib='blosc:blosclz')
+        self.write_hdf(tb, df, 'append')
 
     def _to_sql(self, df, tb):
 
         df.to_sql(tb, self.connect.get_sqlalchemy_engine(),
-                  schema=self.cl, if_exists='append', index=False)
+                  schema=self.cl_out, if_exists='append', index=False)
 
     def _finalize(self, df, tb=None):
         ''' Add run_id column and write to database table '''
 
         tb = self.tb if not tb else tb
         logger.info('Writing {} to {}.{}'.format(self.comp_obj.name,
-                                                 self.cl, tb))
+                                                 self.cl_out, tb))
 
         # value always positive, directionalities expressed through bool_out
         df['value'] = df['value'].abs()
@@ -585,7 +602,7 @@ Hit enter to proceed.
                     io_class = self.IO_CLASS_DICT[DICT_GROUP[comp].split('_')[0]]
 
                 io_class_kwars = dict(tb=DICT_TABLE[comp],
-                                      cl=self.cl_out,
+                                      cl_out=self.cl_out,
                                       comp_obj=comp_obj,
                                       idx=idx,
                                       connect=self.sql_connector,
@@ -820,7 +837,7 @@ class TableReader():
                 (' from {}'.format(source) if source else ''))
 
 
-class DataReader():
+class DataReader(_HDFWriter):
     '''
 
     '''
@@ -1144,10 +1161,7 @@ class DataReader():
 
                 elif self.output_target == 'hdf5':
 
-                    with pd.HDFStore(self.cl_out, mode='a') as store:
-
-                        store.put(itb, df, data_columns=True, format='table',
-                                  complevel=9, complib='blosc:blosclz')
+                    self.write_hdf(itb, df, 'put')
 
     @skip_if_resume_loop
     @skip_if_no_output
@@ -1199,11 +1213,7 @@ class DataReader():
 
                 elif self.output_target == 'hdf5':
 
-                    with pd.HDFStore(self.cl_out, mode='a') as store:
-
-                        store.put(tb_name, df, format='table',
-                                  data_columns=True,
-                                  complevel=9, complib='blosc:blosclz')
+                    self.write_hdf(tb_name, df, 'put')
 
 
 class IO:
