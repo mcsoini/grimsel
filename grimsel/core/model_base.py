@@ -460,8 +460,10 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
         Returns
         -------
-            nhours_dict (dict): ``{node: (original time res,
-                                          target time res)}``
+        nhours_dict : dict
+            ``{node_1: (original time res, target time res),
+               node_2: (original time res, target time res),
+               ...}``
 
         '''
 
@@ -838,23 +840,34 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
 
     def _map_profile_to_time_resolution(self, df, itb, idx):
-        ''' Maps a single profile table to the selected nodal time resolution.
+        '''
+        Maps a single profile table to the selected nodal time resolution.
+
+        If the input table ``df`` doesn't contain a timemap column tm_id,
+        it is added based on the ``nd_id`` or ``pp_id`` columns using
+        the method :func:`_add_tm_columns`.
+
+        This instance method ca also be used externally to map other
+        input data to the temporal structure of the model (e.g. if the
+        demand or supply profiles are changed between model runs). Note that
+        in this case the ``tm_id`` column must already be present in the ``df``
+        (or the indices mapped to the ids of the original model). Otherwise
+        the ``tm_id`` will not be found.
 
         Parameters
         ----------
-        df: DataFrame
+        df : DataFrame
             input profile table. Must have columns ``hy`` as well as one of
             ``{tm_id, pp_id, nd_id, pf_id}``
-        itb: str
-            table name, used for ``setattr`` of new tables
         idx: list of str
-            index columns of the old and new tables
+            index columns of the new tables
+        itb: str
+            table name, only used in error message
 
         Returns
         -------
-        None
-            Mapped table is made an attribute of the :class:`ModelBase` class
-            instance
+        DataFrame
+            Mapped table
 
         Raises
         ------

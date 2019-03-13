@@ -34,7 +34,8 @@ def get_table_dicts():
     '''
     Get the dictionaries describing all tables.
 
-    Also used in post_process_index, therefore module function.
+    Also used in the class method ``post_process_index``,
+    therefore module function.
     '''
 
     # construct table name group name and component name
@@ -148,21 +149,12 @@ class CompIO(_HDFWriter):
 
         return df
 
-#    def _make_hdf_type_dict(self, tb):
-#
-#        if not tb in DTYPE_DICT:
-#
-#            try:
-#                with pd.HDFStore(self.cl, mode='r') as store:
-#                    DTYPE_DICT[tb] = store.get_node(tb).table.coldtypes
-#                    DTYPE_DICT[tb].update({'value': np.dtype('float64')})
-#            except Exception as e:
-#                print(e)
-#            return True
-#        else:
-#            return False
-
     def _to_hdf5(self, df, tb):
+        '''
+        Casts the data types of the output table and writes the
+        table to the output HDF file.
+
+        '''
 
         dtype_dict = {'value': np.dtype('float64'),
                       'bool_out': np.dtype('bool')}
@@ -403,9 +395,10 @@ class TransmIO(VariabIO):
 
         dfagg = pd.concat([dfexp, dfimp], axis=0)
 
-        dfagg['value'] /= dfagg.nd_id.replace(
-                                self.model.df_def_node.set_index('nd_id')
-                                                      .nd_weight.to_dict())
+        dict_nd_weight = {key: self.model.nd_weight[key].value
+                          for key in self.model.nd_weight}
+        dfagg['value'] /= dfagg.nd_id.replace(dict_nd_weight)
+
         return dfagg
 
     def _translate_trm(self, df):
@@ -1136,8 +1129,12 @@ class DataReader(_HDFWriter):
 
     @skip_if_resume_loop
     @skip_if_no_output
-    def write_input_tables_to_output_schema(self, tb_list):
+    def _write_input_tables_to_output_schema(self, tb_list):
         '''
+        Gathers relevant input tables and writes them to the output collection.
+
+        Note: As of now profile input tables are excluded. All relevant data
+        is included in the parameter output anyway.
 
         '''
 
@@ -1170,9 +1167,10 @@ class DataReader(_HDFWriter):
         Some input tables depend on model parameters (time resolution).
         Write these to output database schema.
         Also, table def_node altered due to addition of column dmnd_max.
+
         '''
 
-        self.write_input_tables_to_output_schema(self.input_table_list)
+        self._write_input_tables_to_output_schema(self.input_table_list)
 
         skip_fks = [('tm_soy', 'sy'),  # defines sy
                     ('hoy_soy', 'hy')]  # defines hy
