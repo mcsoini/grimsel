@@ -7,6 +7,8 @@ import grimsel
 logger = grimsel._get_logger(__name__)
 
 
+logger.info('grimsel_config file ', __file__)
+
 try:
     import config_local as conf_local
     PATH_CSV = conf_local.PATH_CSV
