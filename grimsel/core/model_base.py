@@ -433,7 +433,9 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
                              'or df empty.')
         elif sum(pf_arrs.values()) == 0:
             raise ValueError('No pf array found for table with columns '
-                             '%s'%df.columns.tolist())
+                             '%s'%df.columns.tolist() + '. Maybe you are '
+                             'trying to translate a table with pf_ids which '
+                             'are not included in the original model.')
         else:
             pf_dict = {val: key for key, val in pf_arrs.items()}[True]
 
