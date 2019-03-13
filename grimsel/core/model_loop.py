@@ -230,7 +230,7 @@ class ModelLoop():
         elif self.io.modwr.output_target == 'hdf5':
             with pd.HDFStore(self.io.cl_out, mode='a') as store:
                 store.append('def_run', df_add, data_columns=True,
-                             min_itemsize=30 # set string length!
+                             min_itemsize=150 # set string length!
                              )
 
     def _print_run_title(self, warmstartfile, solutionfile):
