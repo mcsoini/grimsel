@@ -20,6 +20,13 @@ except Exception as e:
 
 try:
     import config_local as conf_local
+    BASE_DIR = conf_local.BASE_DIR
+except Exception as e:
+    print(e)
+    logger.warn('Could not import BASE_DIR path.')
+
+try:
+    import config_local as conf_local
     FN_XLSX = conf_local.FN_XLSX
     DATABASE = conf_local.DATABASE
     SCHEMA = conf_local.SCHEMA
