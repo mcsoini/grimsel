@@ -110,7 +110,8 @@ class ParameterAdder:
         '''
         ``df`` is the DataFrame holding the parameter data. It is implemented
         as a property so it can't be changed after initialization of the
-        :class:`ParameterAdder` object.
+        :class:`ParameterAdder` instance.
+
         '''
         return self._df
 

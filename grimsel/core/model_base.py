@@ -19,7 +19,7 @@ logger = _get_logger(__name__)
 
 #def create_tempfile(self, suffix=None, prefix=None, text=False, dir=None):
 #    """
-#    Return the absolute path of a temporary filename that is
+#    Return the absolute path of a temporary filename that is_init_pf_dicts
 #    guaranteed to be unique.  This function generates the file and returns
 #    the filename.
 #    """
@@ -110,8 +110,8 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
         defaults = {'slct_node': [],
                     'slct_pp_type': [],
-                    'slct_encar': ['EL'],
-                    'nhours': 48,
+                    'slct_encar': [],
+                    'nhours': 1,
                     'unq_code': '',
                     'mps': None,
                     'tm_filt': False,
@@ -365,8 +365,8 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         * ``dict_dmnd_pf``: (nd_id, ca_id) |rarr| (dmnd_pf_id)
         * ``dict_supply_pf``: (pp_id, ca_id) |rarr| (supply_pf_id)
 
-        Use:
-        ____
+        Purpose
+        ---------
 
         The resulting dictionaries are used for filtering the profile tables
         in the :module:`io` module and to access the profile parameters
@@ -387,9 +387,11 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         for df, ind, name in list_pf:
 
             col = '%s_pf_id'%name
-            ind_df = df.loc[~df[col].isna()].set_index(ind)[col]
-
-            dct = ind_df.to_dict()
+            if df is not None and col in df.columns:
+                ind_df = df.loc[~df[col].isna()].set_index(ind)[col]
+                dct = ind_df.to_dict()
+            else:
+                dct = {}
 
             setattr(self, 'dict_%s_pf'%name, dct)
 
@@ -759,7 +761,9 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         '''
 
         self._init_time_map()
-        if not self.df_node_connect.empty:
+
+        if (isinstance(self.df_node_connect, pd.DataFrame)
+            and not self.df_node_connect.empty):
             self._init_time_map_connect()
 
         logger.critical('+++++++++++++++++++++++++ SKIPPING adjust_cost_time +++++++++++++++++++++++++++')
@@ -781,11 +785,13 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
             logger.info('Averaging {}; nhours={}.'.format(name_df,
                                                           self.nhours))
 
-            df_tbsoy = getattr(self, name_df)
+            if hasattr(self, name_df) and getattr(self, name_df) is not None:
 
-            setattr(self, 'df_prof' + itb + '_soy',
-                    self.map_profile_to_time_resolution(df=df_tbsoy,
-                                                        idx=idx, itb=itb))
+                df_tbsoy = getattr(self, name_df)
+
+                setattr(self, 'df_prof' + itb + '_soy',
+                        self.map_profile_to_time_resolution(df=df_tbsoy,
+                                                            idx=idx, itb=itb))
 
         self._get_maximum_demand()
 
@@ -841,6 +847,13 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
             df['tm_id'] = df.nd_id.replace(dct_n2tm)
 
         return df[cols + ['tm_id']]
+
+    import wrapt
+
+    @wrapt.decorator
+    def skip_if_df_none(f, self, **kwargs):
+        print(kwargs)
+        return f(**kwargs)
 
 
     def map_profile_to_time_resolution(self, df, idx, itb=None):

@@ -2,25 +2,32 @@
 Running Grimsel
 =================
 
-Grimsel is instantiated most conventiently through the :class:`grimsel.core.model_loop` class. This class takes care of data i/o (through the :class:`grimsel.core.io` class), model initialization (:class:`grimsel.core.model_base` class), as  well as parameter variation/scenario management. This shows a simple example on how to set up the model and run it.
+Grimsel is instantiated most conventiently through the :class:`grimsel.core.model_loop.ModelLoop` class. This class takes care of data input/output (through the :class:`grimsel.core.io` class), model initialization (:class:`grimsel.core.model_base` class), as  well as parameter variation/scenario management. This tutorial provides a step-by-description how the model is initialized and run.
 
-The input data consists in either a PostgreSQL schema of normalized tables (see :doc:`doc_input_data` section) or a set of csv files with the same structure (see the `example files included with Grimsel on Github <https://github.com/mcsoini/grimsel/tree/master/input_data/>`_).
+Note that this assumes the availability of a self-consistent set of input data. These data consist in either a PostgreSQL schema of normalized tables or a set of CSV files with the same structure (see the `example files included with Grimsel on Github <https://github.com/mcsoini/grimsel/tree/master/input_data/>`_). The structure of the required input data is further explained in the :ref:`corresponding section<input_data_structure>`.
 
+
+Basic imports
+-------------
+
+* The :mod:`grimsel.core.model_loop` module contains the ``ModelLoop`` class which puts it all together.
+* The :class:`grimsel.core.ModelBase` class is imported to access its :func:`grimsel.core.model_base.ModelBase.get_constraint_groups()` method (see below). This allows to define project-specific global configuration parameters (e.g. related to database connection and input file locations).
+* The grimsel_config module assumes the existence of a *config_local.py* file in *the current working directory*. 
+* The logger is defined in the Grimsel ``__init__`` file. The module level ``logger`` instance can be used to set the global logging level. Please refer to the documentation of the :class:`logging` module for further details.
 
 .. code:: ipython3
 
     import numpy as np
-    
-    from grimsel.core.model_base import ModelBase as MB
     import grimsel.core.model_loop as model_loop
-    import grimsel.config as config
+    from grimsel.core.model_base import ModelBase as MB
+    import grimsel_config as config
     from grimsel import logger
-    logger.setLevel(1000)
+    logger.setLevel(0)
 
 Defining model parameters
 -------------------------
 
-The model parameters are collected in a dictionary ``mkwargs``. They are passed to the :class:`ModelLoop` initializer as dictionary and serve as keyword arguments to the :class:`ModelBase` ``__init__`` class.
+The model parameters are collected in a dictionary ``mkwargs``. They are passed to the :class:`ModelLoop` initializer as dictionary and serve as keyword arguments to initialize the :class:`grimsel.core.model_base.ModelBase` class.
 
 
 .. code:: ipython3
@@ -36,16 +43,20 @@ The model parameters are collected in a dictionary ``mkwargs``. They are passed 
 
 
 * ``slct_encar``: Which energy carriers to include. Any subset of the entries in the *def_encar* input table's *ca*     column. All input tables are filtered accordingly.
-* ``slct_node``: Which nodes to include. Any subset of the entries in the *def_node* input table's *nd* column. All input tables are filtered accordingly. In the example two country-nodes ``[CH0, DE0]`` and two household-nodes ``[SFH_AA, SFH_AB]`` are included.
-* ``nhours``: Original and target time resolution of all profiles in the selected nodes. The value pairs correspond to the ``freq`` and ``nhours`` parameters of the :class:`grimsel.auxiliary.timemap.TimeMap` class. In the example, the country nodes have 1 hour time resolution. For ``CH0``, this remains explicitly unchanged: ``(1, 1)``. ``SFH_AA`` and ``SFH_AB`` have 15 minute inpute data time resolution which is maintained for ``SFH_AA`` and averaged to 30 minutes for ``SFH_AB``: ``(0.25, 0.5)``. In principle, any combination of time resolutions is possible. However, :class:`grimsel.auxiliary.timemap.TimeMap` throws an error if the target time resolution is not a multiple of the input data time resolution.
-* ``slct_pp_type``: Which power plant types to include. Any subset of the entries in the *def_pp_type* input table's *pt*     column. All input tables are filtered accordingly.
-* ``skip_runs``: Doesn't perform model runs but only writes the constructed model parameters to the output data. Occasionally useful.
-* ``tm_filt``: The parameter of the :class:`grimsel.auxiliary.timemap.TimeMap` class. In the example we limit the temporal scope of the model to the first day of four selected months.
-* ``constraint_groups``: The constraint groups are the methods of the :class:`grimsel.core.constraints.Constraints` class whose name follows the pattern ``add_*_rules``. Through this model parameter it is possible to select a subset of the active constraints (e.g. to investigate infeasibilities). For convenience, the :func:`grimsel.core.model_base.ModelBase.get_constraint_groups` class method allows to select all constraint groups except for those specified by its ``excl`` parameter.
+* ``slct_node``: Which nodes to include. Any subset of the entries in the *def_node* input table's *nd* column. All input tables are filtered accordingly. In the example, two country-nodes ``[CH0, DE0]`` and two household-nodes ``[SFH_AA, SFH_AB]`` are included.
+* ``nhours``: Original and target time resolution of all profiles in the selected nodes. The value pairs correspond to the ``freq`` and ``nhours`` parameters of the :class:`grimsel.auxiliary.timemap.TimeMap` class. In the example, the country nodes have 1 hour time resolution. For ``CH0``, this remains explicitly unchanged: ``(1, 1)``. ``SFH_AA`` and ``SFH_AB`` have 15 minute inpute data time resolution which is maintained for ``SFH_AA`` ``(0.25, 0.25)`` and averaged to 30 minutes for ``SFH_AB``: ``(0.25, 0.5)``. In principle, any combination of time resolutions is possible. However, :class:`grimsel.auxiliary.timemap.TimeMap` throws an error if the target time resolution ``freq`` is not a multiple of the input data time resolution ``nhours``.
+* ``slct_pp_type``: Which power plant types to include. Any subset of the entries in the *def_pp_type* input table's *pt*     column. All input tables are filtered accordingly. An empty list implies no filtering, i.e. all power plant types included in the input data are used.
+* ``skip_runs``: If set to ``True``, no model runs are performed and only the constructed model parameters are written to the output data. Occasionally useful.
+* ``tm_filt``: The parameter of the :class:`grimsel.auxiliary.timemap.TimeMap` class. In the example we limit the temporal scope of the model to the first day of four selected months. All input profiles are filtered accordingly.
+
+.. warning::
+   The time filtering makes use of the :class:`grimsel.auxiliary.timemap` class which defaults to the 2015 year structure. This might be import to keep in mind in case certain days of the week are selected.
+
+* ``constraint_groups``: The constraint groups are the methods of the :class:`grimsel.core.constraints.Constraints` class whose name follows the pattern ``add_*_rules``. Through this model parameter it is possible to select a subset of the active constraints (e.g. to investigate infeasibilities). For convenience, the :func:`grimsel.core.model_base.ModelBase.get_constraint_groups` class method allows to select all constraint groups except for those specified by its ``excl`` parameter. The example below demonstrates the case where all constraint groups except for the ``chp`` constraints are selected. If the model is constructed with this selection, the method :func:`grimsel.core.constraints.add_hydro_rules` will not be called.
 
 .. code:: ipython3
 
-    MB.get_constraint_groups(excl=['chp'])  # demonstration of the ``get_constraint_groups`` method
+    MB.get_constraint_groups(excl=['hydro'])  # demonstration of the ``get_constraint_groups`` method
 
 
 
@@ -55,9 +66,9 @@ The model parameters are collected in a dictionary ``mkwargs``. They are passed 
     ['capacity_calculation',
      'capacity_constraint',
      'charging_level',
+     'chp',
      'energy_aggregation',
      'energy_constraint',
-     'hydro',
      'monthly_total',
      'objective',
      'ramp_rate',

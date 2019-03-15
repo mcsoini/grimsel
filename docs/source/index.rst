@@ -19,6 +19,7 @@ Flexible energy system optimization framework based on relational input data.
    :maxdepth: 3
    :caption: Contents:
 
+   doc_introductory_example     
    doc_running_grimsel
    doc_input_data
    doc_core_modellogic
