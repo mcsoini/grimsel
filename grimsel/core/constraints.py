@@ -599,7 +599,8 @@ class Constraints:
 
             return ret
 
-        self.cadd('pp_max_fuel', self.ndcafl, rule=pp_max_fuel_rule)
+        if hasattr(self, 'erg_inp'):
+            self.cadd('pp_max_fuel', self.ndcafl, rule=pp_max_fuel_rule)
 
     def add_charging_level_rules(self):
         r'''
@@ -891,7 +892,8 @@ class Constraints:
             return (self.erg_yr[pp, ca] * self.vc_om[pp, ca]
                     == self.vc_om_pp_yr[pp, ca])
 
-        self.cadd('calc_vc_om_pp', self.ppall_ca, rule=calc_vc_om_pp_rule)
+        if hasattr(self, 'vc_om'):
+            self.cadd('calc_vc_om_pp', self.ppall_ca, rule=calc_vc_om_pp_rule)
 
 
         def calc_vc_co2_pp_rule(self, pp, nd, ca, fl):
@@ -923,7 +925,8 @@ class Constraints:
             return (self.vc_ramp_yr[pp, ca]
                     == self.pwr_ramp_yr[pp, ca] * self.vc_ramp[pp, ca])
 
-        self.cadd('calc_vc_ramp', self.rp_ca, rule=calc_vc_ramp_rule)
+        if hasattr(self, 'vc_ramp'):
+            self.cadd('calc_vc_ramp', self.rp_ca, rule=calc_vc_ramp_rule)
 
         def calc_fc_om_rule(self, pp, ca):
             '''Fixed O&M cost calculation rule.'''
