@@ -994,7 +994,8 @@ class DataReader(_HDFWriter):
             ac.AutoCompleteFuelDmnd(self.model, self.autocomplete_curtailment)
             ac.AutoCompletePlantTrns(self.model)
             ac.AutoCompletePlantDmnd(self.model, self.autocomplete_curtailment)
-            ac.AutoCompletePlantCons(self.model)
+            if 'fl_id' in self.model.df_def_encar:
+                ac.AutoCompletePlantCons(self.model)
             ac.AutoCompletePpCaFlex(self.model, self.autocomplete_curtailment)
             logger.info('#' * 60)
 
