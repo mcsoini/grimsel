@@ -255,7 +255,8 @@ class DualIO(CompIO):
     def to_df(self):
 
         dat = [ico + (self.model.dual[self.comp_obj[ico]],)
-               for ico in self.comp_obj]
+               for ico in self.comp_obj
+               if self.comp_obj[ico].active]
         return pd.DataFrame(dat, columns=self.columns)
 
 
