@@ -1005,7 +1005,8 @@ class DataReader(_HDFWriter):
         # autocomplete input tables
         self.data_autocompletion()
 
-        self._fix_df_node_connect()
+        if isinstance(self.model.df_node_connect, pd.DataFrame):
+            self._fix_df_node_connect()
 
         self.input_table_list = (list(dict_tb_1) + list(dict_tb_2)
                                  + list(dict_tb_0) + list(dict_tb_3)
