@@ -989,11 +989,13 @@ class DataReader(_HDFWriter):
         # e.g. if a fuel-cell is in the input table but no hydrogen is
         # included in the model, the plant's H2 demand wouldn't be accounted
         # for;
-        fl_id_ca = self.model.df_def_encar.fl_id.tolist()
-        mask_del = (self.model.df_def_fuel.is_ca.isin([1])
-                    & - self.model.df_def_fuel.fl_id.isin(fl_id_ca))
+        if 'fl_id' in self.model.df_def_encar.columns:
 
-        self.model.df_def_fuel = self.model.df_def_fuel.loc[-mask_del]
+            fl_id_ca = self.model.df_def_encar.fl_id.tolist()
+            mask_del = (self.model.df_def_fuel.is_ca.isin([1])
+                        & - self.model.df_def_fuel.fl_id.isin(fl_id_ca))
+
+            self.model.df_def_fuel = self.model.df_def_fuel.loc[-mask_del]
 
         # filter table by special index name/id columns
         self.model.df_parameter_month = \
