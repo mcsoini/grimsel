@@ -351,21 +351,18 @@ class Sets:
         df = df.loc[df.is_ca.isin([0]), 'fl_id']
         self.setlst['fl'] = df.get_values().tolist()
 
-        df = self.df_plant_encar.copy()
-        df = df.loc[-df.supply_pf_id.isna(), 'supply_pf_id']
-        self.setlst['supply_pf'] = df.drop_duplicates().get_values().tolist()
 
-        df = self.df_fuel_node_encar.copy()
-        df = df.loc[-df.pricesll_pf_id.isna(), 'pricesll_pf_id']
-        self.setlst['pricesll_pf'] = df.drop_duplicates().get_values().tolist()
+        for col, df in [('supply_pf_id', self.df_plant_encar),
+                        ('pricesll_pf_id', self.df_fuel_node_encar),
+                        ('pricebuy_pf_id', self.df_fuel_node_encar),
+                        ('dmnd_pf_id', self.df_node_encar)]:
 
-        df = self.df_fuel_node_encar.copy()
-        df = df.loc[-df.pricebuy_pf_id.isna(), 'pricebuy_pf_id']
-        self.setlst['pricebuy_pf'] = df.drop_duplicates().get_values().tolist()
-
-        df = self.df_node_encar
-        df = df.loc[-df.dmnd_pf_id.isna(), 'dmnd_pf_id']
-        self.setlst['dmnd_pf'] = df.drop_duplicates().get_values().tolist()
+            if col in df.columns:
+                df_ = df.copy()
+                df_ = df_.loc[-df_[col].isna(), col]
+                self.setlst[col.replace('_id', '')] = df_.unique().tolist()
+            else:
+                self.setlst[col.replace('_id', '')] = []
 
         self.setlst['pf'] = (self.setlst['dmnd_pf']
                              + self.setlst['pricesll_pf']
