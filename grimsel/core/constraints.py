@@ -235,14 +235,19 @@ class Constraints:
                           in set_to_list(self.ndcnn, [nd, None, ca]))
             dmnd = (self.dmnd[sy, nd, ca]
                     + sum(self.pwr_st_ch[sy, st, ca] for (st, nd, ca)
-                          in set_to_list(self.st_ndca, [None, nd, ca]))
-                    # demand of plants using ca as an input
-                    + sum(self.pwr[sy, pp, ca_out] / self.pp_eff[pp, ca_out]
-                          for (pp, nd, ca_out, ca)
-                          in set_to_list(self.pp_ndcaca,
-                                         [None, nd, None, ca]))
-                    )
-            return prod == dmnd * (1 + self.grid_losses[nd, ca]) + exports
+                          in set_to_list(self.st_ndca, [None, nd, ca])))
+
+
+            # demand of plants using ca as an input
+            ca_cons = (po.ZeroConstant if not self.pp_ndcaca else
+                       sum(self.pwr[sy, pp, ca_out] / self.pp_eff[pp, ca_out]
+                           for (pp, nd, ca_out, ca)
+                           in set_to_list(self.pp_ndcaca,
+                                          [None, nd, None, ca])))
+            gl = (self.grid_losses[nd, ca] if hasattr(self, 'grid_losses')
+                  else po.ZeroConstant)
+
+            return prod == (dmnd + ca_cons) * (1 + gl) + exports
 
         self.cadd('supply', self.sy_ndca, rule=supply_rule)
 
