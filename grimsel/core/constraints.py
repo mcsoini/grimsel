@@ -217,7 +217,7 @@ class Constraints:
         def supply_rule(self, sy, nd, ca):
             ''' Balance supply/demand '''
 
-            list_neg = self.setlst['sll'] + self.setlst['curt']
+            list_neg = self.sll | self.curt
             prod = (# power output; negative if energy selling plant
                     sum(self.pwr[sy, pp, ca]
                         * (-1 if pp in list_neg else 1)
@@ -337,11 +337,11 @@ class Constraints:
             '''Calculate total power capacity (leg + add - rem).'''
 
             cap_tot = self.cap_pwr_leg[pp, ca]
-            if (pp in self.setlst['add']):
+            if pp in self.add:
                 cap_tot += self.cap_pwr_new[pp, ca]
-            if (pp in self.setlst['rem']):
+            if pp in self.rem:
                 cap_tot -= self.cap_pwr_rem[pp, ca]
-            return (self.cap_pwr_tot[pp, ca] == cap_tot)
+            return self.cap_pwr_tot[pp, ca] == cap_tot
         self.cadd('calc_cap_pwr_tot', self.ppall_ca,
                   rule=calc_cap_pwr_tot_rule)
 
@@ -846,7 +846,7 @@ class Constraints:
             tm = self.dict_nd_tm_id[nd]
             list_sy = self.dict_tm_sy[tm]
 
-            sign = -1 if pp in self.setlst['sll'] else 1
+            sign = -1 if pp in self.sll else 1
 
             # Case 1: fuel has price profile
             if (fl, nd, ca) in {**self.dict_pricebuy_pf,
