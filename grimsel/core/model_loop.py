@@ -85,8 +85,9 @@ class ModelLoop():
 
         defaults = {
                     'nsteps': ModelLoop.nsteps_default,
-                    'mkwargs': None,
-                    'iokwargs': None}
+                    'mkwargs': {},
+                    'iokwargs': {}
+                    }
 
         for key, val in defaults.items():
             setattr(self, key, val)
