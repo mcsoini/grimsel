@@ -279,8 +279,9 @@ class AutoCompleteFuel(AutoComplete):
 
         # define column is_ca based on entries of df_def_encar
         self._df['is_ca'] = 0
-        mask_ca = (self._df.fl_id.isin(m.df_def_encar.fl_id))
-        self._df.loc[mask_ca, 'is_ca'] = 1
+        if 'fl_id' in m.df_def_encar.columns:
+            mask_ca = self._df.fl_id.isin(m.df_def_encar.fl_id)
+            self._df.loc[mask_ca, 'is_ca'] = 1
 
         super().__init__(m)
 
