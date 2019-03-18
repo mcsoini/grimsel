@@ -394,7 +394,7 @@ class Constraints:
         def ppst_capac_rule(self, sy, pp, ca):
             ''' Produced power must be less than capacity. '''
 
-            if pp in self.setlst['pp']:
+            if pp in self.setlst['pp'] and has_cap_avlb:
 
                 tm = self.dict_pp_tm_id[pp]
                 mt = self.dict_soy_month[(tm, sy)]
@@ -403,6 +403,7 @@ class Constraints:
             else:
                 return (self.pwr[sy, pp, ca] <= self.cap_pwr_tot[pp, ca])
 
+        has_cap_avlb = hasattr(self, 'cap_avlb')
         self.cadd('ppst_capac',
                   (self.sy_pp_ca - self.sy_pr_ca) | self.sy_st_ca
                        | self.sy_hyrs_ca, rule=ppst_capac_rule)
