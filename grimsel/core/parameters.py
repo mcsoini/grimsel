@@ -68,8 +68,9 @@ class ParameterAdder:
                           if par.value_col else self.parameter_name)
 
         self.has_monthly_factors = (
-            self.parameter_name
-            in self.m.df_parameter_month.parameter.unique())
+                self.m.df_parameter_month is not None and
+                self.parameter_name
+                in self.m.df_parameter_month.parameter.unique())
 
         self.index_cols = (par.index_cols
                            if par.index_cols else self._get_index_cols())
