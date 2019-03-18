@@ -164,7 +164,9 @@ class Sets:
 
 
         # plants selling fuels ... only ppall, therefore outside the loop
-        lst = cols2tuplelist(df.loc[df.pp_id.isin(self.setlst['sll'])])
+        lst = cols2tuplelist(df.loc[df.pp_id.isin(self.setlst['sll']
+                                                  if 'sll' in self.setlst
+                                                  else [])])
         setattr(self, 'pp_ndcafl_sll',
                 po.Set(within=self.pp_ndcafl, initialize=lst))
 
@@ -172,8 +174,9 @@ class Sets:
         self.sy = po.Set(initialize=list(self.df_tm_soy.sy.unique()),
                          ordered=True)
 
-        self.sy_hydbc = po.Set(within=self.sy,
+        self.sy_hydbc = (po.Set(within=self.sy,
                                initialize=set(self.df_plant_month.sy))
+                         if not self.df_plant_month is None else None)
 
         self.mt = (po.Set(initialize=list(self.df_def_month['mt_id']))
                    if not self.df_def_month is None else None)
@@ -181,16 +184,19 @@ class Sets:
                    if not self.df_def_week is None else None)
 
         # pp_cacafcl; used to account for conversions of ca in the supply rule
-        df_cafl = self.df_def_encar.set_index('fl_id')['ca_id']
-        df_cafl = df_cafl.rename('ca_fl_id')
-        df_ppca = self.df_plant_encar.set_index('pp_id')['ca_id']
-        df = (self.df_def_plant.join(df_ppca, on='pp_id')
-                               .join(df_cafl, on='fl_id'))
-        df = df.loc[-df.ca_fl_id.isnull()
-                  & -df.ca_id.isnull(), ['pp_id', 'nd_id', 'ca_id',
-                                         'ca_fl_id']]
-        self.pp_ndcaca = po.Set(within=self.pp_ndca * self.ca,
-                                  initialize=cols2tuplelist(df))
+        if 'fl_id' in self.df_def_encar:
+            df_cafl = self.df_def_encar.set_index('fl_id')['ca_id']
+            df_cafl = df_cafl.rename('ca_fl_id')
+            df_ppca = self.df_plant_encar.set_index('pp_id')['ca_id']
+            df = (self.df_def_plant.join(df_ppca, on='pp_id')
+                                   .join(df_cafl, on='fl_id'))
+            df = df.loc[-df.ca_fl_id.isnull()
+                      & -df.ca_id.isnull(), ['pp_id', 'nd_id', 'ca_id',
+                                             'ca_fl_id']]
+            self.pp_ndcaca = po.Set(within=self.pp_ndca * self.ca,
+                                      initialize=cols2tuplelist(df))
+        else:
+            self.pp_ndcaca = None
 
         # inter-node connections
         if not self.df_node_connect is None and not self.df_node_connect.empty:
@@ -232,9 +238,12 @@ class Sets:
             self.ndcafl = None
 
         # fuels with energy constraints
-        lst = self.df_def_fuel.loc[self.df_def_fuel.is_constrained==1,
-                                       'fl_id'].tolist()
-        self.fl_erg = po.Set(within=self.fl, initialize=lst, ordered=True)
+        if 'is_constrained' in self.df_def_fuel:
+            lst = self.df_def_fuel.loc[self.df_def_fuel.is_constrained==1,
+                                           'fl_id'].tolist()
+            self.fl_erg = po.Set(within=self.fl, initialize=lst, ordered=True)
+        else:
+            self.fl_erg = po.Set(within=self.fl, initialize=[])
 
         # set pf_id for profiles
         for pf_set in ['dmnd_pf', 'supply_pf', 'pricesll_pf', 'pricebuy_pf']:
@@ -294,17 +303,20 @@ class Sets:
                          'pp', 'chp', 'ror', 'lin']:
 
             set_name = 'sy_%s_ca'%slct_set
+            within = self.sy * getattr(self, slct_set) * self.ca
 
-            logger.info('Defining set ' + set_name)
+            if slct_set in self.setlst:
 
-            set_pp = set(self.setlst[slct_set])
+                logger.info('Defining set ' + set_name)
 
-            setattr(self, set_name,
-                    po.Set(within=self.sy * getattr(self, slct_set) * self.ca,
-                           ordered=True,
-                           initialize=[row for row in list_syppca
-                                       if row[1] in set_pp]))
+                set_pp = set(self.setlst[slct_set])
 
+                setattr(self, set_name,
+                        po.Set(within=within, ordered=True,
+                               initialize=[row for row in list_syppca
+                                           if row[1] in set_pp]))
+            else:
+                setattr(self, set_name, po.Set(within=within, initialize=[]))
 
     def get_setlst(self):
         '''
