@@ -173,7 +173,7 @@ class ParameterAdder:
                 # use external df as is
                 df = df
 
-        return df.set_index(self.index_cols)[self.value_col].to_dict()
+        return df.loc[-df[self.value_col].isna()].set_index(self.index_cols)[self.value_col].to_dict()
 
     def _get_param_data(self):
         '''
