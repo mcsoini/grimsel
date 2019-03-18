@@ -1040,12 +1040,22 @@ class Constraints:
 
         '''
 
+
+        def spec_vc_fl(lin, sy):
+
+            fl_id, nd_id = (self.mps.dict_plant_2_fuel_id[lin],
+                            self.mps.dict_plant_2_node_id[lin])
+
+            if self.dict_par['vc_fl'].has_monthly_factors:
+                mt_id = self.dict_soy_month[(self.dict_pp_tm_id[lin], sy)]
+                return self.vc_fl[mt_id, fl_id, nd_id]
+            else:
+                return self.vc_fl[fl_id, nd_id]
+
         return \
         sum(self.pwr[sy, lin, ca]
             * self.weight[self.dict_pp_tm_id[lin], sy]
-            * self.vc_fl[self.dict_soy_month[(self.dict_pp_tm_id[lin], sy)],
-                         self.mps.dict_plant_2_fuel_id[lin],
-                         self.mps.dict_plant_2_node_id[lin]]
+            * spec_vc_fl(lin, sy)
             * (self.factor_lin_0[lin, ca]
                + 0.5 * self.pwr[sy, lin, ca]
                      * self.factor_lin_1[lin, ca])
