@@ -61,6 +61,12 @@ class Sets:
 
     '''
 
+    # base power plant subsets
+    slct_sets = ['ppall', 'pp', 'st', 'pr', 'ror', 'lin',
+                 'hyrs', 'chp', 'add', 'rem',
+                 'curt', 'sll', 'rp']
+
+
     def define_sets(self):
         r'''
         Add all required sets to the model.
@@ -88,12 +94,9 @@ class Sets:
         df_ndca = df_ndca[['pp_id', 'nd_id', 'ca_id']]
 
         slct_cols = ['pp_id', 'ca_id']
-        slct_sets = ['ppall', 'pp', 'st', 'pr', 'ror', 'lin',
-                     'hyrs', 'chp', 'add', 'rem',
-                     'curt', 'sll', 'rp']
 
 
-        for iset in slct_sets:
+        for iset in self.slct_sets:
 
             logger.info('Defining basic sets for {}'.format(iset))
 
