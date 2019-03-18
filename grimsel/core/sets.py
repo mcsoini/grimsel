@@ -328,7 +328,8 @@ class Sets:
 
         '''
         # define lists for set initialization
-        self.setlst = {}
+        self.setlst = {st: [] for st in self.slct_sets}
+
         df = self.df_def_plant
 
         self.setlst['ppall'] = (df.query('set_def_tr == 0 & set_def_dmd == 0')
