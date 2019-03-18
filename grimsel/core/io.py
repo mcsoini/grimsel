@@ -969,20 +969,25 @@ class DataReader(_HDFWriter):
         '''
         Make two separate DataFrames for profprice buying and selling.
 
-        Having both in the same table gets too complicated down the line.
+        Having both in the same table gets too complicated down the road.
 
         '''
+
+        bool_exists = (hasattr(self.model, 'df_profprice')
+                       and self.model.df_profprice is not None)
 
         for bs in ['buy', 'sll']:
 
             tb_name = 'df_profprice%s' % bs
 
-            mask = self.model.df_def_profile.pf.str.contains('price' + bs)
-            list_pd_id = self.model.df_def_profile.loc[mask].pf_id.tolist()
-            setattr(self.model, tb_name,
-                    self.model.df_profprice.loc[self.model.df_profprice
-                                                          .price_pf_id
-                                                          .isin(list_pd_id)])
+            if bool_exists:
+                mask = self.model.df_def_profile.pf.str.contains('price' + bs)
+                list_pd_id = self.model.df_def_profile.loc[mask].pf_id.tolist()
+                mask_prf = self.model.df_profprice.price_pf_id.isin(list_pd_id)
+                df_split = self.model.df_profprice.loc[mask_prf]
+                setattr(self.model, tb_name, df_split)
+            else:
+                setattr(self.model, tb_name, None)
 
     def data_autocompletion(self):
 
