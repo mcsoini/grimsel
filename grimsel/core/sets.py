@@ -132,25 +132,36 @@ class Sets:
         df_0 = df_0.loc[df_0.fl_id.isin(self.setlst['fl'])]
 
         list_sets = ['ppall', 'hyrs', 'pp', 'chp', 'ror', 'st', 'lin']
-        list_sets = [st for st in list_sets if st in self.setlst.keys()]
+#        list_sets = [st for st in list_sets if st in self.setlst.keys()]
 
         for iset in list_sets:
 
-            cols_ppcafl = ['pp_id', 'ca_id', 'fl_id']
-            df = df_0.loc[df_0['pp_id'].isin(self.setlst[iset]), cols_ppcafl]
+            if iset in self.setlst:
+                cols_ppcafl = ['pp_id', 'ca_id', 'fl_id']
+                df = df_0.loc[df_0['pp_id'].isin(self.setlst[iset]),
+                              cols_ppcafl]
+                new_set = po.Set(within=getattr(self, iset) * self.ca * self.fl,
+                                 initialize=cols2tuplelist(df))
+                setattr(self, iset + '_cafl', new_set)
 
-            setattr(self, iset + '_cafl',
-                    po.Set(within=getattr(self, iset) * self.ca * self.fl,
-                           initialize=cols2tuplelist(df)))
+                slct_cols_ppndcafl = ['pp_id', 'nd_id', 'ca_id', 'fl_id']
+                df = df_0.loc[df_0.pp_id.isin(self.setlst[iset]),
+                              slct_cols_ppndcafl]
 
-            slct_cols_ppndcafl = ['pp_id', 'nd_id', 'ca_id', 'fl_id']
-            df = df_0.loc[df_0.pp_id.isin(self.setlst[iset]),
-                          slct_cols_ppndcafl]
+                setattr(self, iset + '_ndcafl',
+                        po.Set(within=(getattr(self, iset) * self.nd
+                                     * self.ca * self.fl),
+                               initialize=cols2tuplelist(df)))
+            else:
 
-            setattr(self, iset + '_ndcafl',
-                    po.Set(within=(getattr(self, iset) * self.nd
-                                 * self.ca * self.fl),
-                           initialize=cols2tuplelist(df)))
+                new_set_cafl = po.Set(within=getattr(self, iset) * self.ca * self.fl,
+                                 initialize=[])
+                setattr(self, iset + '_cafl', new_set_cafl)
+
+                new_set_ndcafl = po.Set(within=getattr(self, iset) * self.nd * self.ca * self.fl,
+                                        initialize=[])
+                setattr(self, iset + '_ndcafl', new_set_ndcafl)
+
 
         # plants selling fuels ... only ppall, therefore outside the loop
         lst = cols2tuplelist(df.loc[df.pp_id.isin(self.setlst['sll'])])
