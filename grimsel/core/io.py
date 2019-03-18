@@ -744,7 +744,9 @@ class TableReader():
 
         self.sqlc = sql_connector
         self.sc_inp = sc_inp
-        self.data_path = data_path
+        self.data_path = (data_path if
+                          isinstance(data_path, (tuple, list))
+                          else [data_path])
         self.model = model
 
         if not self.sc_inp and not self.data_path:
@@ -753,27 +755,45 @@ class TableReader():
                                                           '..', 'input_data'))
 
 
-        self.table_list = self._get_table_list()
+        self.table_set, self.dict_tb_path = self._get_table_dict()
 
-    def _get_table_list(self):
-        ''' Obtain list of tables in the relevant data source. '''
+    def _get_table_dict(self):
+        '''
+        Obtain list of tables in the relevant data source.
+
+        TODO: Update PSQL
+
+        '''
 
         if self.sc_inp:
             return aql.get_sql_tables(self.sc_inp, self.sqlc.db)
+
         elif self.data_path:
-            return [fn.replace('.csv', '')
-                    for fn in next(os.walk(self.data_path))[-1]]
+
+            # path -> tables list
+            dict_pt_tb = {path: [fn.replace('.csv', '')
+                          for fn in next(os.walk(path))[-1]]
+                          for path in self.data_path}
+
+            table_set = set(itertools.chain.from_iterable(
+                                                        dict_pt_tb.values()))
+
+            # table -> under which paths
+            dict_tb_path = {tb: [pt for pt, tb_list in dict_pt_tb.items() if
+                            tb in tb_list] for tb in table_set}
+
+            return table_set, dict_tb_path
 
     def _expand_table_families(self, dct):
         '''
-        Searches for tables with identical name + suffix in the same data source.
-        Updates and returns the dct.
+        Searches for tables with identical name + suffix.
+        Updates the dct.
         '''
 
         dct_add = {}
         for table, filt in dct.items():
 
-            tbs_other = [tb for tb in self.table_list
+            tbs_other = [tb for tb in self.table_set
                          if table in tb and not tb == table]
 
             if tbs_other:
@@ -782,22 +802,25 @@ class TableReader():
         dct.update(dct_add)
 
     def df_from_dict(self, dct):
-        ''' Reads filtered input tables and assigns them to instance
-            attributes. (Copies filtered tables to output schema.
-            OBSOLETE DUE TO AUTO-COMPLETE) '''
+        '''
+        Reads filtered input tables and assigns them to instance
+        attributes.
+        '''
 
         self._expand_table_families(dct)
 
         for kk, vv in dct.items():
 
-            df, tb_exists, source_str = self.get_input_table(kk, vv)
+            list_df, tb_exists, source_str = self.get_input_table(kk, vv)
+
+            df = pd.concat(list_df, axis=0, sort=False) if tb_exists else None
 
             setattr(self.model, 'df_' + kk, df)
 
             if not tb_exists:
-                logger.warning('Input table {tb} does not exist. '
-                      + 'Setting model attribute df_{tb} '
-                      + 'to None.'.format(tb=kk))
+                warn_str = ('Input table {tb} does not exist. Setting model '
+                            'attribute df_{tb} to None.')
+                logger.warning(warn_str.format(tb=kk))
             else:
                 filt = ('filtered by ' if len(vv) > 0 else '') +\
                    ', '.join([vvv[0] + ' in ' + str(vvv[1]) for vvv in vv
@@ -807,28 +830,48 @@ class TableReader():
                                               source_str=source_str))
 
     def get_input_table(self, table, filt):
+        '''
+        Returns list of tables.
+        '''
+
 
         if self.sc_inp:
+
             tb_exists = table in aql.get_sql_tables(self.sc_inp, self.sqlc.db)
+
             if tb_exists:
-                df = aql.read_sql(self.sqlc.db, self.sc_inp, table, filt)
+                list_df = [aql.read_sql(self.sqlc.db, self.sc_inp,
+                                        table, filt)]
             source = '%s %s.%s'%(self.sqlc.db, self.sc_inp, table)
+
         else:
-            path = self.data_path
-            fn = os.path.join(path, '{}.csv'.format(table))
+            list_df = []
 
-            source = fn
-            tb_exists = os.path.exists(fn)
+            tb_exists = table in self.dict_tb_path
 
-            if tb_exists:
+            paths = self.dict_tb_path[table] if tb_exists else []
+
+            source = []
+
+            for path in paths:
+
+                fn = os.path.join(path, '{}.csv'.format(table))
+
+                source.append(fn)
+#                tb_exists = os.path.exists(fn)
+
+#                if tb_exists:
                 df = pd.read_csv(fn)
+
+                logger.info('Done reading, filtering according to {}'.format(filt))
 
                 for col, vals in filt:
                     df = df.loc[df[col].isin(vals)]
 
-        return ((df if tb_exists else None), tb_exists,
-                (' from {}'.format(source) if source else ''))
+                list_df.append(df)
 
+        return ((list_df if tb_exists else None), tb_exists,
+                (' from {}'.format(' and '.join(source)) if tb_exists else ''))
 
 class DataReader(_HDFWriter):
     '''
