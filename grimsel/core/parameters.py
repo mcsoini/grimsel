@@ -200,7 +200,7 @@ class ParameterAdder:
 
         if type(self.source_dataframe) is str:
 
-            if hasattr(self.m, self.source_dataframe):
+            if hasattr(self.m, self.source_dataframe) and getattr(self.m, self.source_dataframe) is not None:
                 df = getattr(self.m, self.source_dataframe).copy()
                 if df is None:
                     logger.warning('... failed (source_dataframe is None).')
@@ -211,6 +211,7 @@ class ParameterAdder:
                 df = pd.DataFrame()
                 flag_empty = True
 
+
         elif type(self.source_dataframe) is pd.DataFrame:
             df = self.source_dataframe.copy()
 
@@ -218,12 +219,15 @@ class ParameterAdder:
             df = df.set_index(self.filt_cols).loc[self.filt_vals]
             df = df.reset_index()
 
+
+
         # check if column exists in table
-        if not flag_empty and self.value_col not in df.columns:
-            logger.warning(' failed (column doesn\'t exist).')
-            flag_empty = True
-        else:
-            df = df[self.index_cols + [self.value_col]]
+        if not flag_empty:
+            if self.value_col not in df.columns:
+                logger.warning(' failed (column doesn\'t exist).')
+                flag_empty = True
+            else:
+                df = df[self.index_cols + [self.value_col]]
 
         return df, flag_empty
 
