@@ -372,16 +372,9 @@ class Sets:
                              + self.setlst['pricebuy_pf']
                              + self.setlst['supply_pf'])
 
-        self.setlst['rp'] = (self.setlst['pp']
-                             + self.setlst['ror']
-                             + self.setlst['hyrs'])
-
-#         # hydro and storage together
-#        self.setlst['sthyrs'] = self.setlst['st'] + self.setlst['hyrs']
-#
-#        mask_node = self.df_def_node['nd_id'].isin(self.slct_node_id)
-
-#
+        self.setlst['rp'] = (self.setlst['pp'] if 'pp' in self.setlst else []
+                             + self.setlst['ror'] if 'ror' in self.setlst else []
+                             + self.setlst['hyrs'] if 'hyrs' in self.setlst else [])
 
     @silence_pd_warning
     @staticmethod
