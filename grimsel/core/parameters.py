@@ -60,17 +60,12 @@ class ParameterAdder:
                    '{par} ...'.format(par=self.parameter_name))
         logger.info(log_str)
 
-
         self.parameter_index = ((par.parameter_index,)
                            if not isinstance(par.parameter_index, tuple)
                            else par.parameter_index)
 
-
-
-
         self.value_col = (par.value_col
                           if par.value_col else self.parameter_name)
-
 
         self.has_monthly_factors = (
             self.parameter_name
@@ -78,8 +73,6 @@ class ParameterAdder:
 
         self.index_cols = (par.index_cols
                            if par.index_cols else self._get_index_cols())
-
-#        return
 
         self.df, self.flag_infeasible = self._get_param_data()
 
@@ -123,9 +116,6 @@ class ParameterAdder:
                                'ParameterAdder.df')
         else:
             self._df = val
-
-
-
 
     @wrapt.decorator
     def _if_is_feasible(f, self, args, kwargs):
