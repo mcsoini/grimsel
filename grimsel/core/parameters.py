@@ -420,7 +420,7 @@ class Parameters:
         if not empty, else empty table wih corresponding columns.
         '''
 
-        if self.df_profsupply_soy.empty:
+        if getattr(self, 'df_profsupply_soy', pd.DataFrame()).empty:
             return pd.DataFrame(columns=['sy', 'pp_id', 'ca_id', 'value'])
         else:
             return self.translate_pf_id(
