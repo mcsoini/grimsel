@@ -207,8 +207,17 @@ class ParameterAdder:
             df = self.source_dataframe.copy()
 
         if (not flag_empty) and (self.filt_cols and self.filt_vals):
-            df = df.set_index(self.filt_cols).loc[self.filt_vals]
-            df = df.reset_index()
+            try:
+                df = df.set_index(self.filt_cols).loc[list(self.filt_vals)]
+                df = df.reset_index()
+            except Exception as e:
+                logger.error(('Got error {e} when trying to filter DataFrame '
+                              '{df} by values {val} of columns {cols}. This '
+                              'might happen e.g. if a power plant in the pp '
+                              'but not in the lin set is missing a value for '
+                              'pp_eff in the plant_encar table'
+                              ).format(e=e, val=self.filt_vals,
+                                       cols=self.filt_cols, df=df))
 
 
 
