@@ -191,7 +191,7 @@ class ParameterAdder:
 
         if type(self.source_dataframe) is str:
 
-            if hasattr(self.m, self.source_dataframe) and getattr(self.m, self.source_dataframe) is not None:
+            if getattr(self.m, self.source_dataframe, None) is not None:
                 df = getattr(self.m, self.source_dataframe).copy()
                 if df is None:
                     logger.warning('... failed (source_dataframe is None).')
