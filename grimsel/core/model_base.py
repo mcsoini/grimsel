@@ -516,10 +516,10 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
         df_ndcnn = self.df_node_connect[['nd_id', 'nd_2_id', 'ca_id']].drop_duplicates()
 
-        df_ndcnn['freq'] = df_ndcnn.nd_id.apply(lambda x: {key: frnh[0] for key, frnh in self.dict_nd_tm.items()}[x])
-        df_ndcnn['nhours'] = df_ndcnn.nd_id.apply(lambda x: {key: frnh[1] for key, frnh in self.dict_nd_tm.items()}[x])
-        df_ndcnn['freq_2'] = df_ndcnn.nd_2_id.apply(lambda x: {key: frnh[0] for key, frnh in self.dict_nd_tm.items()}[x])
-        df_ndcnn['nhours_2'] = df_ndcnn.nd_2_id.apply(lambda x: {key: frnh[1] for key, frnh in self.dict_nd_tm.items()}[x])
+        df_ndcnn['freq'] = df_ndcnn.nd_id.apply(lambda x: {key: frnh[0] for key, frnh in self._dict_nd_tm.items()}[x])
+        df_ndcnn['nhours'] = df_ndcnn.nd_id.apply(lambda x: {key: frnh[1] for key, frnh in self._dict_nd_tm.items()}[x])
+        df_ndcnn['freq_2'] = df_ndcnn.nd_2_id.apply(lambda x: {key: frnh[0] for key, frnh in self._dict_nd_tm.items()}[x])
+        df_ndcnn['nhours_2'] = df_ndcnn.nd_2_id.apply(lambda x: {key: frnh[1] for key, frnh in self._dict_nd_tm.items()}[x])
         df_ndcnn['tm_id'] = df_ndcnn.nd_id.replace(self.dict_nd_tm_id)
         df_ndcnn['tm_2_id'] = df_ndcnn.nd_2_id.replace(self.dict_nd_tm_id)
 
@@ -593,15 +593,15 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         '''
 
 
-        self.dict_nd_tm = self._get_nhours_nodes(self.nhours)
+        self._dict_nd_tm = self._get_nhours_nodes(self.nhours)
 
         # generate unique time map ids
         dict_tm = {ntm: frnh for ntm, frnh
-                   in enumerate(set(self.dict_nd_tm.values()))}
+                   in enumerate(set(self._dict_nd_tm.values()))}
 
         self.dict_nd_tm_id = {nd:
                               {val: key for key, val in dict_tm.items()}[tm]
-                              for nd, tm in self.dict_nd_tm.items()}
+                              for nd, tm in self._dict_nd_tm.items()}
 
         self._tm_objs = {tm_id:
                    timemap.TimeMap(tm_filt=self.tm_filt,
@@ -690,13 +690,13 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
         # identify time map with minimum nhours
         dict_nhours_to_tm = {tm[1]: self.dict_nd_tm_id[nd]
-                             for nd, tm in self.dict_nd_tm.items()}
+                             for nd, tm in self._dict_nd_tm.items()}
         tm_nhoursmin = dict_nhours_to_tm[min(dict_nhours_to_tm)]
 
         # identify time map with minimum freq (for joining on hy)
 
         dict_freq_to_tm = {tm[0]: self.dict_nd_tm_id[nd]
-                           for nd, tm in self.dict_nd_tm.items()}
+                           for nd, tm in self._dict_nd_tm.items()}
         tm_freqmin = dict_freq_to_tm[min(dict_freq_to_tm)]
 
         df = self._tm_objs[tm_freqmin].df_time_map.set_index('hy')[[]]
