@@ -503,7 +503,8 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
     def init_maps(self):
         '''
-        Uses the input DataFrames to initialize a :class:Maps instance.
+        Uses the input DataFrames to initialize a
+        :class:`grimsel.auxiliary.maps.Maps` instance.
 
         '''
 
@@ -746,7 +747,8 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         '''
         Generates a map between hours-of-the-year and time slots-of-the-year
         based on the fixed time resolution ``self.nhours``, using the class
-        ``timemap.TimeMap``. Then maps relevant input data from hours to slots.
+        ``timemap.TimeMap``. Then maps time series input data from hours
+        to slots.
         Also generates dictionaries which contain all slot ids for each
         week/month and vice versa.
 
