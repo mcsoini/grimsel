@@ -404,6 +404,11 @@ if __name__ == '__main__':
 #    par = Par('cf_max', (ml.m.pp, ml.m.ca), 'df_plant_encar', None, ['pp_id'], ml.m.pp)
     par = Par('inflowprof', (ml.m.sy_hyrs_ca | ml.m.sy_ror_ca), 'df_profinflow_soy', 'value', index_cols=['sy', 'pp_id', 'ca_id'])
 
+    self = ml.m
+
+    par = Par('pp_eff', (self.pp - self.lin, self.ca), 'df_plant_encar', None, ['pp_id'],
+            self.pp - self.lin, default=1)
+
     ml.m.dict_monthly_factors = {}
 
     parameter = ParameterAdder(ml.m, par)
