@@ -940,7 +940,9 @@ class Constraints:
             return (self.fc_om_pp_yr[pp, ca]
                     == self.cap_pwr_tot[pp, ca] * self.fc_om[pp, ca])
 
-        self.cadd('calc_fc_om', self.add_ca | self.rem_ca, rule=calc_fc_om_rule)
+        if hasattr(self, 'fc_om'):
+            self.cadd('calc_fc_om', self.add_ca | self.rem_ca,
+                      rule=calc_fc_om_rule)
 
         def calc_fc_cp_rule(self, pp, ca):
             '''Fixed capital cost calculation rule'''
