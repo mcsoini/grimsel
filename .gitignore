@@ -1,5 +1,9 @@
 config_local.py
 
+tmp*
+*.hdf
+*.hdf5
+
 OBSOLETE/
 *.pyc
 *.log
