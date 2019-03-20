@@ -585,6 +585,78 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         cols = ['tm_min_id', 'symin', 'nd_id', 'nd_2_id', 'ca_id']
         self.df_symin_ndcnn = pd.concat(list_df).reset_index()[cols]
 
+    def _init_time_map_input(self):
+        '''
+        If a *tm_soy* table is provided in the input data, time slots
+        are assumed to be exogenously defined.
+
+        '''
+
+        # assert number of time slots in all profiles equals time slots in
+        # tm_soy input table
+        nsy = len(self.df_tm_soy.sy)
+        assert(len(self.df_profdmnd.hy.unique()) == nsy), \
+            'Inconsistent time slots tm_soy/profsupply'
+        if getattr(self, 'profsupply', None) is not None:
+            assert(len(self.df_profsupply.hy.unique()) == nsy), \
+                'Inconsistent time slots tm_soy/profsupply'
+        if getattr(self, 'profchp', None) is not None:
+            assert(len(self.df_profchp.hy.unique()) == nsy), \
+                'Inconsistent time slots tm_soy/profchp'
+        if getattr(self, 'profchp', None) is not None:
+            assert(len(self.df_profinflow.hy.unique()) == nsy), \
+                'Inconsistent time slots tm_soy/profinflow'
+
+        assert(len(self.df_tm_soy.weight.unique()) == 1), \
+            'Multiple weights in input df_tm_soy. Can\'t infer time resolution.'
+
+        # nhours follows from weight in df_tm_soy
+        self.nhours = self.df_tm_soy.weight.iloc[0]
+        self._dict_nd_tm = self._get_nhours_nodes(self.nhours)
+
+        # generate unique time map ids
+        dict_tm = {ntm: frnh for ntm, frnh
+                   in enumerate(set(self._dict_nd_tm.values()))}
+
+        self.dict_nd_tm_id = {nd:
+                              {val: key for key, val in dict_tm.items()}[tm]
+                              for nd, tm in self._dict_nd_tm.items()}
+
+        self._tm_objs = {}
+
+        self.df_def_node['tm_id'] = (self.df_def_node.reset_index().nd_id
+                                         .replace(self.dict_nd_tm_id).values)
+
+        unique_tm_id = self.df_def_node['tm_id'].iloc[0]
+
+        self.df_hoy_soy = self.df_tm_soy[['sy']].assign(
+                hy=lambda x: x.sy, tm_id=unique_tm_id)
+
+        self.df_tm_soy = self.df_tm_soy.assign(tm_id=unique_tm_id,
+                                               mt_id=None)
+
+        self.df_tm_soy_full = None
+        self.dict_soy_week = None
+        self.dict_soy_month = None
+        self.dict_week_soy = None
+        self.dict_month_soy = None
+        self.df_sy_min_all = None
+
+        # dict pp_id -> tm
+        self.dict_pp_tm_id = (
+            self.df_def_plant.assign(tm_id=self.df_def_plant.nd_id
+                                               .replace(self.dict_nd_tm_id))
+                             .set_index('pp_id').tm_id.to_dict())
+
+        # dict tm_id -> sy
+        unq_list = lambda x: list(set(x))
+        pv_kws = dict(index='tm_id', values='sy', aggfunc=unq_list)
+        self.dict_tm_sy = self.df_hoy_soy.pivot_table(**pv_kws).sy.to_dict()
+
+
+
+
+
     def _init_time_map(self):
         '''
         Create a TimeMap instance and obtain derived attributes.
@@ -761,7 +833,11 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
         '''
 
-        self._init_time_map()
+
+        if getattr(self, 'df_tm_soy', None) is not None:
+            self._init_time_map_input()
+        else:
+            self._init_time_map()
 
         if (isinstance(self.df_node_connect, pd.DataFrame)
             and not self.df_node_connect.empty):

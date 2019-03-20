@@ -924,7 +924,7 @@ class DataReader(_HDFWriter):
 
         # unfiltered input
         dict_tb_2 = {'def_month': [], 'def_week': [],
-                     'parameter_month': []}
+                     'parameter_month': [], 'tm_soy': []}
         tbrd.df_from_dict(dict_tb_2)
 
         # read input data filtered by node and energy carrier
