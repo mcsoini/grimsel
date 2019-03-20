@@ -12,6 +12,7 @@ from functools import wraps
 
 import pyomo.environ as po
 
+from grimsel.core.io import IO
 from grimsel.auxiliary.aux_m_func import set_to_list
 from grimsel import _get_logger
 
@@ -94,7 +95,7 @@ class Constraints:
 
         '''
 
-        dict_weight = self.df_def_node.set_index('nd_id').nd_weight.fillna(1).to_dict()
+        dict_weight = IO.param_to_df(self.nd_weight).fillna('nd_id').value.to_dict()
 
         if hasattr(self, 'trm'):
             for sy, nd1, nd2, ca in self.trm:
