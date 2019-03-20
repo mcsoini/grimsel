@@ -768,8 +768,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
             and not self.df_node_connect.empty):
             self._init_time_map_connect()
 
-        logger.critical('+++++++++++++++++++++++++ SKIPPING adjust_cost_time +++++++++++++++++++++++++++')
-#        self.adjust_cost_time()
+        self.adjust_cost_time()
         self._soy_map_hydro_bcs()
 
 
@@ -937,11 +936,16 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         This is relevant if the tm_filt ModelBase parameter is used to
         work with a simplified model version.
         '''
-        tm_filt_weight = self.tm.tm_filt_weight
+
+        tm_weight = self.df_tm_soy.groupby('tm_id').weight.sum() / 8760
+        tm_weight = tm_weight.to_dict()
 
         lstfc = [c for c in self.df_plant_encar.columns if c.startswith('fc_')]
 
-        self.df_plant_encar[lstfc] /= tm_filt_weight
+        scale_fc = lambda x: x[lstfc] * tm_weight[self.dict_pp_tm_id[x.pp_id]]
+
+        self.df_plant_encar[lstfc] = \
+            self.df_plant_encar[lstfc + ['pp_id']].apply(scale_fc, axis=1)
 
     def _get_maximum_demand(self):
         '''

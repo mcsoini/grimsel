@@ -267,7 +267,6 @@ class TimeMap(metaclass=_UniqueInstancesMeta):
             for ifilt in self.tm_filt:
                 mask &= df_time_map[ifilt[0]].isin(ifilt[1])
 
-        self.tm_filt_weight = mask.size / mask.sum()
         if mask.sum() == 0:
             raise RuntimeError('Trying to generate and TimeMap which is empty '
                                'after filtering.')
