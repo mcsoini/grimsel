@@ -471,6 +471,8 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
         '''
 
+        logger.debug('Generating nhours dictionary for '
+                    'nhours={} with type {}'.format(nhours, type(nhours)))
 
         if isinstance(nhours, dict):
 
@@ -589,10 +591,10 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
         Generated attributes:
             * ``tm`` (``TimeMap``): TimeMap object
+            * ``df_tm_soy`` (``DataFrame``): timemap table
             * ``df_tm_soy_full`` (``DataFrame``): full timemap table
-            * ``df_tm_soy_full`` (``DataFrame``): full timemap table
-        '''
 
+        '''
 
         self._dict_nd_tm = self._get_nhours_nodes(self.nhours)
 
@@ -685,8 +687,6 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         ...     ...     ...
         ======= ======= =======
 
-
-
         '''
 
         # identify time map with minimum nhours
@@ -716,7 +716,6 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
         self.df_sy_min_all = (df.set_index('sy_min').stack().reset_index()
                                 .rename(columns={'level_1': 'tm_id', 0: 'sy'}))
-
 
     def _soy_map_hydro_bcs(self):
         ''' Map hydro boundary conditions (which refer to the beginning

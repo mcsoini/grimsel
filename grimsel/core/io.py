@@ -54,7 +54,7 @@ def get_table_dicts():
     return dict_idx, dict_table, dict_group
 
 
-# expose as module variable for easier access
+# expose as module variables for easier access
 DICT_IDX, DICT_TABLE, DICT_GROUP = get_table_dicts()
 
 class _HDFWriter:
@@ -71,7 +71,6 @@ class _HDFWriter:
             to existing table (`'append'`).
 
         '''
-
 
         with pd.HDFStore(self.cl_out, mode='a') as store:
 
@@ -314,7 +313,8 @@ class ParamIO(CompIO):
 
     Is inherited by :class:`DmndIO`.
 
-    Contains the parameter ``_to_df`` classmethod.
+    Only contains the parameter ``_to_df`` classmethod.
+
     '''
 
     @classmethod
@@ -419,7 +419,11 @@ class TransmIO(VariabIO):
 
 
 class DmndIO(ParamIO):
-    ''' Demand is appended to the pwr table after translation '''
+    '''
+    Demand is appended to the *pwr* table after translating the nd_id to
+    the corresponding "power plant" pp_id.
+
+    '''
 
     def post_processing(self, df):
 

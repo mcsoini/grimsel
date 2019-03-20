@@ -210,7 +210,6 @@ class AutoComplete(abc.ABC):
         setattr(self.m, self.df_name, df_new)
         self._df = getattr(self.m, self.df_name)
 
-
     def complement_columns(self):
         ''' Implemented in child classes if additional columns are required '''
         pass
