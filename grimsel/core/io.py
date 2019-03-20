@@ -361,7 +361,8 @@ class TransmIO(VariabIO):
                                         nd_id=dfall.nd_2_id,
                                         value=-dfall.value)])
 
-        dict_nhours = {nd_id: self.model.dict_nd_tm[nd_id][1]
+        dict_nhours = {nd_id:
+                       self.model._tm_objs[self.model.dict_nd_tm_id[nd_id]].nhours
                        for nd_id in dfall.nd_id.unique()}
 
         def avg_to_nhours(x):
