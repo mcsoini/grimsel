@@ -496,8 +496,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
                     # assuming default
                     nhours_dict[nd_id] = (1, 1)
 
-        elif isinstance(nhours, (float, int)):
-
+        elif isinstance(nhours, (float, int, np.integer, np.float)):
             nhours_dict = {nd: (1, nhours) for nd in self.slct_node_id}
 
         return nhours_dict
