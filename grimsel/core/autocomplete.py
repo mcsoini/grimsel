@@ -199,8 +199,8 @@ class AutoComplete(abc.ABC):
 
         '''
 
-        add_cols = [c for c in self.df_add.columns
-                    if c in self._df.columns] + list(self.new_cols)
+        add_cols = set(c for c in self.df_add.columns
+                       if c in self._df.columns) | set(self.new_cols)
 
         df_new = pd.concat([self._df, self.df_add[add_cols]], sort=False)
 
@@ -436,7 +436,7 @@ class AutoCompleteFuelDmnd(AutoCompleteFuel):
 
 class AutoCompletePlantDmnd(AutoCompletePlant):
 
-    new_cols = {'set_def_dmd': 0}
+    new_cols = {'set_def_dmd': 0, 'set_def_curt': 0}
 
     def __init__(self, m, autocomplete_curtailment):
 
@@ -468,8 +468,8 @@ class AutoCompletePlantDmnd(AutoCompletePlant):
         self.add_id_cols()
         self.add_zero_cols()
 
+        self.df_add['set_def_dmd'] = self.df_add['set_def_curt'] = 0
         mask_dmnd = ~self.df_add.pt.str.contains('FLEX')
-        self.df_add['set_def_dmd'] = 0
         self.df_add.loc[mask_dmnd, 'set_def_dmd'] = 1
 
         mask_flex = self.df_add.pt.str.contains('FLEX')
@@ -554,11 +554,12 @@ if __name__ == '__main__':
     self = AutoCompleteFuelTrns(ml.m)
     self = AutoCompleteFuelDmnd(ml.m)
     self = AutoCompletePlantTrns(ml.m)
-    self = AutoCompletePlantCons(ml.m)
+#    self = AutoCompletePlantCons(ml.m)
     self = AutoCompletePpCaFlex(ml.m)
 
     ml.m.df_def_plant = ml.m.df_def_plant.loc[~ml.m.df_def_plant.pp.str.contains('DMND')]
-    self = AutoCompletePlantDmnd(ml.m)
+    ml.m.df_def_plant = ml.m.df_def_plant.drop('set_def_dmnd', axis=1)
+    self = AutoCompletePlantDmnd(ml.m, True)
 
 # %%
 
