@@ -83,10 +83,10 @@ class ParameterAdder:
             and not self.m.check_valid_indices(self.parameter_index)):
             self.flag_infeasible = True
 
-        # check if column exists in table
-        if not self.flag_infeasible and self.value_col not in self.df.columns:
-            logger.warning(' failed (column doesn\'t exist).')
-            self.flag_infeasible = True
+#        # check if column exists in table
+#        if not self.flag_infeasible and self.value_col not in self.df.columns:
+#            logger.warning(' failed (column doesn\'t exist).')
+#            self.flag_infeasible = True
 
 
         if self.has_monthly_factors:
