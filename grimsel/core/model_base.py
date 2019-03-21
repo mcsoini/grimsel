@@ -110,6 +110,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
         defaults = {'slct_node': [],
                     'slct_pp_type': [],
+                    'slct_node_connect': [],
                     'slct_encar': [],
                     'nhours': 1,
                     'unq_code': '',
@@ -129,6 +130,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         logger.info('self.slct_encar=' + str(self.slct_encar))
         logger.info('self.slct_pp_type=' + str(self.slct_pp_type))
         logger.info('self.slct_node=' + str(self.slct_node))
+        logger.info('self.slct_node_connect=' + str(self.slct_node_connect))
         logger.info('self.nhours=' + str(self.nhours))
         logger.info('self.constraint_groups=' + str(self.constraint_groups))
 

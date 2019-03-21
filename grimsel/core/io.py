@@ -828,9 +828,9 @@ class TableReader():
                             'attribute df_{tb} to None.')
                 logger.warning(warn_str.format(tb=kk))
             else:
-                filt = ('filtered by ' if len(vv) > 0 else '') +\
-                   ', '.join([vvv[0] + ' in ' + str(vvv[1]) for vvv in vv
                               if not len(vvv[1]) == 0])
+                filt = ('filtered by ' if len(filt) > 0 else '') +\
+                   ', '.join([str(vvv[0]) + ' in ' + str(vvv[1]) for vvv in filt
                 logger.info(('Reading input table {tb} {flt} from '
                        '{source_str}').format(tb=kk, flt=filt,
                                               source_str=source_str))
@@ -872,7 +872,11 @@ class TableReader():
                 logger.info('Done reading, filtering according to {}'.format(filt))
 
                 for col, vals in filt:
-                    df = df.loc[df[col].isin(vals)]
+                    if isinstance(col, str):  # single column filtering
+                        mask = df[col].isin(vals)
+                    elif isinstance(col, (list, tuple)):  # multiple columns
+                        mask = df[list(col)].apply(tuple, axis=1).isin(vals)
+                    df = df.loc[mask]
 
                 list_df.append(df)
 
@@ -940,6 +944,17 @@ class DataReader(_HDFWriter):
                      'def_encar': _flt_ca}
         tbrd.df_from_dict(dict_tb_3)
 
+        # translate slct_node_connect to nd_ids
+        if self.model.slct_node_connect:
+            dict_nd = self.model.df_def_node.set_index('nd').nd_id.to_dict()
+            slct_node_connect_id = [(dict_nd[nd1], dict_nd[nd2])
+                                    for nd1, nd2 in self.model.slct_node_connect
+                                    if nd1 in dict_nd and nd2 in dict_nd]
+            _flt_ndcnn = [(('nd_id', 'nd_2_id'), slct_node_connect_id)]
+        else:
+            _flt_ndcnn = []
+
+
         # update filters in case the keyword argument slct_node_id holds more
         # nodes than present in the table
         self.model.slct_node_id = self.model.df_def_node.nd_id.tolist()
@@ -954,7 +969,7 @@ class DataReader(_HDFWriter):
         dict_tb_0 = {'def_plant': _flt_nd + _flt_pt,
                      'profchp': _flt_nd,
                      'node_encar': _flt_nd + _flt_ca,
-                     'node_connect': _flt_nd + _flt_ca + _flt_nd_2}
+                     'node_connect': _flt_nd + _flt_ca + _flt_nd_2 + _flt_ndcnn}
         tbrd.df_from_dict(dict_tb_0)
 
         # secondary filtering by plant
