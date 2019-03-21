@@ -202,6 +202,8 @@ class AutoComplete(abc.ABC):
         add_cols = set(c for c in self.df_add.columns
                        if c in self._df.columns) | set(self.new_cols)
 
+        add_cols = list(add_cols)
+
         df_new = pd.concat([self._df, self.df_add[add_cols]], sort=False)
 
         for col, def_val in self.new_cols.items():
