@@ -9,6 +9,7 @@ Model parameters
 import pyomo.environ as po
 import pyomo.core.base.sets as poset
 import itertools
+import numpy as np
 import pandas as pd
 import wrapt
 from collections import namedtuple
@@ -224,10 +225,20 @@ class ParameterAdder:
         # check if column exists in table
         if not flag_empty:
             if self.value_col not in df.columns:
-                logger.warning(' failed (column doesn\'t exist).')
-                flag_empty = True
-            else:
-                df = df[self.index_cols + [self.value_col]]
+                if self.default is not None:
+                    # make nan column which will be filled with default later
+                    df[self.value_col] = np.nan
+                    logger.warning(' column doesn\'t exist but default '
+                                   'value provided...')
+                else:
+                    logger.warning(' failed (column doesn\'t exist).')
+                    flag_empty = True
+
+        if not flag_empty:
+            df = df[self.index_cols + [self.value_col]]
+
+            if self.default is not None:
+                df.loc[df[self.value_col].isna(), self.value_col] = self.default
 
         return df, flag_empty
 
