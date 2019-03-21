@@ -574,7 +574,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         cols = ['sy', 'sy2', 'tm_2_id', 'ca_id', 'tm_id', 'nhours', 'nhours_2']
         list_df = []
         for nd_id, nd_2_id in set(self.df_symin_ndcnn.set_index(idx).index.values):
-            df = self.df_symin_ndcnn.set_index(idx).loc[(nd_id, nd_2_id), cols]
+            df = self.df_symin_ndcnn.set_index(idx).loc[[(nd_id, nd_2_id)], cols]
 
             nd_smaller = df.nhours.iloc[0] <= df.nhours_2.iloc[0]
             list_df.append(df.assign(symin = df.sy if nd_smaller else df.sy2,
