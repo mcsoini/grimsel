@@ -53,6 +53,7 @@ class ParameterAdder:
         self.source_dataframe = par.source_dataframe
         self.filt_cols = par.filt_cols
         self.filt_vals = par.filt_vals
+        self.default = par.default
         self.param_kwargs = {'mutable': par.mutable,
                              'default': par.default}
 
@@ -404,9 +405,11 @@ if __name__ == '__main__':
     par = Par('inflowprof', (ml.m.sy_hyrs_ca | ml.m.sy_ror_ca), 'df_profinflow_soy', 'value', index_cols=['sy', 'pp_id', 'ca_id'])
 
     self = ml.m
+    par = Par('fc_om', (self.add | self.rem, self.ca),
+            'df_plant_encar', None, ['pp_id'], self.ppall, default=0)
 
-    par = Par('pp_eff', (self.pp - self.lin, self.ca), 'df_plant_encar', None, ['pp_id'],
-            self.pp - self.lin, default=1)
+
+
 
     ml.m.dict_monthly_factors = {}
 
