@@ -95,7 +95,7 @@ class Constraints:
 
         '''
 
-        dict_weight = IO.param_to_df(self.nd_weight).fillna('nd_id').value.to_dict()
+        dict_weight = IO.param_to_df(self.nd_weight).set_index('nd_id').value.to_dict()
 
         if hasattr(self, 'trm'):
             for sy, nd1, nd2, ca in self.trm:
