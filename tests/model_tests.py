@@ -246,9 +246,9 @@ class ModelCaller():
         print('\n' * 2)
 
 
-class TestLinearFuelCost(unittest.TestCase):
+class UpDown():
 
-    def setUp(self):
+    def setUp_0(self):
 
         try:
             shutil.rmtree('test_files')
@@ -258,6 +258,22 @@ class TestLinearFuelCost(unittest.TestCase):
                           ).format(e=e, cl=self.__class__))
 
         os.mkdir('test_files')
+
+    def tearDown_0(self):
+
+        for fn in [f for f in list(os.walk('.'))[0][2] if f.startswith('tmp')]:
+            os.remove(fn)
+
+        for fn in [f for f in list(os.walk('./test_files'))[0][2]]:
+            os.remove('test_files/' + fn)
+
+
+
+class TestFuelAndCO2Cost(unittest.TestCase, UpDown):
+
+    def setUp(self):
+
+        super(TestFuelAndCO2Cost, self).setUp_0()
 
         _, _, dict_nd = make_def_node()
         _, _ = make_tm_soy()
@@ -274,10 +290,7 @@ class TestLinearFuelCost(unittest.TestCase):
 
     def tearDown(self):
 
-        for fn in [f for f in list(os.walk('.'))[0][2] if f.startswith('tmp')]:
-            os.remove(fn)
-
-        shutil.rmtree('test_files')
+        super().tearDown_0()
 
     def test_linear_fuel_and_co2_cost(self):
 
