@@ -353,6 +353,108 @@ class TestLinearFuelCost(unittest.TestCase):
         self.assertEqual(round(m.objective_value * 1e5) / 1e5, cost_total)
 
 
+class TestFixedCapitalAndOMCost(unittest.TestCase, UpDown):
+
+    def tearDown(self):
+
+        super().tearDown_0()
+
+    def setUp(self):
+
+        super(TestFixedCapitalAndOMCost, self).setUp_0()
+
+        _, _, dict_nd = make_def_node()
+        _, _ = make_tm_soy()
+        _, _, dict_ca = make_def_encar()
+        _, _, dict_pt = make_def_pp_type()
+        _, _, dict_fl = make_def_fuel()
+        _, _, dict_pf = make_def_profile()
+        _, _, dict_pp = make_def_plant(dict_pt, dict_nd, dict_fl)
+        _, _ = make_fuel_node_encar(dict_fl, dict_nd, dict_ca)
+        _, _ = make_node_encar(dict_nd, dict_ca, dict_pf)
+        _, _ = make_plant_encar(dict_pp, dict_ca)
+        _, _ = make_plant_encar(dict_pp, dict_ca)
+        _, _ = make_profdmnd(dict_pf)
+
+    def test_fixed_cost(self):
+
+        # ~~~~~~~~~ O&M full year
+
+        mc = ModelCaller()
+        mc.mkwargs['slct_pp_type'] = ['GAS_NEW']
+        m = mc.run_model(hold=True)
+        for key in m.price_co2: m.price_co2[key] = 0
+        for key in m.vc_fl: m.vc_fl[key] = 0
+        for key in m.fc_cp_ann: m.fc_cp_ann[key] = 0
+        m.run()
+
+        fc_om_gas = 24000
+        dmnd = np.array([6500, 6000, 6500, 6800])
+        cap_new = dmnd.max()
+
+        cost_total = fc_om_gas * cap_new
+
+        self.assertEqual(int(m.objective_value * 1e5) / 1e5, cost_total)
+
+        # ~~~~~~~~~~~ capital cost full year
+
+        m.dict_par['fc_cp_ann'].init_update()
+        for key in m.fc_om: m.fc_om[key] = 0
+        m.run()
+
+        dr, lt = 0.06, 20 # assumed discount rate 6% and life time
+        fact_ann = ((1+dr)**lt * dr) / ((1+dr)**lt - 1)
+        fc_cp_gas = 0.8*1e6
+        fc_cp_gas_ann = round(fact_ann * fc_cp_gas/10000) * 10000
+        dmnd = np.array([6500, 6000, 6500, 6800])
+        cap_new = dmnd.max()
+
+        cost_total = fc_cp_gas_ann * cap_new
+
+        self.assertEqual(int(m.objective_value * 1e5) / 1e5, cost_total)
+
+    def test_fixed_cost_part_year(self):
+
+        # ~~~~~~~~~ O&M part year
+
+        red = [0]
+
+        _, _ = make_tm_soy(red=red) # overwrite
+        _, _, dict_pf = make_def_profile() # overwrite
+        _, _ = make_profdmnd(dict_pf, red=red) # overwrite
+
+        mc = ModelCaller()
+        mc.mkwargs['slct_pp_type'] = ['GAS_NEW']
+        m = mc.run_model(hold=True)
+        for key in m.price_co2: m.price_co2[key] = 0
+        for key in m.vc_fl: m.vc_fl[key] = 0
+        for key in m.fc_cp_ann: m.fc_cp_ann[key] = 0
+        m.run()
+
+
+        fc_om_gas = 24000
+        dmnd = np.array([6500, 6000, 6500, 6800])[red]
+        cap_new = dmnd.max()
+
+        cost_total = fc_om_gas * cap_new * len(red)/4
+
+        self.assertEqual(int(m.objective_value * 1e5) / 1e5, cost_total)
+
+        # ~~~~~~~~~~~ capital cost part year
+
+        m.dict_par['fc_cp_ann'].init_update()
+        for key in m.fc_om: m.fc_om[key] = 0
+        m.run()
+
+        dr, lt = 0.06, 20 # assumed discount rate 6% and life time
+        fact_ann = ((1+dr)**lt * dr) / ((1+dr)**lt - 1)
+        fc_cp_gas = 0.8*1e6
+        fc_cp_gas_ann = round(fact_ann * fc_cp_gas/10000) * 10000
+
+        cost_total = fc_cp_gas_ann * cap_new * len(red)/4
+
+        self.assertEqual(int(m.objective_value * 1e5) / 1e5, cost_total)
+
 
 if __name__ == '__main__':
 
