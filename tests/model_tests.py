@@ -19,7 +19,7 @@ import grimsel.core.model_base as model_base
 import grimsel.core.io as grimsel_io
 
 from grimsel import logger
-logger.setLevel(10)
+logger.setLevel('ERROR')
 
 @wrapt.decorator
 def write_table(f, _, args, kwargs):
@@ -70,8 +70,10 @@ def make_def_pp_type():
     return df_def_pp_type, 'def_pp_type', dict_pt
 
 @write_table
-def make_tm_soy():
-    df_tm_soy = pd.DataFrame({'sy': range(4), 'weight': 8760 / 4})
+def make_tm_soy(red=range(4)):
+
+    df_tm_soy = pd.DataFrame({'sy': range(len(red)),
+                              'weight': 8760 / 4})
     return df_tm_soy, 'tm_soy'
 
 @write_table
@@ -122,10 +124,10 @@ def make_plant_encar(dict_pp, dict_ca, dict_pf={}):
     dr, lt = 0.06, 20 # assumed discount rate 6% and life time
     fact_ann = ((1+dr)**lt * dr) / ((1+dr)**lt - 1)
 
-    fc_cp_gas = 800
-    fc_cp_gas_ann = fact_ann * fc_cp_gas
+    fc_cp_gas = 0.8*1e6
+    fc_cp_gas_ann = round(fact_ann * fc_cp_gas/10000) * 10000
 
-    fc_cp_wind = 1500 # assumed capital cost wind power
+    fc_cp_wind = 1.5*1e6 # assumed capital cost wind power
     fc_cp_wind_ann = fact_ann * fc_cp_wind
 
     df_plant_encar = pd.DataFrame({'pp_id': ['ND1_GAS_LIN', 'ND1_GAS_NEW', 'ND1_WIND', 'ND1_HCO_ELC'],
@@ -135,11 +137,14 @@ def make_plant_encar(dict_pp, dict_ca, dict_pf={}):
                                    'factor_lin_0': [f0_gas, None, None, None],
                                    'factor_lin_1': [f1_gas, None, None, None],
                                    'cap_pwr_leg': [cap_gas, 0, 0, 10000],
+                                   'fc_om': [None, 24000, 38000, None],
+                                   'vc_om': [0]*4,
                                    'fc_cp_ann': [None, fc_cp_gas_ann, fc_cp_wind_ann, None],
                                   })
 
-    df_plant_encar = df_plant_encar.assign(pp_id=df_plant_encar.pp_id.replace(dict_pp),
-                                           ca_id=df_plant_encar.ca_id.replace(dict_ca))
+    df_plant_encar = df_plant_encar.assign(
+                pp_id=df_plant_encar.pp_id.replace(dict_pp),
+                ca_id=df_plant_encar.ca_id.replace(dict_ca))
 
     if 'supply_pf_id' in df_plant_encar.columns:
         df_plant_encar.supply_pf_id = df_plant_encar.supply_pf_id.replace(dict_pf)
@@ -153,9 +158,10 @@ def make_node_encar(dict_nd, dict_ca, dict_pf={}):
     df_node_encar = pd.DataFrame({'nd_id': ['Node1'], 'ca_id': ['EL'],
                                   'dmnd_pf_id': ['DMND_NODE1']
                                   })
-    df_node_encar = df_node_encar.assign(nd_id=df_node_encar.nd_id.replace(dict_nd),
-                                         ca_id=df_node_encar.ca_id.replace(dict_ca),
-                                         dmnd_pf_id=df_node_encar.dmnd_pf_id.replace(dict_pf))
+    df_node_encar = df_node_encar.assign(
+                nd_id=df_node_encar.nd_id.replace(dict_nd),
+                ca_id=df_node_encar.ca_id.replace(dict_ca),
+                dmnd_pf_id=df_node_encar.dmnd_pf_id.replace(dict_pf))
 
     return df_node_encar, 'node_encar'
 
@@ -168,15 +174,16 @@ def make_fuel_node_encar(dict_fl, dict_nd, dict_ca):
                                        'vc_fl': [40, 10],
                                        })
 
-    df_fuel_node_encar = df_fuel_node_encar.assign(fl_id=df_fuel_node_encar.fl_id.replace(dict_fl),
-                                           nd_id=df_fuel_node_encar.nd_id.replace(dict_nd),
-                                           ca_id=df_fuel_node_encar.ca_id.replace(dict_ca))
+    df_fuel_node_encar = df_fuel_node_encar.assign(
+                fl_id=df_fuel_node_encar.fl_id.replace(dict_fl),
+                nd_id=df_fuel_node_encar.nd_id.replace(dict_nd),
+                ca_id=df_fuel_node_encar.ca_id.replace(dict_ca))
     return df_fuel_node_encar, 'fuel_node_encar'
 
 
 @write_table
-def make_profsupply(dict_pf):
-    prf = [0.169, 0.122, 0.176, 0.284]
+def make_profsupply(dict_pf, red=range(4)):
+    prf = [[0.169, 0.122, 0.176, 0.284][i] for  i in red]
 
     df_profsupply = pd.DataFrame({'supply_pf_id': [dict_pf['SUPPLY_WIND']] * len(prf),
                                   'hy': range(len(prf)), 'value': prf})
@@ -184,8 +191,8 @@ def make_profsupply(dict_pf):
 
 
 @write_table
-def make_profdmnd(dict_pf):
-    prf = [6500, 6000, 6500, 6800]
+def make_profdmnd(dict_pf, red=range(4)):
+    prf = [[6500, 6000, 6500, 6800][i] for  i in red]
 
     df_profdmnd = pd.DataFrame({'dmnd_pf_id': [dict_pf['DMND_NODE1']] * len(prf),
                                 'hy': range(len(prf)), 'value': prf})
@@ -196,6 +203,7 @@ def make_profdmnd(dict_pf):
 
 
 # %%
+
 
 class ModelCaller():
     '''
