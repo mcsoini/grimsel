@@ -202,7 +202,6 @@ class ParameterAdder:
                 df = pd.DataFrame()
                 flag_empty = True
 
-
         elif type(self.source_dataframe) is pd.DataFrame:
             df = self.source_dataframe.copy()
 

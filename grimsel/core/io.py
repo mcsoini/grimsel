@@ -815,31 +815,30 @@ class TableReader():
 
         self._expand_table_families(dct)
 
-        for kk, vv in dct.items():
+        for table, filt in dct.items():
 
-            list_df, tb_exists, source_str = self.get_input_table(kk, vv)
+            list_df, tb_exists, source_str = self.get_input_table(table, filt)
 
             df = pd.concat(list_df, axis=0, sort=False) if tb_exists else None
 
-            setattr(self.model, 'df_' + kk, df)
+            setattr(self.model, 'df_' + table, df)
 
             if not tb_exists:
                 warn_str = ('Input table {tb} does not exist. Setting model '
                             'attribute df_{tb} to None.')
-                logger.warning(warn_str.format(tb=kk))
+                logger.warning(warn_str.format(tb=table))
             else:
-                              if not len(vvv[1]) == 0])
                 filt = ('filtered by ' if len(filt) > 0 else '') +\
                    ', '.join([str(vvv[0]) + ' in ' + str(vvv[1]) for vvv in filt
+                              if not len(vvv[1]) == 0])
                 logger.info(('Reading input table {tb} {flt} from '
-                       '{source_str}').format(tb=kk, flt=filt,
+                       '{source_str}').format(tb=table, flt=filt,
                                               source_str=source_str))
 
     def get_input_table(self, table, filt):
         '''
         Returns list of tables.
         '''
-
 
         if self.sc_inp:
 
@@ -862,14 +861,11 @@ class TableReader():
             for path in paths:
 
                 fn = os.path.join(path, '{}.csv'.format(table))
-
                 source.append(fn)
-#                tb_exists = os.path.exists(fn)
 
-#                if tb_exists:
                 df = pd.read_csv(fn)
 
-                logger.info('Done reading, filtering according to {}'.format(filt))
+                logger.debug('Done reading, filtering according to {}'.format(filt))
 
                 for col, vals in filt:
                     if isinstance(col, str):  # single column filtering
