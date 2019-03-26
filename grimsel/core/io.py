@@ -1249,7 +1249,7 @@ class DataReader(_HDFWriter):
         tb_name, pk = ('hoy_soy', ['hy', 'tm_id'])
         for tb_name, pk in self.runtime_tables:
 
-            if hasattr(self.model, 'df_' + tb_name):
+            if getattr(self.model, 'df_' + tb_name, None) is not None:
                 df = getattr(self.model, 'df_' + tb_name)
 
                 logger.info('Writing runtime table ' + tb_name)
