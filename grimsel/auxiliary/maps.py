@@ -7,6 +7,7 @@ import wrapt
 
 import grimsel.auxiliary.sqlutils.aux_sql_func as aql
 from grimsel.auxiliary.aux_general import silence_pd_warning
+from grimsel import logger
 
 rev_dict = lambda dct: {val: key for key, val in dct.items()}
 
@@ -52,10 +53,10 @@ class Maps():
         else:
             self._dict_tb = self._adjust_input_tables(dict_tb)
 
-
-        if 'run' in self._dict_tb and self._dict_tb['run'] is not None:
-            self.list_id_tbs['run'] = list(c for c in self._dict_tb['run']
-                                           if c.endswith('_vl'))
+#
+#        if 'run' in self._dict_tb and self._dict_tb['run'] is not None:
+#            self.list_id_tbs['run'] = list(c for c in self._dict_tb['run']
+#                                           if c.endswith('_vl'))
 
         self._make_id_dicts()
         self._make_color_dicts()
@@ -72,7 +73,9 @@ class Maps():
 
         for name, df in dict_tb.items():
 
-            name_idx = self.list_id_tbs[name] + '_id'
+            logger.debug('{}, {}'.format(name, Maps.list_id_tbs[name]))
+            name_idx = Maps.list_id_tbs[name] + '_id'
+
 
             if name_idx in df.columns:
 
