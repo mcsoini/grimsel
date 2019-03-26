@@ -22,7 +22,7 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
 
     def __init__(self, sc_out, db, slct_run_id=None, bool_run=True, nd_id=False,
                  suffix=False, slct_pt=False, sw_year_col='swyr_vl'):
-        ''' Init extracts model run parameter names from def_loop table. '''
+        ''' Init extracts model run parameter names from def_run table. '''
 
 
         self.bool_run = bool_run
@@ -30,17 +30,17 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
         self.db = db
 
         self.sc_out = sc_out
-        self.slct_run_id = (aql.read_sql(self.db, self.sc_out, 'def_loop',
+        self.slct_run_id = (aql.read_sql(self.db, self.sc_out, 'def_run',
                                          keep='run_id', distinct=True).tolist()
                             if not slct_run_id else slct_run_id)
         self._suffix = '_' + suffix if suffix else ''
         self.sw_columns = [c for c in
                            aql.read_sql(self.db, sc_out,
-                                        'def_loop').columns
+                                        'def_run').columns
                            if 'sw' in c and 'vl' in c]
 
         self.sw_columns = [c for c in
-                           aql.get_sql_cols('def_loop', sc_out, self.db).keys()
+                           aql.get_sql_cols('def_run', sc_out, self.db).keys()
                            if 'sw' in c and 'vl' in c]
 
 
@@ -154,7 +154,7 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
         for itb in ['analysis_selective_cf_storage', 'analysis_max_share_cap_erg']:
 
             aql.joinon(self.db, self.sw_columns, ['run_id'],
-                       [self.sc_out, itb], [self.sc_out, 'def_loop'])
+                       [self.sc_out, itb], [self.sc_out, 'def_run'])
             aql.joinon(self.db, ['nd_id', 'pt_id', 'fl_id', 'pp'], ['pp_id'],
                        [self.sc_out, itb], [self.sc_out, 'def_plant'])
             aql.joinon(self.db, ['fl'], ['fl_id'],
@@ -185,7 +185,7 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
         aql.exec_sql(exec_str, db=self.db)
 
         aql.joinon(self.db, self.sw_columns, ['run_id'],
-                   [self.sc_out, tb_name], [self.sc_out, 'def_loop'])
+                   [self.sc_out, tb_name], [self.sc_out, 'def_run'])
         aql.joinon(self.db, ['nd_id', 'pt_id', 'fl_id', 'pp'], ['pp_id'],
                    [self.sc_out, tb_name], [self.sc_out, 'def_plant'])
         aql.joinon(self.db, ['fl'], ['fl_id'],
@@ -473,7 +473,7 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
                 aql.joinon(self.db, ['pp_broad_cat', 'pt'], ['pt_id'],
                            [self.sc_out, itb], [self.sc_out, 'def_pp_type'])
                 aql.joinon(self.db, self.sw_columns, ['run_id'],
-                           [self.sc_out, itb], [self.sc_out, 'def_loop'])
+                           [self.sc_out, itb], [self.sc_out, 'def_run'])
                 aql.joinon(self.db, ['fl_id', 'pp'], ['pp_id'],
                            [self.sc_out, itb], [self.sc_out, 'def_plant'])
                 aql.joinon(self.db, ['fl'], ['fl_id'],
@@ -594,7 +594,7 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
 
                 if len(self.sw_columns) > 0:
                     aql.joinon(self.db, self.sw_columns, ['run_id'],
-                               [self.sc_out, itb], [self.sc_out, 'def_loop'])
+                               [self.sc_out, itb], [self.sc_out, 'def_run'])
 
         return exec_str
 
@@ -728,7 +728,7 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
             GROUP BY nd_id, ca_id
         ), tb_dmnd AS (
             SELECT * FROM tb_dmnd_0
-            FULL OUTER JOIN (SELECT run_id FROM {sc_out}.def_loop) AS dflp ON 1 = 1
+            FULL OUTER JOIN (SELECT run_id FROM {sc_out}.def_run) AS dflp ON 1 = 1
         )
         SELECT run_id, True::BOOLEAN AS bool_out, ca_id, pp_id,
                 nd_id, 0::SMALLINT AS set_def_st, pt_id, erg_yr_yr,
@@ -808,7 +808,7 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
             aql.joinon(self.db, ['pp_broad_cat', 'pt'], ['pt_id'], [self.sc_out, tb],
                        [self.sc_out, 'def_pp_type'])
             aql.joinon(self.db, self.sw_columns, ['run_id'],
-                       [self.sc_out, tb], [self.sc_out, 'def_loop'])
+                       [self.sc_out, tb], [self.sc_out, 'def_run'])
             aql.joinon(self.db, ['set_def_winsol', 'fl_id', 'pp'], ['pp_id'], [self.sc_out, tb],
                        [self.sc_out, 'def_plant'])
             aql.joinon(self.db, ['fl'], ['fl_id'], [self.sc_out, tb],
@@ -832,7 +832,7 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
                             value * weight AS pwrw_mask, pwr.run_id, weight,
                             SUM(value * weight) OVER (PARTITION BY pwr.run_id, pp, bool_out) AS value_mask_tot
                         FROM {sc_out}.var_sy_pwr AS pwr
-                        LEFT JOIN {sc_out}.def_loop AS dflp ON dflp.run_id = pwr.run_id
+                        LEFT JOIN {sc_out}.def_run AS dflp ON dflp.run_id = pwr.run_id
                         LEFT JOIN {sc_out}.def_plant AS dfpp ON dfpp.pp_id = pwr.pp_id
                         LEFT JOIN {sc_out}.tm_soy AS tm ON tm.sy = pwr.sy
                         WHERE pp LIKE '%' || swtc_vl || '%' OR pp LIKE '%HYD_STO%'
@@ -876,7 +876,7 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
 
             aql.joinon(self.sw_columns, ['run_id'],
                        [self.sc_out, 'analysis_weighted_mix'],
-                       [self.sc_out, 'def_loop'])
+                       [self.sc_out, 'def_run'])
             aql.joinon(['fl_id', 'pt_id'], ['pp'],
                        [self.sc_out, 'analysis_weighted_mix'],
                        [self.sc_out, 'def_plant'])
@@ -995,7 +995,7 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
 
             aql.exec_sql(exec_str, db=self.db)
             aql.joinon(self.db, ['run_name'] + self.sw_columns, ['run_id'],
-                       [self.sc_out, tb], [self.sc_out, 'def_loop'])
+                       [self.sc_out, tb], [self.sc_out, 'def_run'])
             aql.joinon(self.db, ['pt'], ['pt_id'],
                        [self.sc_out, tb], [self.sc_out, 'def_pp_type'])
             aql.joinon(self.db, ['nd'], ['nd_id'],
@@ -1076,7 +1076,7 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
             aql.exec_sql(exec_str)
 
             aql.joinon(['run_name'] + self.sw_columns, ['run_id'],
-                       ['public', 'node_node_run'], [self.sc_out, 'def_loop'])
+                       ['public', 'node_node_run'], [self.sc_out, 'def_run'])
         return exec_str
 
 
@@ -1165,7 +1165,7 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
         if len(self.sw_columns) > 0:
             aql.joinon(self.db, self.sw_columns,
                        ['run_id'], [self.sc_out, 'analysis_plant_run_tot_balance'],
-                       [self.sc_out, 'def_loop'])
+                       [self.sc_out, 'def_run'])
 
         aql.joinon(self.db, ['nd'],
                    ['nd_id'], [self.sc_out, 'analysis_plant_run_tot_balance'],
@@ -1578,7 +1578,7 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
 
         INSERT INTO {sc_out}.analysis_cost_disaggregation_lin (pp_id, ca_id, run_id, value, type)
         SELECT 0 AS pp_id, 0 AS ca_id, run_id, objective AS value, 'objective'::VARCHAR AS type
-        FROM {sc_out}.def_loop
+        FROM {sc_out}.def_run
         WHERE run_id IN {in_run_id};
         '''.format(**self.format_kw)
         aql.exec_sql(exec_strg, db=self.db)
@@ -1695,7 +1695,7 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
                     INTO plant_run_cost_disaggregation
                     FROM plant_run_cost_disaggregation_0 AS ccda
                     LEFT JOIN {sc_out}.def_node AS dfnd ON dfnd.nd_id = ccda.nd_id
-                    LEFT JOIN {sc_out}.def_loop AS dflp ON dflp.run_id = ccda.run_id;
+                    LEFT JOIN {sc_out}.def_run AS dflp ON dflp.run_id = ccda.run_id;
 
                     ''').format(**self.format_kw)
         aql.exec_sql(exec_str)
@@ -1709,7 +1709,7 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
                    [self.sc_out, 'def_pp_type'])
         aql.joinon(self.sw_columns, ['run_id'],
                    ['public', 'plant_run_cost_disaggregation'],
-                   [self.sc_out, 'def_loop'])
+                   [self.sc_out, 'def_run'])
 
         return(exec_str)
 
@@ -1746,7 +1746,7 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
                         FROM {sc_out}.var_yr_fc_cp_pp_yr AS fccp
                     UNION ALL
                     SELECT -1 AS pp_id, run_id, 'tc'::VARCHAR AS comp, objective AS ttc
-                        FROM {sc_out}.def_loop
+                        FROM {sc_out}.def_run
                     ''').format(**self.format_kw)
         aql.exec_sql(exec_str, db=self.db)
 
@@ -1762,7 +1762,7 @@ class SqlAnalysis(SqlAnalysisHourly, DecoratorsSqlAnalysis):
         if len(self.sw_columns) > 0:
             aql.joinon(self.db, self.sw_columns, ['run_id'],
                        [self.sc_out, 'analysis_plant_run_cost_disaggregation_highlevel'],
-                       [self.sc_out, 'def_loop'])
+                       [self.sc_out, 'def_run'])
 
         return exec_str
 
