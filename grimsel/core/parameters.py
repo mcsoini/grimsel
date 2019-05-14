@@ -551,7 +551,7 @@ class Parameters:
             'df_plant_encar', None, ['pp_id'], self.add),
             
         Par('pwr_pot', (self.add, self.ca),
-            'df_plant_encar', None, ['pp_id'], self.add, default=0),
+            'df_plant_encar', None, ['pp_id'], self.add, default=1e9),
         Par('cap_avlb', (self.pp, self.ca),
             'df_plant_encar', None, ['pp_id'], self.pp),
 
