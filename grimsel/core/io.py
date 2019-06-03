@@ -11,6 +11,7 @@ import os
 import tables
 import shutil
 
+import fastparquet as pq
 import numpy as np
 import pandas as pd
 import psycopg2 as pg
@@ -96,7 +97,12 @@ class _ParqWriter:
             engine name as in the pandas DataFrame.to_parquet parameter
         '''
 
-        df.to_parquet(fn, engine=engine, compression='GZIP')
+        if self.output_target == 'fastparquet':
+            pq.write(fn, df, append=os.path.isfile(fn), compression='GZIP')
+
+        else:
+            raise RuntimeError('Writing using parquet engine %s '
+                               'not implemented.'%self.output_target)
 
 
 
