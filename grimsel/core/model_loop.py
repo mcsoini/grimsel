@@ -7,7 +7,7 @@ import pandas as pd
 import itertools
 import time
 from importlib import reload
-import datetime
+import fastparquet as pq
 
 import grimsel.core.model_base as model_base
 import grimsel.core.io as io
@@ -233,6 +233,11 @@ class ModelLoop():
                 store.append('def_run', df_add, data_columns=True,
                              min_itemsize=150 # set string length!
                              )
+        elif self.io.modwr.output_target in ['fastparquet']:
+            fn = os.path.join(self.io.cl_out, 'def_run.parq')
+            pq.write(fn, df_add, append=os.path.isfile(fn))
+
+
 
     def _print_run_title(self, warmstartfile, solutionfile):
 

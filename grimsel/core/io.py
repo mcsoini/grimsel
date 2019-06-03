@@ -9,6 +9,7 @@ import time
 import itertools
 import os
 import tables
+import shutil
 
 import numpy as np
 import pandas as pd
@@ -78,7 +79,28 @@ class _HDFWriter:
             method_put_append(tb, df, data_columns=True, format='table',
                               complevel=9, complib='blosc:blosclz')
 
-class CompIO(_HDFWriter):
+class _ParqWriter:
+    ''' Mixing class for :class:`CompIO` and :class:`DataReader`. '''
+
+    def write_parquet(self, fn, df, engine):
+        '''
+        Opens connection to HDF file and writes output.
+
+        Parameters
+        ----------
+        fn: str
+            filename for table writing
+        df: pandas DataFrame
+            table to be written
+        engine: str
+            engine name as in the pandas DataFrame.to_parquet parameter
+        '''
+
+        df.to_parquet(fn, engine=engine, compression='GZIP')
+
+
+
+class CompIO(_HDFWriter, _ParqWriter):
     '''
     A CompIO instance takes care of extracting a single variable/parameter from
     the model and of writing a single table to the database.
@@ -148,7 +170,7 @@ class CompIO(_HDFWriter):
 
         return df
 
-    def _to_hdf5(self, df, tb):
+    def _to_file(self, df, tb):
         '''
         Casts the data types of the output table and writes the
         table to the output HDF file.
@@ -163,7 +185,16 @@ class CompIO(_HDFWriter):
         df = df.astype({col: dtype for col, dtype in dtype_dict.items()
                         if col in df.columns})
 
-        self.write_hdf(tb, df, 'append')
+
+        if self.output_target == 'hdf5':
+            self.write_hdf(tb, df, 'append')
+        elif self.output_target in ['fastparquet']:
+
+            fn = os.path.join(self.cl_out,
+                              tb + '_{:04d}'.format(self.run_id) + '.parq')
+
+            self.write_parquet(fn, df, engine=self.output_target)
+
 
     def _to_sql(self, df, tb):
 
@@ -184,8 +215,8 @@ class CompIO(_HDFWriter):
 
         t = time.time()
 
-        if self.output_target == 'hdf5':
-            self._to_hdf5(df, tb)
+        if self.output_target in ['hdf5', 'fastparquet']:
+            self._to_file(df, tb)
         elif self.output_target == 'psql':
             self._to_sql(df, tb)
 
@@ -523,10 +554,16 @@ class ModelWriter():
             self._reset_schema()
         elif self.output_target == 'hdf5':
             self._reset_hdf_file()
+        elif self.output_target in ['fastparquet']:
+            self._reset_parquet_file()
 
     def _reset_hdf_file(self):
 
         ModelWriter.reset_hdf_file(self.cl_out, not self.dev_mode)
+
+    def _reset_parquet_file(self):
+
+        ModelWriter.reset_parquet_file(self.cl_out, not self.dev_mode)
 
     @staticmethod
     def reset_hdf_file(fn, warn):
@@ -567,6 +604,46 @@ Hit enter to proceed.
 
             logger.info('Dropping output file {}'.format(fn))
             os.remove(fn)
+
+    def reset_parquet_file(dirc, warn):
+        '''
+        Deletes existing parquet file folder and creates empty one.
+
+        Parameters
+        ----------
+        dirc: str
+            parquet directory name
+        warn: bool
+            prompt user input if the file exists
+
+        '''
+
+        if os.path.isdir(dirc):
+
+            try:
+                max_run_id = pd.read_parquet(os.path.join(dirc, 'def_run.parq'),
+                                         columns=['run_id']).run_id.max()
+
+            except Exception as e:
+                logger.error(e)
+                logger.warn('reset_hdf_file: Could not determine max_run_id '
+                            '... setting to None.')
+                max_run_id = None
+
+            if warn:
+                input(
+'''
+~~~~~~~~~~~~~~~   WARNING:  ~~~~~~~~~~~~~~~~
+You are about to delete existing directory {dirc}.
+The maximum run_id is {max_run_id}.
+
+Hit enter to proceed.
+'''.format(dirc=dirc, max_run_id=max_run_id)
+)
+
+            logger.info('Dropping parquet output directory {}'.format(dirc))
+            shutil.rmtree(dirc)
+            os.mkdir(dirc)
 
     def _reset_schema(self):
 
@@ -636,7 +713,7 @@ Hit enter to proceed.
                 io_obj.coldict = coldict
                 io_obj.init_output_table()
 
-        elif self.output_target == 'hdf5':
+        elif self.output_target in ['hdf5', 'fastparquet']:
 
             pass
 
@@ -879,7 +956,7 @@ class TableReader():
         return ((list_df if tb_exists else None), tb_exists,
                 (' from {}'.format(' and '.join(source)) if tb_exists else ''))
 
-class DataReader(_HDFWriter):
+class DataReader(_HDFWriter, _ParqWriter):
     '''
 
     '''
@@ -1230,6 +1307,11 @@ class DataReader(_HDFWriter):
                 elif self.output_target == 'hdf5':
 
                     self.write_hdf(itb, df, 'put')
+
+                elif self.output_target in 'fastparquet':
+
+                    fn = os.path.join(self.cl_out, itb + '.parq')
+                    self.write_parquet(fn, df, self.output_target)
 
     @skip_if_resume_loop
     @skip_if_no_output
