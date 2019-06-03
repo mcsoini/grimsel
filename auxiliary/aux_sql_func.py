@@ -1245,7 +1245,7 @@ def dump_by_table_sh(sc, db, target_dir):
 
 dbname = 'postgresql://postgres:postgres@localhost:5432/{db}'
 
-def dump_by_table(sc, db, target_dir='C:\\Users\\ashreeta\\Documents\\Martin\\SWITCHdrive\\SQL_DUMPS\\out_disagg_new\\'):
+def dump_by_table(sc, db, tables=None, target_dir='C:\\Users\\ashreeta\\Documents\\Martin\\SWITCHdrive\\SQL_DUMPS\\out_disagg_new\\'):
 
 #    if __name__ == '__main__':
 #        sc='out_nucspreadvr_ext_it'
@@ -1254,7 +1254,10 @@ def dump_by_table(sc, db, target_dir='C:\\Users\\ashreeta\\Documents\\Martin\\SW
 
     exe = '\"C:\\Program Files\\PostgreSQL\\9.6\\bin\\pg_dump.exe\"'
 
-    for itb in get_sql_tables(sc, db=db):
+    if tables is None:
+        tables = get_sql_tables(sc, db=db)
+
+    for itb in tables:
         tb = sc + '.' + itb
         fn = os.path.join(target_dir, tb + '.sql')
         print('Dumping table ', itb, ' to ', fn)

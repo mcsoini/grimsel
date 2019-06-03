@@ -606,14 +606,15 @@ class SqlAnalysisHourly(DecoratorsSqlAnalysis):
         exec_strg = '''
         /* FILTER TIME SERIES TABLE */
         DROP TABLE IF EXISTS temp_analysis_time_series_subset CASCADE;
-        SELECT sy, ca_id, nd_id, ts.pp_id, pp, bool_out, value, ts.run_id, value_posneg, run_id_rf
-        INTO temp_analysis_time_series_subset
+        CREATE TABLE temp_analysis_time_series_subset AS
+        SELECT sy, ca_id, ts.pp_id, bool_out, value, ts.run_id, value_posneg
+            , nd_id, pp,  run_id_rf
         FROM {sc_out}.analysis_time_series_view_power AS ts
         LEFT JOIN {sc_out}.def_plant AS dfpp ON dfpp.pp_id = ts.pp_id
         LEFT JOIN {sc_out}.def_loop AS dflp ON dflp.run_id = ts.run_id
         LEFT JOIN {sc_out}.def_pp_type AS dfpt ON dfpt.pt_id = dfpp.pt_id
         LEFT JOIN temp_map_run_id_ref AS run_id_ref ON run_id_ref.run_id = ts.run_id
-        WHERE dfpp.pp_id IN {list_slct_pp_id} AND ts.run_id IN {in_run_id};
+        WHERE ts.pp_id IN {list_slct_pp_id} AND ts.run_id IN {in_run_id}
         '''.format(**self.format_kw)
         aql.exec_sql(exec_strg, db=self.db)
 
@@ -633,7 +634,7 @@ class SqlAnalysisHourly(DecoratorsSqlAnalysis):
                                WHERE NOT run_id
                                IN (SELECT DISTINCT run_id_rf FROM temp_map_run_id_ref))
         ), tb_pp_ref AS (
-            SELECT sy, pp_id, bool_out, value AS value_ref, run_id_rf
+            SELECT sy, pp_id, bool_out, value AS value_ref, run_id AS run_id_rf
             FROM temp_analysis_time_series_subset
             WHERE pp_id IN {lst_pp_id_non_st}
                 AND run_id IN (SELECT DISTINCT run_id_rf FROM temp_map_run_id_ref)
