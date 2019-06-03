@@ -124,7 +124,7 @@ class Maps():
     @classmethod
     def from_parquet(cls, dirc):
 
-        dict_fn_key = {fn: fn.split(os.sep)[1]
+        dict_fn_key = {fn: fn.split(os.sep)[-1]
                              .replace('def_', '').replace('.parq', '')
                        for fn in glob(dirc + '/*.parq')}
 
@@ -133,7 +133,7 @@ class Maps():
                    if key in Maps.list_id_tbs}
 
         if not dict_tb:
-            raise IOError('Parquet directory %s not found.'%fn)
+            raise IOError('Parquet directory %s not found.'%dirc)
 
         self = cls(None, None, dict_tb)
 
