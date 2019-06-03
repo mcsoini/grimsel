@@ -1491,7 +1491,7 @@ class IO:
                 df.to_hdf(self.cl_out, tb_name, format='table')
 
             elif self.modwr.output_target in ['fastparquet']:
-                df.to_parquet(fn, engine=self.modwr.output_target,
+                df.to_parquet(self.cl_out + tb_name + '.parq', engine=self.modwr.output_target,
                               compression='GZIP')
 
         else:
