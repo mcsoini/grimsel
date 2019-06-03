@@ -643,7 +643,8 @@ Hit enter to proceed.
 
             logger.info('Dropping parquet output directory {}'.format(dirc))
             shutil.rmtree(dirc)
-            os.mkdir(dirc)
+
+        os.mkdir(dirc)
 
     def _reset_schema(self):
 
