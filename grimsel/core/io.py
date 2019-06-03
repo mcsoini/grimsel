@@ -1367,6 +1367,17 @@ class DataReader(_HDFWriter, _ParqWriter):
 
                     self.write_hdf(tb_name, df, 'put')
 
+                elif self.output_target in ['fastparquet']:
+
+                    fn = os.path.join(self.cl_out, tb_name + '.parq')
+
+                    self.write_parquet(fn, df, engine=self.output_target)
+
+                else:
+
+                    raise RuntimeError('write_runtime_tables: no '
+                                       'output_target applicable')
+
 
 class IO:
     '''
