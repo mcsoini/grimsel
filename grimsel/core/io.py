@@ -1487,9 +1487,10 @@ class IO:
 
             df = pd.DataFrame(columns=list(zip(*cols))[0])
 
-            self.modwr.output_target == 'hdf5':
+            if self.modwr.output_target == 'hdf5':
                 df.to_hdf(self.cl_out, tb_name, format='table')
-            self.modwr.output_target in ['fastparquet']:
+
+            elif self.modwr.output_target in ['fastparquet']:
                 df.to_parquet(fn, engine=self.modwr.output_target,
                               compression='GZIP')
 
