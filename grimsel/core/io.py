@@ -188,12 +188,18 @@ class CompIO(_HDFWriter, _ParqWriter):
 
         if self.output_target == 'hdf5':
             self.write_hdf(tb, df, 'append')
+
         elif self.output_target in ['fastparquet']:
 
             fn = os.path.join(self.cl_out,
                               tb + '_{:04d}'.format(self.run_id) + '.parq')
 
             self.write_parquet(fn, df, engine=self.output_target)
+
+        else:
+            raise RuntimeError('_to_file: no '
+                               'output_target applicable')
+
 
 
     def _to_sql(self, df, tb):
@@ -219,6 +225,9 @@ class CompIO(_HDFWriter, _ParqWriter):
             self._to_file(df, tb)
         elif self.output_target == 'psql':
             self._to_sql(df, tb)
+        else:
+            raise RuntimeError('_finalize: no '
+                               'output_target applicable')
 
         logger.info(' ... done in %.3f sec'%(time.time() - t))
 
@@ -1309,10 +1318,13 @@ class DataReader(_HDFWriter, _ParqWriter):
 
                     self.write_hdf(itb, df, 'put')
 
-                elif self.output_target in 'fastparquet':
+                elif self.output_target in ['fastparquet']:
 
                     fn = os.path.join(self.cl_out, itb + '.parq')
                     self.write_parquet(fn, df, self.output_target)
+                else:
+                    raise RuntimeError('_write_input_tables_to_output_schema: '
+                                       'no output_target applicable')
 
     @skip_if_resume_loop
     @skip_if_no_output
@@ -1374,7 +1386,6 @@ class DataReader(_HDFWriter, _ParqWriter):
                     self.write_parquet(fn, df, engine=self.output_target)
 
                 else:
-
                     raise RuntimeError('write_runtime_tables: no '
                                        'output_target applicable')
 
@@ -1472,10 +1483,19 @@ class IO:
             aql.init_table(tb_name, cols, self.cl_out,
                            pk=cols_id, unique=['run_id'], db=self.db)
 
-        elif self.modwr.output_target == 'hdf5':
+        elif self.modwr.output_target in ['hdf5', 'fastparquet']:
 
             df = pd.DataFrame(columns=list(zip(*cols))[0])
-            df.to_hdf(self.cl_out, tb_name, format='table')
+
+            self.modwr.output_target == 'hdf5':
+                df.to_hdf(self.cl_out, tb_name, format='table')
+            self.modwr.output_target in ['fastparquet']:
+                df.to_parquet(fn, engine=self.modwr.output_target,
+                              compression='GZIP')
+
+        else:
+            raise RuntimeError('_init_loop_table: no '
+                               'output_target applicable')
 
     @staticmethod
     def _close_all_hdf_connections():
