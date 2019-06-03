@@ -1,9 +1,10 @@
 
 
-
+import os
 import numpy as np
 import pandas as pd
 import wrapt
+from glob import glob
 
 import grimsel.auxiliary.sqlutils.aux_sql_func as aql
 from grimsel.auxiliary.aux_general import silence_pd_warning
@@ -115,6 +116,24 @@ class Maps():
 
         if not dict_tb:
             raise IOError('File %s not found.'%fn)
+
+        self = cls(None, None, dict_tb)
+
+        return self
+
+    @classmethod
+    def from_parquet(cls, dirc):
+
+        dict_fn_key = {fn: fn.split(os.sep)[1]
+                             .replace('def_', '').replace('.parq', '')
+                       for fn in glob(dirc + '/*.parq')}
+
+        dict_tb = {key: pd.read_parquet(fn)
+                   for fn, key in dict_fn_key.items()
+                   if key in Maps.list_id_tbs}
+
+        if not dict_tb:
+            raise IOError('Parquet directory %s not found.'%fn)
 
         self = cls(None, None, dict_tb)
 
