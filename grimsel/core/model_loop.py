@@ -218,7 +218,6 @@ class ModelLoop():
 
             df_add = pd.DataFrame(vals, columns=cols)
 
-
         df_add['objective'] = (self.m.objective_value
                                if hasattr(self.m, 'objective_value') else 0)
 
@@ -236,8 +235,6 @@ class ModelLoop():
         elif self.io.modwr.output_target in ['fastparquet']:
             fn = os.path.join(self.io.cl_out, 'def_run.parq')
             pq.write(fn, df_add, append=os.path.isfile(fn))
-
-
 
     def _print_run_title(self, warmstartfile, solutionfile):
 
