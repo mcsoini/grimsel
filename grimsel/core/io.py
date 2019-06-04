@@ -1496,10 +1496,6 @@ class IO:
             if self.modwr.output_target == 'hdf5':
                 df.to_hdf(self.cl_out, tb_name, format='table')
 
-            elif self.modwr.output_target in ['fastparquet']:
-                df.to_parquet(self.cl_out + tb_name + '.parq', engine=self.modwr.output_target,
-                              compression='GZIP')
-
         else:
             raise RuntimeError('_init_loop_table: no '
                                'output_target applicable')
