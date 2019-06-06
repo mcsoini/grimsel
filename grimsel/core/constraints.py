@@ -1037,6 +1037,58 @@ class Constraints:
         self.cadd('objective_quad', rule=objective_rule_quad,
                   sense=po.minimize, objclass=po.Objective)
 
+# %%
+#
+#plin = ml.io.modwr.dict_comp_obj['pwr'].get_df().rename(columns={'value': 'pwr'})#.query('pp_id in %s'%ml.m.setlst['lin'])
+#
+#plin['fl_id'] = plin.pp_id.replace(ml.m.mps.dict_plant_2_fuel_id)
+#plin['nd_id'] = plin.pp_id.replace(ml.m.mps.dict_plant_2_node_id)
+#plin['tm_id'] = plin.nd_id.replace(ml.m.dict_nd_tm_id)
+#
+#plin = plin.join(ml.m.df_def_plant.set_index(['pp_id'])[['set_def_lin', 'set_def_sll']], on=['pp_id'])
+#
+#plin = plin.join(ml.m.df_tm_soy.set_index(['tm_id', 'sy'])[['mt_id', 'weight']], on=['tm_id', 'sy'])
+#plin = plin.join(ml.io.modwr.dict_comp_obj['vc_fl'].get_df().set_index(['mt_id', 'fl_id', 'nd_id']).value.rename('vc_fl'), on=['mt_id', 'fl_id', 'nd_id'])
+#plin = plin.join(ml.io.modwr.dict_comp_obj['vc_om'].get_df().set_index(['pp_id']).value.rename('vc_om'), on=['pp_id'])
+#
+#plin = plin.join(ml.io.modwr.dict_comp_obj['factor_lin_0'].get_df().set_index(['pp_id']).value.rename('f0'), on=['pp_id'])
+#plin = plin.join(ml.io.modwr.dict_comp_obj['factor_lin_1'].get_df().set_index(['pp_id']).value.rename('f1'), on=['pp_id'])
+#plin = plin.join(ml.io.modwr.dict_comp_obj['nd_weight'].get_df().set_index(['nd_id']).value.rename('nd_weight'), on=['nd_id'])
+#plin = plin.join(ml.io.modwr.dict_comp_obj['pp_eff'].get_df().set_index(['pp_id']).value.rename('pp_eff'), on=['pp_id'])
+#plin = plin.join(ml.io.modwr.dict_comp_obj['co2_int'].get_df().set_index(['fl_id']).value.rename('co2_int'), on=['fl_id'])
+#plin = plin.join(ml.io.modwr.dict_comp_obj['price_co2'].get_df().set_index(['nd_id', 'mt_id']).value.rename('price_co2'), on=['nd_id', 'mt_id'])
+#
+#prfsll = ml.io.modwr.dict_comp_obj['pricesllprof'].get_df()
+#prfsll['fl_id'] = prfsll.pf_id.replace({v: k[0] for k, v in ml.m.dict_pricesll_pf.items()})
+#prfbuy = ml.io.modwr.dict_comp_obj['pricebuyprof'].get_df()
+#prfbuy['fl_id'] = prfbuy.pf_id.replace({v: k[0] for k, v in ml.m.dict_pricebuy_pf.items()})
+#
+#plin = plin.join(prfsll.set_index(['sy', 'fl_id']).value.rename('prfsll'), on=['sy', 'fl_id'])
+#plin = plin.join(prfbuy.set_index(['sy', 'fl_id']).value.rename('prfbuy'), on=['sy', 'fl_id'])
+#
+#plin = ml.m.mps.id_to_name(plin)
+#
+#plin['vcom'] = plin.eval('pwr * weight * vc_om * nd_weight')
+#
+#plin.assign(pp_id=lambda x: x.pp_id.astype(np.int)).groupby('pp_id').sum().reset_index().join(dfan.set_index('pp_id'), on='pp_id').set_index('pp_id').iloc[:,-2:].reset_index().assign(dff=lambda x: x.diff(axis=1).iloc[:, -1], pp=lambda x: x.pp_id.replace(ml.m.mps.dict_pp)).sort_values('dff').dff
+#
+#VC_FL_L = plin.query('set_def_lin == 1').eval('pwr * weight * vc_fl * nd_weight * (f0 + 0.5 * pwr * f1)').sum()
+#VC_FL_C = plin.query('set_def_lin == 0').eval('pwr * weight * vc_fl * nd_weight / pp_eff').sum()
+#VC_CO_L = plin.query('set_def_lin == 1').eval('pwr * weight * co2_int * price_co2 * nd_weight * (f0 + 0.5 * pwr * f1)').sum()
+#VC_CO_C = plin.query('set_def_lin == 0').eval('pwr * weight * co2_int * price_co2 * nd_weight / pp_eff').sum()
+#VC_OM = plin.eval('pwr * weight * vc_om * nd_weight').sum()
+#VC_RAMP = ml.io.modwr.dict_comp_obj['vc_ramp_yr'].get_df().value.sum()
+#
+#VC_SLL_HH = - plin.query('fl == "electricity" and set_def_sll == 1').eval('nd_weight * weight * pwr * prfsll').sum()
+#VC_BUY_HH = plin.query('fl == "electricity" and set_def_sll == 0').eval('nd_weight * weight * pwr * prfbuy').sum()
+#
+#VC_FL_L + VC_FL_C + VC_CO_L + VC_CO_C + VC_OM + VC_RAMP
+#
+#ml.m.objective_value
+
+# %%
+
+
     def get_vc_fl(self):
         r'''
         Get total fuel cost calculated directly from power production:
