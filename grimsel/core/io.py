@@ -10,6 +10,7 @@ import itertools
 import os
 import tables
 import shutil
+from glob import glob
 
 import fastparquet as pq
 import numpy as np
@@ -558,7 +559,6 @@ class ModelWriter():
         logger.info(ls)
         self.reset_tablecollection()
 
-    @skip_if_resume_loop
     def reset_tablecollection(self):
         '''
         Reset the SQL schema or hdf file for model output writing.
@@ -572,13 +572,15 @@ class ModelWriter():
         elif self.output_target in ['fastparquet']:
             self._reset_parquet_file()
 
+    @skip_if_resume_loop
     def _reset_hdf_file(self):
 
         ModelWriter.reset_hdf_file(self.cl_out, not self.dev_mode)
 
     def _reset_parquet_file(self):
 
-        ModelWriter.reset_parquet_file(self.cl_out, not self.dev_mode)
+        ModelWriter.reset_parquet_file(self.cl_out, not self.dev_mode,
+                                       self.resume_loop)
 
     @staticmethod
     def reset_hdf_file(fn, warn):
@@ -620,7 +622,7 @@ Hit enter to proceed.
             logger.info('Dropping output file {}'.format(fn))
             os.remove(fn)
 
-    def reset_parquet_file(dirc, warn):
+    def reset_parquet_file(dirc, warn, resume_loop, ):
         '''
         Deletes existing parquet file folder and creates empty one.
 
@@ -633,7 +635,7 @@ Hit enter to proceed.
 
         '''
 
-        if os.path.isdir(dirc):
+        if os.path.isdir(dirc) and not resume_loop:
 
             try:
                 max_run_id = pd.read_parquet(os.path.join(dirc, 'def_run.parq'),
@@ -659,8 +661,34 @@ Hit enter to proceed.
             logger.info('Dropping parquet output directory {}'.format(dirc))
             shutil.rmtree(dirc)
 
-        os.mkdir(dirc)
+        elif os.path.isdir(dirc) and resume_loop:
 
+            logger.info('Deleting run_ids >= resume_loop = '
+                        '{:d}'.format(resume_loop))
+
+            del_fn = [fn for fn in glob(os.path.join(dirc, '*[0-9].parq')) if
+                      int(fn.split('_')[-1].replace('.parq', ''))
+                      >= resume_loop]
+
+            if del_fn:
+                for fn in del_fn:
+                    logger.info('... deleting file {}'.format(fn))
+                    os.remove(fn)
+
+                fn_run = os.path.join(dirc, 'def_run.parq')
+                df_def_run = pd.read_parquet(fn_run)
+                df_def_run = df_def_run.query('run_id < %d'%resume_loop)
+                df_def_run = df_def_run.reset_index(drop=True)
+                pq.write(fn_run, df_def_run, append=False, compression='GZIP')
+
+            else:
+                logger.info('... nothing to delete.')
+
+        if not os.path.isdir(dirc):
+
+            os.mkdir(dirc)
+
+    @skip_if_resume_loop
     def _reset_schema(self):
 
         aql.reset_schema(self.cl_out, self.sql_connector.db,
