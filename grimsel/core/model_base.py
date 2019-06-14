@@ -16,47 +16,47 @@ from grimsel import _get_logger
 
 logger = _get_logger(__name__)
 
+def create_tempfile(self, suffix=None, prefix=None, text=False, dirc=None):
+    """
+    Return the absolute path of a temporary filename that is_init_pf_dicts
+    guaranteed to be unique.  This function generates the file and returns
+    the filename.
+    """
 
-#def create_tempfile(self, suffix=None, prefix=None, text=False, dir=None):
-#    """
-#    Return the absolute path of a temporary filename that is_init_pf_dicts
-#    guaranteed to be unique.  This function generates the file and returns
-#    the filename.
-#    """
-#
-#    print('''
-#          create_tempfile is monkey patched
-#          ''')
-#
-#    if suffix is None:
-#        suffix = ''
-#    if prefix is None:
-#        prefix = 'tmp'
-#
-#    ans = tempfile.mkstemp(suffix=suffix, prefix=prefix, text=text, dir=dir)
-#    ans = list(ans)
-#    if not os.path.isabs(ans[1]):  #pragma:nocover
-#        fname = os.path.join(dir, ans[1])
-#    else:
-#        fname = ans[1]
-#    os.close(ans[0])
-#
-#    dir = tempfile.gettempdir()
-#
-#    new_fname = os.path.join(dir, 'grimsel', 'grimsel_temp_'
-#                             + ''.join(np.random.choice(list('abcdefghi'), 4))
-#                             + suffix)
-#    # Delete any file having the sequential name and then
-#    # rename
-#    if os.path.exists(new_fname):
-#        os.remove(new_fname)
-#    fname = new_fname
-#
-#    self._tempfiles[-1].append(fname)
-#    return fname
-#
-#import pyutilib.component.config.tempfiles as tempfiles
-#tempfiles.TempfileManagerPlugin.create_tempfile = create_tempfile
+    logger.warn('''!!!!!!!!create_tempfile is monkey patched!!!!!!!!''')
+
+    if suffix is None:
+        suffix = ''
+    if prefix is None:
+        prefix = 'tmp'
+
+    ans = tempfile.mkstemp(suffix=suffix, prefix=prefix, text=text, dir=dirc)
+    ans = list(ans)
+    if not os.path.isabs(ans[1]):  #pragma:nocover
+        fname = os.path.join(dirc, ans[1])
+    else:
+        fname = ans[1]
+    os.close(ans[0])
+
+    dirc = './grimsel_temp'
+
+    if not os.path.isdir(dirc):
+        os.mkdir(dirc)
+
+    new_fname = os.path.join(dirc, 'grimsel_temp_'
+                             + ''.join(np.random.choice(list('abcdefghi'), 4))
+                             + suffix)
+    # Delete any file having the sequential name and then
+    # rename
+    if os.path.exists(new_fname):
+        os.remove(new_fname)
+    fname = new_fname
+
+    self._tempfiles[-1].append(fname)
+    return fname
+
+import pyutilib.component.config.tempfiles as tempfiles
+tempfiles.TempfileManagerPlugin.create_tempfile = create_tempfile
 
 
 import sys
