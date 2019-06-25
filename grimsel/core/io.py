@@ -772,30 +772,57 @@ Hit enter to proceed.
 
         TODO: The SQL part would be better fit with the aux_sql_func module.
         '''
-        # Get overview of all tables
-        list_all_tb_0 = [list(itb_list + '_' + itb[0] for itb
-                              in getattr(self, itb_list)
-                              if not len(itb) == 3)
-                         for itb_list in self.list_collect]
-        self.list_all_tb = list(itertools.chain(*list_all_tb_0))
-        self.list_all_tb += ['def_run']
 
         if run_id:
+
+
+
+            # Get overview of all tables
+            list_all_tb_0 = [list(itb_list + '_' + itb[0] for itb
+                                  in getattr(table_struct, itb_list)
+                                  if not len(itb) == 3)
+                             for itb_list in table_struct.list_collect]
+            self.list_all_tb = list(itertools.chain(*list_all_tb_0))
+            self.list_all_tb += ['def_run']
+
             for itb in self.list_all_tb:
 
-                logger.info('Deleting from ' + self.cl_out + '.' + itb
-                            + ' where run_id {} {}'.format(operator,
-                                                           str(run_id)))
-                exec_strg = '''
-                            DELETE FROM {cl_out}.{tb}
-                            WHERE run_id {op} {run_id};
-                            '''.format(cl_out=self.cl_out, tb=itb,
-                                       run_id=run_id, op=operator)
-                try:
-                    aql.exec_sql(exec_strg, db=self.db)
-                except pg.ProgrammingError as e:
-                    logger.error(e)
-                    raise(e)
+                if self.output_target == 'fastparquet':
+
+                    self._delete_run_id_parquet(tb=itb, run_id=run_id)
+
+                elif self.output_target == 'psql':
+
+                    logger.info('Deleting from ' + self.cl_out + '.' + itb
+                                + ' where run_id {} {}'.format(operator,
+                                                               str(run_id)))
+                    exec_strg = '''
+                                DELETE FROM {cl_out}.{tb}
+                                WHERE run_id {op} {run_id};
+                                '''.format(cl_out=self.cl_out, tb=itb,
+                                           run_id=run_id, op=operator)
+                    try:
+                        aql.exec_sql(exec_strg, db=self.db)
+                    except pg.ProgrammingError as e:
+                        logger.error(e)
+                        raise(e)
+
+    def _delete_run_id_parquet(self, tb, run_id):
+
+        fn_del = glob(os.path.join(self.cl_out,
+                                   '{}_{:04d}.parq'.format(tb, run_id)))
+
+        try:
+            assert len(fn_del) == 1, 'found more than one table to delete: %s'%fn_del
+
+            os.remove(fn_del[0])
+
+            logger.info('Successfully deleted table '
+                        '{} of model run {:d}'.format(tb, run_id))
+        except Exception as e:
+            print(e)
+
+
 
     @classmethod
     def post_process_index(cls, sc, db, drop=False):
