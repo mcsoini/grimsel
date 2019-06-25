@@ -65,7 +65,7 @@ class ModelLoop():
     @df_def_run.setter
     def df_def_run(self, df_def_run):
         self._df_def_run = df_def_run
-        self.restore_run_id()
+        self._df_def_run = self.restore_run_id(self._df_def_run)
 
 #    def init_output_schema(self):
 #
@@ -250,18 +250,21 @@ class ModelLoop():
             logger.info(strg)
         logger.info(sep)
 
-    def restore_run_id(self):
+    @staticmethod
+    def restore_run_id(df):
         '''
         Reset run_id index after external manipulation of the df_def_run
         '''
 
-        cols_not_run_id = [c for c in self._df_def_run.columns
+        cols_not_run_id = [c for c in df.columns
                            if not c == 'run_id']
-        self._df_def_run = self._df_def_run[cols_not_run_id]
-        self._df_def_run = self._df_def_run.reset_index(drop=True)
-        self._df_def_run = self._df_def_run.reset_index()
-        self._df_def_run = self._df_def_run.rename(columns={'index':
-                                                              'run_id'})
+        df = df[cols_not_run_id]
+        df = df.reset_index(drop=True)
+        df = df.reset_index()
+        df = df.rename(columns={'index': 'run_id'})
+
+        return df
+
 
     def perform_model_run(self, zero_run=False, warmstart=True):
         """
