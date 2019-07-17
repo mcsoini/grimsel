@@ -16,6 +16,8 @@ from grimsel import _get_logger
 
 logger = _get_logger(__name__)
 
+TEMP_DIR = './grimsel_temp'  # tempfile.gettempdir()
+
 def create_tempfile(self, suffix=None, prefix=None, text=False, dirc=None):
     """
     Return the absolute path of a temporary filename that is_init_pf_dicts
@@ -38,7 +40,7 @@ def create_tempfile(self, suffix=None, prefix=None, text=False, dirc=None):
         fname = ans[1]
     os.close(ans[0])
 
-    dirc = './grimsel_temp'
+    dirc = TEMP_DIR
 
     if not os.path.isdir(dirc):
         os.mkdir(dirc)
@@ -75,8 +77,6 @@ import grimsel.core.variables as variables
 import grimsel.core.parameters as parameters
 import grimsel.core.sets as sets
 import grimsel.core.io as io # for class methods
-
-TEMP_DIR = tempfile.gettempdir()
 
 reload(constraints)
 reload(variables)
