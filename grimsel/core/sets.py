@@ -369,9 +369,10 @@ class Sets:
                              + self.setlst['pricebuy_pf']
                              + self.setlst['supply_pf'])
 
-        self.setlst['rp'] = (self.setlst['pp'] if 'pp' in self.setlst else []
-                             + self.setlst['ror'] if 'ror' in self.setlst else []
-                             + self.setlst['hyrs'] if 'hyrs' in self.setlst else [])
+        self.setlst['rp'] = ((self.setlst['pp'] if 'pp' in self.setlst else [])
+                             + (self.setlst['ror'] if 'ror' in self.setlst else [])
+                             + (self.setlst['hyrs'] if 'hyrs' in self.setlst else [])
+                             + (self.setlst['st'] if 'st' in self.setlst else []))
 
     @silence_pd_warning
     @staticmethod
