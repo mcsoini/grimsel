@@ -9,6 +9,7 @@ Created on Mon May 14 07:41:11 2018
 import pandas as pd
 import itertools as it
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 import abc
 
 from grimsel import _get_logger
@@ -164,7 +165,7 @@ class AutoComplete(abc.ABC):
 
     def add_color_col(self, cmap=None):
 
-        _cmap = mpl.cm.get_cmap(cmap)
+        _cmap = plt.cm.get_cmap(cmap)
 
         self.df_add['color'] = ''
 
