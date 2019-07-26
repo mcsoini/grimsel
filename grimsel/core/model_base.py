@@ -16,7 +16,7 @@ from grimsel import _get_logger
 
 logger = _get_logger(__name__)
 
-TEMP_DIR = './grimsel_temp'  # tempfile.gettempdir()
+TEMP_DIR = 'grimsel_temp'  # tempfile.gettempdir()
 
 def create_tempfile(self, suffix=None, prefix=None, text=False, dirc=None):
     """
