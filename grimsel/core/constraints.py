@@ -1070,7 +1070,13 @@ class Constraints:
 #
 #plin['vcom'] = plin.eval('pwr * weight * vc_om * nd_weight')
 #
-#plin.assign(pp_id=lambda x: x.pp_id.astype(np.int)).groupby('pp_id').sum().reset_index().join(dfan.set_index('pp_id'), on='pp_id').set_index('pp_id').iloc[:,-2:].reset_index().assign(dff=lambda x: x.diff(axis=1).iloc[:, -1], pp=lambda x: x.pp_id.replace(ml.m.mps.dict_pp)).sort_values('dff').dff
+#plin['c_trm'] = 1e4
+#plin['c_trm']  = plin.c_trm.where(plin.fl == 'electricity', 0)
+#plin['CC_trm'] = (plin.pwr**2) * plin.nd_weight * plin.c_trm
+#
+#plin.loc[plin.fl == 'electricity']
+#
+##plin.assign(pp_id=lambda x: x.pp_id.astype(np.int)).groupby('pp_id').sum().reset_index().join(dfan.set_index('pp_id'), on='pp_id').set_index('pp_id').iloc[:,-2:].reset_index().assign(dff=lambda x: x.diff(axis=1).iloc[:, -1], pp=lambda x: x.pp_id.replace(ml.m.mps.dict_pp)).sort_values('dff').dff
 #
 #VC_FL_L = plin.query('set_def_lin == 1').eval('pwr * weight * vc_fl * nd_weight * (f0 + 0.5 * pwr * f1)').sum()
 #VC_FL_C = plin.query('set_def_lin == 0').eval('pwr * weight * vc_fl * nd_weight / pp_eff').sum()
@@ -1078,11 +1084,12 @@ class Constraints:
 #VC_CO_C = plin.query('set_def_lin == 0').eval('pwr * weight * co2_int * price_co2 * nd_weight / pp_eff').sum()
 #VC_OM = plin.eval('pwr * weight * vc_om * nd_weight').sum()
 #VC_RAMP = ml.io.modwr.dict_comp_obj['vc_ramp_yr'].get_df().value.sum()
+#VC_TRM = plin.query('fl == "electricity"').CC_trm.sum()
 #
 #VC_SLL_HH = - plin.query('fl == "electricity" and set_def_sll == 1').eval('nd_weight * weight * pwr * prfsll').sum()
 #VC_BUY_HH = plin.query('fl == "electricity" and set_def_sll == 0').eval('nd_weight * weight * pwr * prfbuy').sum()
 #
-#VC_FL_L + VC_FL_C + VC_CO_L + VC_CO_C + VC_OM + VC_RAMP
+#VC_TRM + (VC_FL_L + VC_FL_C + VC_CO_L + VC_CO_C + VC_OM + VC_RAMP + VC_SLL_HH + VC_BUY_HH)
 #
 #ml.m.objective_value
 
