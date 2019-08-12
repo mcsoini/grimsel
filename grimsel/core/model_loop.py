@@ -67,15 +67,6 @@ class ModelLoop():
         self._df_def_run = df_def_run
         self._df_def_run = self.restore_run_id(self._df_def_run)
 
-#    def init_output_schema(self):
-#
-#        if self.sc_out: # output schema name is provided
-#            self.unq_code = self.sc_out.replace('out_', '')
-#        else: # generate output schema name
-#            self.unq_code = datetime.datetime.now().strftime("%H%M")
-#            self.sc_out = 'out_{n}_{uq}'.format(n=self.mkwargs['nhours'],
-#                                                uq=self.unq_code)
-
     def __init__(self, **kwargs):
         '''
         Keyword arguments:
