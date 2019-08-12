@@ -1450,6 +1450,19 @@ class DataReader(_HDFWriter, _ParqWriter):
                     raise RuntimeError('write_runtime_tables: no '
                                        'output_target applicable')
 
+    @staticmethod
+    def _get_max_run_id(cl_out):
+
+        run_fn = os.path.join(cl_out, 'def_run.parq')
+
+        if os.path.isfile(run_fn):
+            logger.debug('_get_max_run_id: Reading file %s.'%run_fn)
+            max_run = pd.read_parquet(run_fn, columns=['run_id']).run_id.max()
+        else:
+            logger.warning('_get_max_run_id: %s not found.'%run_fn)
+            max_run = False
+
+        return max_run
 
 class IO:
     '''
@@ -1481,14 +1494,32 @@ class IO:
 
         defaults.update(kwargs)
 
-        self.datrd = DataReader(**defaults)
-        self.modwr = ModelWriter(**defaults)
-
-        self.resume_loop = defaults['resume_loop']
         self.sql_connector = defaults['sql_connector']
         self.replace_runs_if_exist = defaults['replace_runs_if_exist']
         self.db = self.sql_connector.db if self.sql_connector else None
         self.cl_out = defaults['cl_out']
+
+        if defaults['resume_loop'] == 'auto':
+            defaults['resume_loop'] = \
+                    self._get_auto_resume_loop(defaults['output_target'])
+
+        self.resume_loop = defaults['resume_loop']
+
+        self.datrd = DataReader(**defaults)
+        self.modwr = ModelWriter(**defaults)
+
+    def _get_auto_resume_loop(self, output_target):
+
+        if not output_target == 'fastparquet':
+            raise RuntimeError ('resume_loop="auto" not implemented for '
+                                '%s output.')%output_target
+
+        resloop = DataReader._get_max_run_id(self.cl_out)
+        resloop = (resloop + 1) if not isinstance(resloop, bool) else resloop
+
+        logger.info('Setting "auto" resume_loop to %s'%resloop)
+
+        return resloop
 
     @classmethod
     def variab_to_df(cls, py_obj, sets=None):
