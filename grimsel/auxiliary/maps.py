@@ -277,9 +277,24 @@ class Maps():
 
 
 
+    def _add_pp_maps(self, df, inplace=False):
+
+        cols = ['nd_id', 'fl_id', 'pt_id']
+        cols = list(set(cols) - set(df.columns))
+
+        pp_df = self._dict_tb['plant'][cols]
+
+        if not inplace:
+            df = df.copy()
+
+        return df.join(pp_df, on='pp_id')
+
     @silence_pd_warning
     def id_to_name(self, df, name_list=None, inplace=False,
                    keep_cols=True):
+
+        if 'pp_id' in df.columns:
+            df = self._add_pp_maps(df, inplace)
 
         if not name_list:
             name_list = [c.replace('_id', '') for c
