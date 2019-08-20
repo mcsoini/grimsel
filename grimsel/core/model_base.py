@@ -27,10 +27,11 @@ from grimsel import _get_logger
 
 logger = _get_logger(__name__)
 
-TEMP_DIR = 'grimsel_temp'
 
 def get_random_suffix():
     return ''.join(np.random.choice(list(string.ascii_lowercase), 4))
+
+TEMP_DIR = 'grimsel_temp_' + get_random_suffix()
 
 def create_tempfile(self, suffix=None, prefix=None, text=False, dirc=None):
     """
