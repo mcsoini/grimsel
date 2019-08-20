@@ -2,21 +2,32 @@
 Module docstring
 '''
 
-
-
-
+import sys
+import os
+from importlib import reload
 import tempfile
+import string
+
 import numpy as np
 import pandas as pd
 
 import pyomo.environ as po
 from pyomo.core.base.objective import SimpleObjective
+from pyomo.opt import SolverFactory
 
+import grimsel.auxiliary.maps as maps
+import grimsel.auxiliary.timemap as timemap
+
+import grimsel.core.constraints as constraints
+import grimsel.core.variables as variables
+import grimsel.core.parameters as parameters
+import grimsel.core.sets as sets
+import grimsel.core.io as io # for class methods
 from grimsel import _get_logger
 
 logger = _get_logger(__name__)
 
-TEMP_DIR = 'grimsel_temp'  # tempfile.gettempdir()
+TEMP_DIR = 'grimsel_temp'
 
 def get_random_suffix():
     return ''.join(np.random.choice(list(string.ascii_lowercase), 4))
@@ -28,7 +39,8 @@ def create_tempfile(self, suffix=None, prefix=None, text=False, dirc=None):
     the filename.
     """
 
-    logger.warn('''!!!!!!!!create_tempfile is monkey patched!!!!!!!!''')
+    logger.warn('!!!!!!!!tempfiles.TempfileManagerPlugin.create_tempfile '
+                'is monkey patched!!!!!!!!')
 
     if suffix is None:
         suffix = ''
@@ -62,22 +74,6 @@ import pyutilib.component.config.tempfiles as tempfiles
 tempfiles.TempfileManagerPlugin.create_tempfile = create_tempfile
 
 
-import sys
-import os
-from importlib import reload
-
-from pyomo.opt import SolverFactory
-
-# auxiliary modules
-import grimsel.auxiliary.maps as maps
-import grimsel.auxiliary.timemap as timemap
-
-# model components
-import grimsel.core.constraints as constraints
-import grimsel.core.variables as variables
-import grimsel.core.parameters as parameters
-import grimsel.core.sets as sets
-import grimsel.core.io as io # for class methods
 
 reload(constraints)
 reload(variables)
