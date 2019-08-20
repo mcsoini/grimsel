@@ -18,6 +18,9 @@ logger = _get_logger(__name__)
 
 TEMP_DIR = 'grimsel_temp'  # tempfile.gettempdir()
 
+def get_random_suffix():
+    return ''.join(np.random.choice(list(string.ascii_lowercase), 4))
+
 def create_tempfile(self, suffix=None, prefix=None, text=False, dirc=None):
     """
     Return the absolute path of a temporary filename that is_init_pf_dicts
@@ -45,9 +48,7 @@ def create_tempfile(self, suffix=None, prefix=None, text=False, dirc=None):
     if not os.path.isdir(dirc):
         os.mkdir(dirc)
 
-    new_fname = os.path.join(dirc, 'grimsel_temp_'
-                             + ''.join(np.random.choice(list('abcdefghi'), 4))
-                             + suffix)
+    new_fname = os.path.join(dirc, 'grimsel_temp_' + get_random_suffix() + suffix)
     # Delete any file having the sequential name and then
     # rename
     if os.path.exists(new_fname):
@@ -1061,7 +1062,8 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         isolnfile = 1 - isolnfile
         solnfile = os.path.join(TEMP_DIR,
                                 ('manual_soln_file_{uc}_{i}.cplex.sol'
-                                 .format(uc=self.unq_code, i=str(isolnfile))))
+                                 .format(uc=get_random_suffix(),
+                                         i=str(isolnfile))))
         return solnfile, isolnfile
 
     def init_solver(self):
@@ -1085,7 +1087,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         if self.nthreads:
             self.solver.set_options('threads=' + str(self.nthreads))
 
-        fn = 'manual_log_file_{uc}.cplex.sol'.format(uc=self.unq_code)
+        fn = 'manual_log_file_{uc}.cplex.sol'.format(uc=get_random_suffix())
         self.logfile = os.path.join(TEMP_DIR, fn)
         self.solver._problem_files = (os.path.join(TEMP_DIR, 'pyomo.lp'),)
 
