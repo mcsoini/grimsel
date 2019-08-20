@@ -355,6 +355,14 @@ class Maps():
             return {}
 
     @param_to_list
+    def pp2pp(self, list_pp):
+        if list_pp:
+            df = self._dict_tb['plant']
+            return set(df.loc[df.pp.str.contains('|'.join(list_pp))].index.tolist())
+        else:
+            return {}
+
+    @param_to_list
     def fl2fl(self, list_fl):
         if list_fl:
             df = self._dict_tb['fuel']
