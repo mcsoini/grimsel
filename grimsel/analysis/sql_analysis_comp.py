@@ -362,7 +362,7 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
 
             aql.joinon(self.db, self.sw_columns, ['run_id'],
                        [self.sc_out, 'analysis_time_series'],
-                       [self.sc_out, 'def_loop'])
+                       [self.sc_out, 'def_run'])
 
             for col in self.sw_columns:
                 exec_strg = '''
@@ -389,7 +389,7 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
                         'model'::VARCHAR AS sta_mod, run_id
                     INTO {sc_out}.analysis_production_comparison
                     FROM {sc_out}.var_yr_erg_yr AS erg
-                    NATURAL LEFT JOIN {sc_out}.def_loop AS dflp
+                    NATURAL LEFT JOIN {sc_out}.def_run AS dflp
                     NATURAL LEFT JOIN {sc_out}.def_plant AS dfpp
                     WHERE run_id IN (0, -1)
                     ;
@@ -442,7 +442,7 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
 
         aql.joinon(self.db, self.sw_columns, ['run_id'],
                    [self.sc_out, 'analysis_production_comparison'],
-                   [self.sc_out, 'def_loop'])
+                   [self.sc_out, 'def_run'])
         aql.joinon(self.db, ['fl'], ['fl_id'],
                    [self.sc_out, 'analysis_production_comparison'],
                    [self.sc_out, 'def_fuel'])
@@ -472,7 +472,7 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
 
         aql.joinon(self.db, self.sw_columns, ['run_id'],
                    [self.sc_out, 'analysis_cf_comparison'],
-                   [self.sc_out, 'def_loop'])
+                   [self.sc_out, 'def_run'])
         aql.joinon(self.db, ['pp', 'nd_id', 'pt_id', 'fl_id'], ['pp_id'],
                    [self.sc_out, 'analysis_cf_comparison'],
                    [self.sc_out, 'def_plant'])
@@ -518,7 +518,7 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
                      price_eur_mwh * volume_mwh AS price_volume,
                      -1 AS run_id, 'stats' AS sta_mod
                    FROM {sc_out}.profprice_comp
-                   NATURAL LEFT JOIN {sc_out}.def_loop
+                   NATURAL LEFT JOIN {sc_out}.def_run
                    WHERE swhy_vl = 'yr2015';
 
                    /* Double Germany for Austria */
@@ -588,7 +588,7 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
 
         aql.joinon(self.db, self.sw_columns, ['run_id'],
                    [self.sc_out, 'analysis_price_comparison'],
-                   [self.sc_out, 'def_loop'])
+                   [self.sc_out, 'def_run'])
         aql.joinon(self.db, ['nd'], ['nd_id'],
                    [self.sc_out, 'analysis_price_comparison'],
                    [self.sc_out, 'def_node'])
@@ -635,7 +635,7 @@ class SqlAnalysisComp(sql_analysis.SqlAnalysis):
 
         aql.joinon(self.db, self.sw_columns, ['run_id'],
                    [self.sc_out, 'analysis_price_weighted'],
-                   [self.sc_out, 'def_loop'])
+                   [self.sc_out, 'def_run'])
         aql.joinon(self.db, ['nd'], ['nd_id'],
                    [self.sc_out, 'analysis_price_weighted'],
                    [self.sc_out, 'def_node'])

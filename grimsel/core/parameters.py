@@ -549,7 +549,9 @@ class Parameters:
             'df_plant_encar', None, ['pp_id'], self.ppall, default=0),
         Par('fc_cp_ann', (self.add, self.ca),
             'df_plant_encar', None, ['pp_id'], self.add),
-
+            
+        Par('pwr_pot', (self.add, self.ca),
+            'df_plant_encar', None, ['pp_id'], self.add, default=1e9),
         Par('cap_avlb', (self.pp, self.ca),
             'df_plant_encar', None, ['pp_id'], self.pp),
 
@@ -625,6 +627,7 @@ class Parameters:
                     'st_lss_hr': r':math:`\mathrm{\epsilon_{hr, p,c}} : \forall \mathrm{(p,c) \in st\_ca}`: Hourly storage leakage losses :math:`\mathrm{(1/hr)}`.',
                     'st_lss_rt': r':math:`\mathrm{\epsilon_{rt, p,c} }: \forall \mathrm{(p,c) \in st\_ca}`: Storage round-trip losses :math:`\mathrm{(-)}`.',
                     'cap_avlb': r':math:`\mathrm{\alpha_{mt, p,c}}: \forall \mathrm{(p,c) \in pp\_ca}`: Relative monthly capacity availability of dispatchable plants.',
+                    'pwr_pot': r':math:`P_\mathrm{pot, p,c}: \add \mathrm{(p,c) \in add\_ca}`: Upper bound capacity added :math:`\mathrm{(MW)}`.',
                     },
         'Specific costs': {
                     'vc_ramp': r':math:`\mathrm{vc_{ramp, p,c}} : \forall \mathrm{(p,c) \in ppall\_ca}`: Specific variable ramping cost :math:`\mathrm{(EUR/MW)}`.',
@@ -671,7 +674,8 @@ class Parameters:
          'vc_fl': 'merge(df_plant_encar, df_parameter_month)',
          'vc_om': 'df_plant_encar',
          'vc_ramp': 'df_plant_encar',
-         'weight': 'df_tm_soy'
+         'weight': 'df_tm_soy',
+         'pwr_pot': 'df_plant_encar',
          }
 
         df = pd.DataFrame(doc_dict).stack().reset_index()
