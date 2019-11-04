@@ -399,8 +399,13 @@ class Constraints:
 
                 tm = self.dict_pp_tm_id[pp]
                 mt = self.dict_soy_month[(tm, sy)]
+
+                cap_avlb = (self.cap_avlb[mt, pp, ca]
+                            if self.dict_par['vc_fl'].has_monthly_factors
+                            else self.cap_avlb[pp, ca])
+
                 return (self.pwr[sy, pp, ca] <= self.cap_pwr_tot[pp, ca]
-                                                * self.cap_avlb[mt, pp, ca])
+                                                * cap_avlb)
             else:
                 return (self.pwr[sy, pp, ca] <= self.cap_pwr_tot[pp, ca])
 
@@ -634,7 +639,6 @@ class Constraints:
 
         '''
 
-
         def erg_store_level_rule(self, sy, pp, ca):
             ''' Charging state for storage and hydro. '''
 
@@ -676,6 +680,7 @@ class Constraints:
         self.cadd('erg_store_level',
                   self.sy_st_ca | self.sy_hyrs_ca | self.sy_ror_ca,
                   rule=erg_store_level_rule)
+
 
     def add_hydro_rules(self):
         r'''
