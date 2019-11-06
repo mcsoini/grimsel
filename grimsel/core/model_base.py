@@ -927,11 +927,11 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         return df[cols + ['tm_id']]
 
     import wrapt
-
-    @wrapt.decorator
-    def skip_if_df_none(f, self, **kwargs):
-        print(kwargs)
-        return f(**kwargs)
+#
+#    @wrapt.decorator
+#    def skip_if_df_none(f, self, **kwargs):
+#        print(kwargs)
+#        return f(**kwargs)
 
 
     def map_profile_to_time_resolution(self, df, idx, itb=None):
@@ -1118,6 +1118,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         else:
             return True
 
+
     def delete_component(self, comp_name):
         '''
         Drop a component of the pyomo model.
@@ -1143,6 +1144,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
             for kk in list_del:
                 self.del_component(kk)
+
 
     @contextlib.contextmanager
     def temp_files(self):
@@ -1198,11 +1200,12 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
             self._get_objective_value()
 
+
     def _get_objective_value(self):
         '''
         Makes the objective value a :class:`ModelBase` instance attribute.
 
-        This assumes that among the objects defined by ``list_obj_name``
+        This assumes that among the objects defined by `list_obj_name`
         only one actually exists.
         '''
 
@@ -1233,6 +1236,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
                 print(str(self.mps.dict_pp[i[0]]) + ': is fixed at '
                       + str(vv[i].value))
         print('*'*(33 + len(variable)) + '\n')
+
 
     def fill_peaker_plants(self, demand_factor=1.02, reset_to_zero=False,
                            list_peak=[]):

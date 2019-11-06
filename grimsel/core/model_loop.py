@@ -96,24 +96,24 @@ class ModelLoop():
 
         return
 
-#        self.io.read_model_data()
-#
-#        self.m.map_to_time_res()
-#
-#        # Write tables which are generated in dependence on the time
-#        # resolution (profiles, boundary conditions).
-#        self.m.get_maximum_demand()
-#        self.io.write_runtime_tables()
-#
-#        self.m.mps = maps.Maps(self._out, db=self.db)
-#
-#        self.m.build_model()
-#
-#        self.init_run_table()
-#
-#        self.io.init_output_tables()
-#
-#        self.select_run(0)
+        self.io.read_model_data()
+
+        self.m.map_to_time_res()
+
+        # Write tables which are generated in dependence on the time
+        # resolution (profiles, boundary conditions).
+        self.m.get_maximum_demand()
+        self.io.write_runtime_tables()
+
+        self.m.mps = maps.Maps(self._out, db=self.db)
+
+        self.m.build_model()
+
+        self.init_run_table()
+
+        self.io.init_output_tables()
+
+        self.select_run(0)
 
 
     def init_run_table(self):

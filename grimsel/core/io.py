@@ -711,6 +711,7 @@ Hit enter to proceed.
                 logger.warning(('Component {} does not exist... '
                                'skipping init CompIO.').format(comp))
             else:
+                logger.debug('Adding component %s to dict_comp_obj'%comp)
                 comp_obj = getattr(self.model, comp)
 
                 grp = DICT_GROUP[comp]
