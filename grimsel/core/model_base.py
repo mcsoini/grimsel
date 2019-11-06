@@ -1188,10 +1188,10 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
             slv_kw = dict(tee=self.verbose_solver, keepfiles=self.keepfiles,
                           warmstart=warmstart,
                           symbolic_solver_labels=self.symbolic_solver_labels,
-                          logfile=logf,
-                          solnfile=solnf,
-                          warmstart_file=warmf,
-                          tempdir=tmp_dir
+#                          logfile=logf,
+#                          solnfile=solnf,
+#                          warmstart_file=warmf,
+#                          tempdir=tmp_dir
                           )
             self.results = self.solver.solve(self, **slv_kw)
 #            self.warmstartfile = self.solutionfile
