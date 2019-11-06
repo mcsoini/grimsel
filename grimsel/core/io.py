@@ -809,19 +809,20 @@ Hit enter to proceed.
 
     def _delete_run_id_parquet(self, tb, run_id):
 
-        fn_del = glob(os.path.join(self.cl_out,
-                                   '{}_{:04d}.parq'.format(tb, run_id)))
+        pat = os.path.join(self.cl_out, '{}_{:04d}.*'.format(tb, run_id))
+        fn_del = glob(pat)
 
         try:
-            assert len(fn_del) == 1, 'found more than one table to delete: %s'%fn_del
+            assert fn_del, 'Pattern not found: %s.'%pat
+            assert not len(fn_del) > 1, \
+                        'Found more than one table to delete: %s.'%fn_del
 
             os.remove(fn_del[0])
 
             logger.info('Successfully deleted table '
                         '{} of model run {:d}'.format(tb, run_id))
         except Exception as e:
-            print(e)
-
+            logger.error(e)
 
 
     @classmethod
