@@ -2,9 +2,11 @@
 Module doc
 '''
 import os
+from multiprocessing import Lock, Pool, current_process
 import numpy as np
 import pandas as pd
 import itertools
+from glob import glob
 import time
 from importlib import reload
 import fastparquet as pq
@@ -174,15 +176,14 @@ class ModelLoop():
 
         self.io._init_loop_table(self.cols_id, self.cols_step, self.cols_val)
 
-    def append_row(self, zero_row=False, tdiff_solve=0, tdiff_write=0,
-                   info=''):
-        '''
-        Generate single-line pandas.DataFrame to be appended to the
-        output def_run table. Options:
-        - zero_row == True: Row filled with zeros for calibration run
-        - zero_row == False: Loop params copied to row
-        '''
 
+    def _get_row_df_run(self, tdiff_solve=0, tdiff_write=0, info=''):
+        '''
+        Generate new row for the def_run table.
+
+        This contains the parameter variation indices as well as information
+        on the run (time, objective function, solver status).
+        '''
 
         dtypes = {int: ['run_id'] + list(self.dct_id),
                   float: (['tdiff_solve', 'tdiff_write', 'objective']
@@ -190,29 +191,33 @@ class ModelLoop():
                   str: ['info'] + list(self.dct_vl)}
         dtypes = {col: dtp  for dtp, cols in dtypes.items() for col in cols}
 
-        if zero_row:
-            df_add = aql.read_sql(self.io.db, self.sc_out, 'def_run')
-            df_add.loc[0] = 0
-            df_add[self.cols_step + self.cols_id + self.cols_step] = -1
-            df_add['info'] = info
-            df_add['run_id'] = -1 if not self.run_id else self.run_id
-            df_add['tdiff_solve'] = tdiff_solve
-            df_add['tdiff_write'] = tdiff_write
-        else:
-            vals = [[tdiff_solve, tdiff_write]
-                    + [self.run_id] + [info] + list(self.dct_id.values())
-                    + list(self.dct_step.values())
-                    + list(self.dct_vl.values())]
-            cols = (['tdiff_solve', 'tdiff_write', 'run_id', 'info']
-                    + list(self.dct_id.keys()) + list(self.dct_step.keys())
-                    + list(self.dct_vl.keys()))
+        vals = [[tdiff_solve, tdiff_write] + [self.run_id] + [info]
+                + list(self.dct_id.values())
+                + list(self.dct_step.values())
+                + list(self.dct_vl.values())]
+        cols = (['tdiff_solve', 'tdiff_write', 'run_id', 'info']
+                + list(self.dct_id)
+                + list(self.dct_step)
+                + list(self.dct_vl))
 
-            df_add = pd.DataFrame(vals, columns=cols)
+        df_add = pd.DataFrame(vals, columns=cols)
 
         df_add['objective'] = (self.m.objective_value
-                               if hasattr(self.m, 'objective_value') else 0)
+                               if hasattr(self.m, 'objective_value')
+                               else 0)
 
-        df_add = df_add.astype(dtypes)
+        return df_add.astype(dtypes)
+
+
+    def append_row(self, **kwargs):
+        '''
+        Generate single-line pandas.DataFrame to be appended to the
+        output def_run table. Options:
+        - zero_row == True: Row filled with zeros for calibration run
+        - zero_row == False: Loop params copied to row
+        '''
+
+        df_add = self._get_row_df_run(**kwargs)
 
         # can't use io method here if we want this to happen when no_output
         if self.io.modwr.output_target == 'psql':
@@ -223,9 +228,43 @@ class ModelLoop():
                 store.append('def_run', df_add, data_columns=True,
                              min_itemsize=150 # set string length!
                              )
-        elif self.io.modwr.output_target in ['fastparquet']:
-            fn = os.path.join(self.io.cl_out, 'def_run.parq')
+        elif self.io.modwr.output_target == 'fastparquet':
+
+            # if multiprocessing, locked writing to common parquet file has
+            # too much overhead for small models. Therefore writing to files
+            # by worker + later merge
+            if current_process().name == 'MainProcess':
+                suffix = ''
+            elif current_process().name.startswith('ForkPoolWorker'):
+                suffix = '_' + current_process().name
+            else:
+                raise ValueError('Unexpected current_process name'
+                                 ' %s'%current_process().name)
+
+            fn = os.path.join(self.io.cl_out, 'def_run%s.parq'%suffix)
+
             pq.write(fn, df_add, append=os.path.isfile(fn))
+
+        else:
+            raise ValueError('Unknown output_target '
+                             '%s'%self.io.modwr.output_target)
+
+
+    def _merge_df_run_files(self):
+        '''
+        Merge all files with name out_dir/def_run_ForkPoolWorker-%d into single
+        def_run.
+        '''
+
+        list_fn = glob(os.path.join(self.io.cl_out,
+                                    'def_run_ForkPoolWorker-[0-9]*.parq'))
+
+        df_def_run = pd.concat(pd.read_parquet(fn) for fn in list_fn)
+        df_def_run = df_def_run.reset_index(drop=True)
+
+        fn = os.path.join(self.io.cl_out, 'def_run.parq')
+        pq.write(fn, df_def_run, append=False)
+
 
     def _print_run_title(self, warmstartfile, solutionfile):
 
@@ -257,7 +296,13 @@ class ModelLoop():
         return df
 
 
-    def perform_model_run(self, zero_run=False, warmstart=True):
+    def get_list_run_id(self):
+
+        return list(range(self.io.resume_loop,
+                          len(self.df_def_run.run_id.tolist())))
+
+
+    def perform_model_run(self, warmstart=False):
         """
         TODO: This is a mess.
 
@@ -265,30 +310,16 @@ class ModelLoop():
         def_run. Also takes care of time measurement for reporting in
         the corresponding def_run columns.
 
-        Keyword arguments:
-        zero_run -- boolean; perform a zero run (method do_zero_run in model_base)
-                    (default False)
-
         """
 
         t = time.time()
 
-        if zero_run:
-            self.m.do_zero_run() # zero run method in model_base
-        else:
+        with self.m.temp_files() as (tmp_dir, logf, warmf, solnf):
+
             self._print_run_title(self.m.warmstartfile, self.m.solutionfile)
-            self.m.run(warmstart=warmstart)
-        tdiff_solve = time.time() - t
-        stat = ('Solver: ' + str(self.m.results.Solver[0]['Termination condition']))
-
-        if zero_run:
-
-            if not self.io.resume_loop:
-                self.io.write_run(run_id=-1)
-                tdiff_write = time.time() - t
-                self.append_row(zero_row=True, tdiff_solve=tdiff_solve,
-                                tdiff_write=tdiff_write, info=stat)
-        else:
+            self.m.run(warmstart=warmstart, tmp_dir=tmp_dir, logf=logf, warmf=warmf, solnf=solnf)
+            tdiff_solve = time.time() - t
+            stat = ('Solver: ' + str(self.m.results.Solver[0]['Termination condition']))
 
             if self.io.replace_runs_if_exist and self.io.resume_loop:
 
@@ -300,7 +331,7 @@ class ModelLoop():
             tdiff_write = time.time() - t
 
             # append to def_run table
-            self.append_row(False, info=stat,
+            self.append_row(info=stat,
                             tdiff_solve=tdiff_solve, tdiff_write=tdiff_write)
 
 
