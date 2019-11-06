@@ -19,10 +19,7 @@ import grimsel.auxiliary.maps as maps
 from grimsel import _get_logger
 
 logger = _get_logger(__name__)
-
-
-
-
+logger_parallel = _get_logger(__name__ + '_parallel')
 
 
 reload(model_base)
@@ -279,6 +276,8 @@ class ModelLoop():
         for strg in sw_strs:
             logger.info(strg)
         logger.info(sep)
+
+        logger_parallel.info(run_id_str + ' on ' + current_process().name)
 
     @staticmethod
     def restore_run_id(df):
