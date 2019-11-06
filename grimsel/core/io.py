@@ -1575,12 +1575,15 @@ class IO:
             aql.init_table(tb_name, cols, self.cl_out,
                            pk=cols_id, unique=['run_id'], db=self.db)
 
-        elif self.modwr.output_target in ['hdf5', 'fastparquet']:
+        elif self.modwr.output_target == 'hdf5':
 
             df = pd.DataFrame(columns=list(zip(*cols))[0])
 
             if self.modwr.output_target == 'hdf5':
                 df.to_hdf(self.cl_out, tb_name, format='table')
+
+        elif self.modwr.output_target == 'fastparquet':
+            pass  # parquet table is not initialized
 
         else:
             raise RuntimeError('_init_loop_table: no '
