@@ -477,7 +477,7 @@ class Parameters:
         and calls their :meth:`ParameterAdder.init_update` method.
 
         '''
-# %%
+
         if __name__ == '__main__':
             self = ml.m
 
@@ -712,12 +712,7 @@ class Parameters:
 
             doc_str += table_str
 
-#        print(doc_str)
-
         return doc_str
-
-
-
 
 
 Parameters.__doc__ += '\n'*4 + Parameters._make_model_parameters_doc()
