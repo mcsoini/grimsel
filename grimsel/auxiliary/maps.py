@@ -317,10 +317,13 @@ class Maps():
 
     def run_id_to_names(self, df):
 
-        ddfrun = self._dict_tb['run']
-        ddfrun = ddfrun[[c for c in ddfrun.columns if c.endswith('_vl')]]
+        if 'run' in self._dict_tb:
+            ddfrun = self._dict_tb['run']
+            ddfrun = ddfrun[[c for c in ddfrun.columns if c.endswith('_vl')]]
 
-        return df.join(ddfrun, on='run_id')
+            df = df.join(ddfrun, on='run_id')
+
+        return df
 
     @wrapt.decorator
     def param_to_list(f, self, *args, **kwargs):

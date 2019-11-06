@@ -711,6 +711,7 @@ Hit enter to proceed.
                 logger.warning(('Component {} does not exist... '
                                'skipping init CompIO.').format(comp))
             else:
+                logger.debug('Adding component %s to dict_comp_obj'%comp)
                 comp_obj = getattr(self.model, comp)
 
                 grp = DICT_GROUP[comp]
@@ -809,19 +810,20 @@ Hit enter to proceed.
 
     def _delete_run_id_parquet(self, tb, run_id):
 
-        fn_del = glob(os.path.join(self.cl_out,
-                                   '{}_{:04d}.parq'.format(tb, run_id)))
+        pat = os.path.join(self.cl_out, '{}_{:04d}.*'.format(tb, run_id))
+        fn_del = glob(pat)
 
         try:
-            assert len(fn_del) == 1, 'found more than one table to delete: %s'%fn_del
+            assert fn_del, 'Pattern not found: %s.'%pat
+            assert not len(fn_del) > 1, \
+                        'Found more than one table to delete: %s.'%fn_del
 
             os.remove(fn_del[0])
 
             logger.info('Successfully deleted table '
                         '{} of model run {:d}'.format(tb, run_id))
         except Exception as e:
-            print(e)
-
+            logger.error(e)
 
 
     @classmethod
@@ -1575,12 +1577,15 @@ class IO:
             aql.init_table(tb_name, cols, self.cl_out,
                            pk=cols_id, unique=['run_id'], db=self.db)
 
-        elif self.modwr.output_target in ['hdf5', 'fastparquet']:
+        elif self.modwr.output_target == 'hdf5':
 
             df = pd.DataFrame(columns=list(zip(*cols))[0])
 
             if self.modwr.output_target == 'hdf5':
                 df.to_hdf(self.cl_out, tb_name, format='table')
+
+        elif self.modwr.output_target == 'fastparquet':
+            pass  # parquet table is not initialized
 
         else:
             raise RuntimeError('_init_loop_table: no '

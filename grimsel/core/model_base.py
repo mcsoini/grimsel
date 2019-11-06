@@ -7,6 +7,9 @@ import os
 from importlib import reload
 import tempfile
 import string
+import pyutilib
+import contextlib
+from collections import namedtuple
 
 import numpy as np
 import pandas as pd
@@ -30,51 +33,49 @@ logger = _get_logger(__name__)
 
 def get_random_suffix():
     return ''.join(np.random.choice(list(string.ascii_lowercase), 4))
+#
+#TEMP_DIR = 'grimsel_temp_' + get_random_suffix()
 
-TEMP_DIR = 'grimsel_temp_' + get_random_suffix()
-
-def create_tempfile(self, suffix=None, prefix=None, text=False, dirc=None):
-    """
-    Return the absolute path of a temporary filename that is_init_pf_dicts
-    guaranteed to be unique.  This function generates the file and returns
-    the filename.
-    """
-
-    logger.warn('!!!!!!!!tempfiles.TempfileManagerPlugin.create_tempfile '
-                'is monkey patched!!!!!!!!')
-
-    if suffix is None:
-        suffix = ''
-    if prefix is None:
-        prefix = 'tmp'
-
-    ans = tempfile.mkstemp(suffix=suffix, prefix=prefix, text=text, dir=dirc)
-    ans = list(ans)
-    if not os.path.isabs(ans[1]):  #pragma:nocover
-        fname = os.path.join(dirc, ans[1])
-    else:
-        fname = ans[1]
-    os.close(ans[0])
-
-    dirc = TEMP_DIR
-
-    if not os.path.isdir(dirc):
-        os.mkdir(dirc)
-
-    new_fname = os.path.join(dirc, 'grimsel_temp_' + get_random_suffix() + suffix)
-    # Delete any file having the sequential name and then
-    # rename
-    if os.path.exists(new_fname):
-        os.remove(new_fname)
-    fname = new_fname
-
-    self._tempfiles[-1].append(fname)
-    return fname
-
-import pyutilib.component.config.tempfiles as tempfiles
-tempfiles.TempfileManagerPlugin.create_tempfile = create_tempfile
-
-
+#def create_tempfile(self, suffix=None, prefix=None, text=False, dirc=None):
+#    """
+#    Return the absolute path of a temporary filename that is_init_pf_dicts
+#    guaranteed to be unique.  This function generates the file and returns
+#    the filename.
+#    """
+#
+#    logger.warn('!!!!!!!!tempfiles.TempfileManagerPlugin.create_tempfile '
+#                'is monkey patched!!!!!!!!')
+#
+#    if suffix is None:
+#        suffix = ''
+#    if prefix is None:
+#        prefix = 'tmp'
+#
+#    ans = tempfile.mkstemp(suffix=suffix, prefix=prefix, text=text, dir=dirc)
+#    ans = list(ans)
+#    if not os.path.isabs(ans[1]):  #pragma:nocover
+#        fname = os.path.join(dirc, ans[1])
+#    else:
+#        fname = ans[1]
+#    os.close(ans[0])
+#
+#    dirc = TEMP_DIR
+#
+#    if not os.path.isdir(dirc):
+#        os.mkdir(dirc)
+#
+#    new_fname = os.path.join(dirc, 'grimsel_temp_' + get_random_suffix() + suffix)
+#    # Delete any file having the sequential name and then
+#    # rename
+#    if os.path.exists(new_fname):
+#        os.remove(new_fname)
+#    fname = new_fname
+#
+#    self._tempfiles[-1].append(fname)
+#    return fname
+#
+#import pyutilib.component.config.tempfiles as tempfiles
+#tempfiles.TempfileManagerPlugin.create_tempfile = create_tempfile
 
 reload(constraints)
 reload(variables)
@@ -118,7 +119,9 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
                     'constraint_groups': None,
                     'symbolic_solver_labels': False,
                     'skip_runs': False,
-                    'nthreads': False}
+                    'nthreads': False,
+                    'keepfiles': True,
+                    'tempdir': None}
         for key, val in defaults.items():
             setattr(self, key, val)
         self.__dict__.update(kwargs)
@@ -924,11 +927,11 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         return df[cols + ['tm_id']]
 
     import wrapt
-
-    @wrapt.decorator
-    def skip_if_df_none(f, self, **kwargs):
-        print(kwargs)
-        return f(**kwargs)
+#
+#    @wrapt.decorator
+#    def skip_if_df_none(f, self, **kwargs):
+#        print(kwargs)
+#        return f(**kwargs)
 
 
     def map_profile_to_time_resolution(self, df, idx, itb=None):
@@ -1046,22 +1049,22 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
             self.df_def_node = self.df_def_node.join(df_dmd_params, on='nd_id')
 
-    def switch_soln_file(self, isolnfile):
-        '''
-        Warmstart and solutionfiles are alternated between two to
-        allow to use the last solution as starting values but avoid
-        excessive disk space use (which would be the case if we kept all
-        solution files).
-
-        Parameters:
-        isolnfile -- binary index of last solution file
-        '''
-        isolnfile = 1 - isolnfile
-        solnfile = os.path.join(TEMP_DIR,
-                                ('manual_soln_file_{uc}_{i}.cplex.sol'
-                                 .format(uc=get_random_suffix(),
-                                         i=str(isolnfile))))
-        return solnfile, isolnfile
+#    def switch_soln_file(self, isolnfile):
+#        '''
+#        Warmstart and solutionfiles are alternated between two to
+#        allow to use the last solution as starting values but avoid
+#        excessive disk space use (which would be the case if we kept all
+#        solution files).
+#
+#        Parameters:
+#        isolnfile -- binary index of last solution file
+#        '''
+#        isolnfile = 1 - isolnfile
+#        solnfile = os.path.join(TEMP_DIR,
+#                                ('manual_soln_file_{uc}_{i}.cplex.sol'
+#                                 .format(uc=get_random_suffix(),
+#                                         i=str(isolnfile))))
+#        return solnfile, isolnfile
 
     def init_solver(self):
         '''
@@ -1084,14 +1087,14 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         if self.nthreads:
             self.solver.set_options('threads=' + str(self.nthreads))
 
-        fn = 'manual_log_file_{uc}.cplex.sol'.format(uc=get_random_suffix())
-        self.logfile = os.path.join(TEMP_DIR, fn)
-        self.solver._problem_files = (os.path.join(TEMP_DIR, 'pyomo.lp'),)
+#        fn = 'manual_log_file_{uc}.cplex.sol'.format(uc=get_random_suffix())
+#        self.logfile = os.path.join(TEMP_DIR, fn)
+#        self.solver._problem_files = (os.path.join(TEMP_DIR, 'pyomo.lp'),)
 
         # init of solutionfile
         self.isolnfile = 0
-        self.solutionfile, self.isolnfile = self.switch_soln_file(1)
-        self.warmstartfile = None
+#        self.solutionfile, self.isolnfile = self.switch_soln_file(1)
+#        self.warmstartfile = None
 
     def check_valid_indices(self, index):
         '''
@@ -1114,6 +1117,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
             return False
         else:
             return True
+
 
     def delete_component(self, comp_name):
         '''
@@ -1141,7 +1145,30 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
             for kk in list_del:
                 self.del_component(kk)
 
-    def run(self, warmstart=False):
+
+    @contextlib.contextmanager
+    def temp_files(self):
+
+        if not self.keepfiles:  # default temporary files
+            tmp_dir, logf, warmf, solnf = (None,) * 4
+
+        else:
+            if not self.tempdir:
+                self.tempdir = os.getcwd()
+
+            tmp_dir = pyutilib.services.TempfileManager.create_tempdir(
+                                    prefix='grimsel_temp', dir=self.tempdir)
+            logf = os.path.join(tmp_dir, 'logfile.cplex.log')
+            warmf = os.path.join(tmp_dir, 'warmstart.cplex.mst')
+            solnf = os.path.join(tmp_dir, 'solution.cplex.sol')
+
+        yield tmp_dir, logf, warmf, solnf
+
+        if self.keepfiles:
+            pyutilib.services.TempfileManager.clear_tempfiles()
+
+
+    def run(self, warmstart=False, tmp_dir=None, logf=None, warmf=None, solnf=None):
         '''
         Run the model. Then switch solution/warmstartfile.
 
@@ -1157,23 +1184,28 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
             self.results.Solver = [{'Termination condition':
                                     'Skipped due to skip_runs=True.'}]
         else:
-            slv_kw = dict(tee=self.verbose_solver, keepfiles=True,
-                          warmstart=warmstart, solnfile=self.solutionfile,
-                          logfile=self.logfile,
+
+            slv_kw = dict(tee=self.verbose_solver, keepfiles=self.keepfiles,
+                          warmstart=warmstart,
                           symbolic_solver_labels=self.symbolic_solver_labels,
-                          warmstart_file=self.warmstartfile)
+                          logfile=logf,
+                          solnfile=solnf,
+                          warmstart_file=warmf,
+                          tempdir=tmp_dir
+                          )
             self.results = self.solver.solve(self, **slv_kw)
-            self.warmstartfile = self.solutionfile
-            sf, isf = self.switch_soln_file(self.isolnfile)
-            self.solutionfile, self.isolnfile = [sf, isf]
+#            self.warmstartfile = self.solutionfile
+#            sf, isf = self.switch_soln_file(self.isolnfile)
+#            self.solutionfile, self.isolnfile = [sf, isf]
 
             self._get_objective_value()
+
 
     def _get_objective_value(self):
         '''
         Makes the objective value a :class:`ModelBase` instance attribute.
 
-        This assumes that among the objects defined by ``list_obj_name``
+        This assumes that among the objects defined by `list_obj_name`
         only one actually exists.
         '''
 
@@ -1204,6 +1236,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
                 print(str(self.mps.dict_pp[i[0]]) + ': is fixed at '
                       + str(vv[i].value))
         print('*'*(33 + len(variable)) + '\n')
+
 
     def fill_peaker_plants(self, demand_factor=1.02, reset_to_zero=False,
                            list_peak=[]):

@@ -477,7 +477,7 @@ class Parameters:
         and calls their :meth:`ParameterAdder.init_update` method.
 
         '''
-# %%
+
         if __name__ == '__main__':
             self = ml.m
 
@@ -538,7 +538,7 @@ class Parameters:
         Par('price_co2', self.nd, 'df_def_node'),
         Par('nd_weight', self.nd, 'df_def_node', default=1),
 
-        Par('co2_int', self.fl, 'df_def_fuel'),
+        Par('co2_int', self.fl, 'df_def_fuel', default=0),
 
         Par('cap_pwr_leg', (self.ppall_ca),
             'df_plant_encar', None, ['pp_id'], self.ppall,
@@ -712,12 +712,7 @@ class Parameters:
 
             doc_str += table_str
 
-#        print(doc_str)
-
         return doc_str
-
-
-
 
 
 Parameters.__doc__ += '\n'*4 + Parameters._make_model_parameters_doc()
