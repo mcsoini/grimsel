@@ -698,7 +698,8 @@ Hit enter to proceed.
         Initialize all output table IO objects.
         '''
 
-        comp, idx = 'pwr_st_ch', self.dict_comp_idx['pwr_st_ch']
+        if __name__ == '__main__':
+            comp, idx = 'pwr_st_ch', self.dict_comp_idx['pwr_st_ch']
         for comp, idx in self.dict_comp_idx.items():
             if not hasattr(self.model, comp):
                 logger.warning(('Component {} does not exist... '
