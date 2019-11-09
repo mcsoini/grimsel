@@ -29,6 +29,7 @@ dict_tables = {lst: {tb[0]: tuple(tbb for tbb in tb[1:])
                      for tb in getattr(table_struct, lst)}
                for lst in table_struct.list_collect}
 
+FORMAT_RUN_ID = '{:04d}'  # modify for > 9999 model runs
 
 chg_dict = table_struct.chg_dict
 
@@ -199,7 +200,7 @@ class CompIO(_HDFWriter, _ParqWriter):
         elif self.output_target in ['fastparquet']:
 
             fn = os.path.join(self.cl_out,
-                              tb + '_{:04d}'.format(self.run_id) + '.parq')
+                              tb + ('_%s'%FORMAT_RUN_ID).format(self.run_id) + '.parq')
 
             self.write_parquet(fn, df, engine=self.output_target)
 
@@ -810,7 +811,7 @@ Hit enter to proceed.
 
     def _delete_run_id_parquet(self, tb, run_id):
 
-        pat = os.path.join(self.cl_out, '{}_{:04d}.*'.format(tb, run_id))
+        pat = os.path.join(self.cl_out, ('{}_%s.*'%FORMAT_RUN_ID).format(tb, run_id))
         fn_del = glob(pat)
 
         try:
