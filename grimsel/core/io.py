@@ -25,41 +25,9 @@ from grimsel import _get_logger
 
 logger = _get_logger(__name__)
 
-dict_tables = {lst: {tb[0]: tuple(tbb for tbb in tb[1:])
-                     for tb in getattr(table_struct, lst)}
-               for lst in table_struct.list_collect}
 
 FORMAT_RUN_ID = '{:04d}'  # modify for > 9999 model runs
 
-chg_dict = table_struct.chg_dict
-
-
-def get_table_dicts():
-    '''
-    Get the dictionaries describing all tables.
-
-    Also used in the class method ``post_process_index``,
-    therefore module function.
-    '''
-
-    # construct table name group name and component name
-    dict_idx = {comp: spec[0]
-                for grp, tbs in dict_tables.items()
-                for comp, spec in tbs.items()}
-    dict_table = {comp: (grp + '_' + spec[1]
-                         if len(spec) > 1
-                         else grp + '_' + comp)
-                  for grp, tbs in dict_tables.items()
-                  for comp, spec in tbs.items()}
-    dict_group = {comp: grp
-                  for grp, tbs in dict_tables.items()
-                  for comp, spec in tbs.items()}
-
-    return dict_idx, dict_table, dict_group
-
-
-# expose as module variables for easier access
-DICT_IDX, DICT_TABLE, DICT_GROUP = get_table_dicts()
 
 class _HDFWriter:
     ''' Mixing class for :class:`CompIO` and :class:`DataReader`. '''
@@ -526,7 +494,7 @@ class ModelWriter():
     other classes. Manages database connection.
     '''
 
-    IO_CLASS_DICT = {'var': VariabIO,
+    io_class_dict = {'var': VariabIO,
                      'var_tr': TransmIO,
                      'par_dmnd': DmndIO,
                      'par': ParamIO,
@@ -541,6 +509,8 @@ class ModelWriter():
                      'no_output': False,
                      'dev_mode': False,
                      'coll_out': None,
+                     'keep': None,
+                     'drop': None,
                      'db': None}
 
     def __init__(self, **kwargs):
@@ -558,7 +528,33 @@ class ModelWriter():
         ls = 'Output collection: {}; resume loop={}'.format(self.cl_out,
                                                             self.resume_loop)
         logger.info(ls)
+        self._make_table_dicts(keep=self.keep, drop=self.drop)
         self.reset_tablecollection()
+
+
+    def _make_table_dicts(self, keep=None, drop=None):
+        '''
+        Get the dictionaries describing all tables.
+
+        Also used in the class method ``post_process_index``,
+        therefore module function.
+        '''
+
+        keep = list(table_struct.DICT_COMP_IDX) if not keep else keep
+        keep = set(keep) - set(drop if drop else [])
+
+        options = list(table_struct.DICT_COMP_IDX)
+        unknowns = [tb for tb in keep if not tb in options]
+        if unknowns:
+            raise RuntimeError(('Unknown table selection %s. Possible options '
+                               'are %s')%(str(unknowns), str(options)))
+
+        filter_dict = lambda d: {k: v for k, v in d.items() if k in keep}
+
+        self.dict_comp_idx = filter_dict(table_struct.DICT_COMP_IDX)
+        self.dict_comp_table = filter_dict(table_struct.DICT_COMP_TABLE)
+        self.dict_comp_group = filter_dict(table_struct.DICT_COMP_GROUP)
+
 
     def reset_tablecollection(self):
         '''
@@ -706,8 +702,8 @@ Hit enter to proceed.
         Initialize all output table IO objects.
         '''
 
-        comp, idx = 'pwr_st_ch', DICT_IDX['pwr_st_ch']
-        for comp, idx in DICT_IDX.items():
+        comp, idx = 'pwr_st_ch', self.dict_comp_idx['pwr_st_ch']
+        for comp, idx in self.dict_comp_idx.items():
             if not hasattr(self.model, comp):
                 logger.warning(('Component {} does not exist... '
                                'skipping init CompIO.').format(comp))
@@ -715,15 +711,15 @@ Hit enter to proceed.
                 logger.debug('Adding component %s to dict_comp_obj'%comp)
                 comp_obj = getattr(self.model, comp)
 
-                grp = DICT_GROUP[comp]
-                if DICT_TABLE[comp] in self.IO_CLASS_DICT:
-                    io_class = self.IO_CLASS_DICT[DICT_TABLE[comp]]
-                elif grp in self.IO_CLASS_DICT:
-                    io_class = self.IO_CLASS_DICT[DICT_GROUP[comp]]
+                grp = self.dict_comp_group[comp]
+                if self.dict_comp_table[comp] in self.io_class_dict:
+                    io_class = self.io_class_dict[self.dict_comp_table[comp]]
+                elif grp in self.io_class_dict:
+                    io_class = self.io_class_dict[self.dict_comp_group[comp]]
                 else:
-                    io_class = self.IO_CLASS_DICT[DICT_GROUP[comp].split('_')[0]]
+                    io_class = self.io_class_dict[self.dict_comp_group[comp].split('_')[0]]
 
-                io_class_kwars = dict(tb=DICT_TABLE[comp],
+                io_class_kwars = dict(tb=self.dict_comp_table[comp],
                                       cl_out=self.cl_out,
                                       comp_obj=comp_obj,
                                       idx=idx,
@@ -1529,7 +1525,7 @@ class IO:
         ''' Wrapper for backward compatibility. '''
 
         if not sets:
-            sets = table_struct.dict_table_index[py_obj.name]
+            sets = table_struct.dict_component_index[py_obj.name]
             sets = [st for st in sets if not st == 'bool_out']
 
         return VariabIO._to_df(py_obj, sets)
@@ -1539,7 +1535,7 @@ class IO:
         ''' Wrapper for backward compatibility. '''
 
         if not sets:
-            sets = table_struct.dict_table_index[py_obj.name]
+            sets = table_struct.dict_component_index[py_obj.name]
 
         return ParamIO._to_df(py_obj, sets)
 
