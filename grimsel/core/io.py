@@ -25,40 +25,9 @@ from grimsel import _get_logger
 
 logger = _get_logger(__name__)
 
-dict_tables = {lst: {tb[0]: tuple(tbb for tbb in tb[1:])
-                     for tb in getattr(table_struct, lst)}
-               for lst in table_struct.list_collect}
 
+FORMAT_RUN_ID = '{:04d}'  # modify for > 9999 model runs
 
-chg_dict = table_struct.chg_dict
-
-
-def get_table_dicts():
-    '''
-    Get the dictionaries describing all tables.
-
-    Also used in the class method ``post_process_index``,
-    therefore module function.
-    '''
-
-    # construct table name group name and component name
-    dict_idx = {comp: spec[0]
-                for grp, tbs in dict_tables.items()
-                for comp, spec in tbs.items()}
-    dict_table = {comp: (grp + '_' + spec[1]
-                         if len(spec) > 1
-                         else grp + '_' + comp)
-                  for grp, tbs in dict_tables.items()
-                  for comp, spec in tbs.items()}
-    dict_group = {comp: grp
-                  for grp, tbs in dict_tables.items()
-                  for comp, spec in tbs.items()}
-
-    return dict_idx, dict_table, dict_group
-
-
-# expose as module variables for easier access
-DICT_IDX, DICT_TABLE, DICT_GROUP = get_table_dicts()
 
 class _HDFWriter:
     ''' Mixing class for :class:`CompIO` and :class:`DataReader`. '''
@@ -170,12 +139,6 @@ class CompIO(_HDFWriter, _ParqWriter):
                        unique=unique, bool_auto_fk=False, db=self.connect.db,
                        con_cur=self.connect.get_pg_con_cur())
 
-    def add_bool_out_col(self, df):
-
-        if 'bool_out' in self.index:
-            df['bool_out'] = chg_dict[self.tb]
-
-        return df
 
     def _to_file(self, df, tb):
         '''
@@ -199,7 +162,7 @@ class CompIO(_HDFWriter, _ParqWriter):
         elif self.output_target in ['fastparquet']:
 
             fn = os.path.join(self.cl_out,
-                              tb + '_{:04d}'.format(self.run_id) + '.parq')
+                              tb + ('_%s'%FORMAT_RUN_ID).format(self.run_id) + '.parq')
 
             self.write_parquet(fn, df, engine=self.output_target)
 
@@ -525,7 +488,7 @@ class ModelWriter():
     other classes. Manages database connection.
     '''
 
-    IO_CLASS_DICT = {'var': VariabIO,
+    io_class_dict = {'var': VariabIO,
                      'var_tr': TransmIO,
                      'par_dmnd': DmndIO,
                      'par': ParamIO,
@@ -540,6 +503,8 @@ class ModelWriter():
                      'no_output': False,
                      'dev_mode': False,
                      'coll_out': None,
+                     'keep': None,
+                     'drop': None,
                      'db': None}
 
     def __init__(self, **kwargs):
@@ -549,15 +514,43 @@ class ModelWriter():
         self.run_id = None  # set in call to self.write_run
         self.dict_comp_obj = {}
 
+
         # define instance attributes and update with kwargs
         for key, val in self._default_init.items():
             setattr(self, key, val)
         self.__dict__.update(kwargs)
 
-        ls = 'Output collection: {}; resume loop={}'.format(self.cl_out,
-                                                            self.resume_loop)
-        logger.info(ls)
+        self._make_table_dicts(keep=self.keep, drop=self.drop)
+
+        ls = 'Output collection: {}; resume loop={}'
+        logger.info(ls.format(self.cl_out, self.resume_loop))
+
         self.reset_tablecollection()
+
+
+    def _make_table_dicts(self, keep=None, drop=None):
+        '''
+        Get the dictionaries describing all tables.
+
+        Also used in the class method ``post_process_index``,
+        therefore module function.
+        '''
+
+        keep = list(table_struct.DICT_COMP_IDX) if not keep else keep
+        keep = set(keep) - set(drop if drop else [])
+
+        options = list(table_struct.DICT_COMP_IDX)
+        unknowns = [tb for tb in keep if not tb in options]
+        if unknowns:
+            raise RuntimeError(('Unknown table selection %s. Possible options '
+                               'are %s')%(str(unknowns), str(options)))
+
+        filter_dict = lambda d: {k: v for k, v in d.items() if k in keep}
+
+        self.dict_comp_idx = filter_dict(table_struct.DICT_COMP_IDX)
+        self.dict_comp_table = filter_dict(table_struct.DICT_COMP_TABLE)
+        self.dict_comp_group = filter_dict(table_struct.DICT_COMP_GROUP)
+
 
     def reset_tablecollection(self):
         '''
@@ -705,8 +698,8 @@ Hit enter to proceed.
         Initialize all output table IO objects.
         '''
 
-        comp, idx = 'pwr_st_ch', DICT_IDX['pwr_st_ch']
-        for comp, idx in DICT_IDX.items():
+        comp, idx = 'pwr_st_ch', self.dict_comp_idx['pwr_st_ch']
+        for comp, idx in self.dict_comp_idx.items():
             if not hasattr(self.model, comp):
                 logger.warning(('Component {} does not exist... '
                                'skipping init CompIO.').format(comp))
@@ -714,15 +707,15 @@ Hit enter to proceed.
                 logger.debug('Adding component %s to dict_comp_obj'%comp)
                 comp_obj = getattr(self.model, comp)
 
-                grp = DICT_GROUP[comp]
-                if DICT_TABLE[comp] in self.IO_CLASS_DICT:
-                    io_class = self.IO_CLASS_DICT[DICT_TABLE[comp]]
-                elif grp in self.IO_CLASS_DICT:
-                    io_class = self.IO_CLASS_DICT[DICT_GROUP[comp]]
+                grp = self.dict_comp_group[comp]
+                if self.dict_comp_table[comp] in self.io_class_dict:
+                    io_class = self.io_class_dict[self.dict_comp_table[comp]]
+                elif grp in self.io_class_dict:
+                    io_class = self.io_class_dict[self.dict_comp_group[comp]]
                 else:
-                    io_class = self.IO_CLASS_DICT[DICT_GROUP[comp].split('_')[0]]
+                    io_class = self.io_class_dict[self.dict_comp_group[comp].split('_')[0]]
 
-                io_class_kwars = dict(tb=DICT_TABLE[comp],
+                io_class_kwars = dict(tb=self.dict_comp_table[comp],
                                       cl_out=self.cl_out,
                                       comp_obj=comp_obj,
                                       idx=idx,
@@ -810,7 +803,7 @@ Hit enter to proceed.
 
     def _delete_run_id_parquet(self, tb, run_id):
 
-        pat = os.path.join(self.cl_out, '{}_{:04d}.*'.format(tb, run_id))
+        pat = os.path.join(self.cl_out, ('{}_%s.*'%FORMAT_RUN_ID).format(tb, run_id))
         fn_del = glob(pat)
 
         try:
@@ -826,67 +819,67 @@ Hit enter to proceed.
             logger.error(e)
 
 
-    @classmethod
-    def post_process_index(cls, sc, db, drop=False):
-
-        coldict = aql.get_coldict(sc, db)
-
-        dict_idx, dict_table, _ = ModelWriter.get_table_dicts()
-
-        list_tables = aql.get_sql_tables(sc, db)
-
-        for comp, index in dict_idx.items():
-
-            if not dict_table[comp] in list_tables:
-                logger.warning('Table ' + comp + ' does not exist... skipping '
-                      'index generation.')
-            else:
-
-                tb_name = dict_table[comp]
-
-                logger.info('tb_name:', tb_name)
-
-                pk_list = index + ('run_id',)
-
-                fk_dict = {}
-                for c in pk_list:
-                    if len(coldict[c]) > 1:
-                        fk_dict[c] = coldict[c][1]
-
-
-                pk_kws = {'pk_list': ', '.join(pk_list),
-                          'tb': tb_name, 'cl_out': sc}
-                exec_str = ('''
-                            ALTER TABLE {cl_out}.{tb}
-                            DROP CONSTRAINT IF EXISTS {tb}_pkey;
-                            ''').format(**pk_kws)
-                if not drop:
-                    exec_str += ('''
-                                 ALTER TABLE {cl_out}.{tb}
-                                 ADD CONSTRAINT {tb}_pkey
-                                 PRIMARY KEY ({pk_list})
-                                 ''').format(**pk_kws)
-                logger.debug(exec_str)
-                aql.exec_sql(exec_str, db=db)
-
-                for fk_keys, fk_vals in fk_dict.items():
-                    fk_kws = {'cl_out': sc, 'tb': tb_name,
-                              'fk': fk_keys, 'ref': fk_vals}
-
-                    exec_str = ('''
-                                ALTER TABLE {cl_out}.{tb}
-                                DROP CONSTRAINT IF EXISTS fk_{tb}_{fk};
-                                ''').format(**fk_kws)
-
-                    if not drop:
-                        exec_str += ('''
-                                     ALTER TABLE {cl_out}.{tb}
-                                     ADD CONSTRAINT fk_{tb}_{fk}
-                                     FOREIGN KEY ({fk})
-                                     REFERENCES {ref}
-                                     ''').format(**fk_kws)
-                    logger.debug(exec_str)
-                    aql.exec_sql(exec_str, db=db)
+#    @classmethod
+#    def post_process_index(cls, sc, db, drop=False):
+#
+#        coldict = aql.get_coldict(sc, db)
+#
+#        dict_idx, dict_table, _ = ModelWriter.get_table_dicts()
+#
+#        list_tables = aql.get_sql_tables(sc, db)
+#
+#        for comp, index in dict_idx.items():
+#
+#            if not dict_table[comp] in list_tables:
+#                logger.warning('Table ' + comp + ' does not exist... skipping '
+#                      'index generation.')
+#            else:
+#
+#                tb_name = dict_table[comp]
+#
+#                logger.info('tb_name:', tb_name)
+#
+#                pk_list = index + ('run_id',)
+#
+#                fk_dict = {}
+#                for c in pk_list:
+#                    if len(coldict[c]) > 1:
+#                        fk_dict[c] = coldict[c][1]
+#
+#
+#                pk_kws = {'pk_list': ', '.join(pk_list),
+#                          'tb': tb_name, 'cl_out': sc}
+#                exec_str = ('''
+#                            ALTER TABLE {cl_out}.{tb}
+#                            DROP CONSTRAINT IF EXISTS {tb}_pkey;
+#                            ''').format(**pk_kws)
+#                if not drop:
+#                    exec_str += ('''
+#                                 ALTER TABLE {cl_out}.{tb}
+#                                 ADD CONSTRAINT {tb}_pkey
+#                                 PRIMARY KEY ({pk_list})
+#                                 ''').format(**pk_kws)
+#                logger.debug(exec_str)
+#                aql.exec_sql(exec_str, db=db)
+#
+#                for fk_keys, fk_vals in fk_dict.items():
+#                    fk_kws = {'cl_out': sc, 'tb': tb_name,
+#                              'fk': fk_keys, 'ref': fk_vals}
+#
+#                    exec_str = ('''
+#                                ALTER TABLE {cl_out}.{tb}
+#                                DROP CONSTRAINT IF EXISTS fk_{tb}_{fk};
+#                                ''').format(**fk_kws)
+#
+#                    if not drop:
+#                        exec_str += ('''
+#                                     ALTER TABLE {cl_out}.{tb}
+#                                     ADD CONSTRAINT fk_{tb}_{fk}
+#                                     FOREIGN KEY ({fk})
+#                                     REFERENCES {ref}
+#                                     ''').format(**fk_kws)
+#                    logger.debug(exec_str)
+#                    aql.exec_sql(exec_str, db=db)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1219,6 +1212,7 @@ class DataReader(_HDFWriter, _ParqWriter):
             ac.AutoCompletePpCaFlex(self.model, self.autocomplete_curtailment)
             logger.info('#' * 60)
 
+
     def filter_by_name_id_cols(self, name_df, filt):
         """
         Filter a pandas DataFrame with index names in columns.
@@ -1528,7 +1522,7 @@ class IO:
         ''' Wrapper for backward compatibility. '''
 
         if not sets:
-            sets = table_struct.dict_table_index[py_obj.name]
+            sets = table_struct.dict_component_index[py_obj.name]
             sets = [st for st in sets if not st == 'bool_out']
 
         return VariabIO._to_df(py_obj, sets)
@@ -1538,7 +1532,7 @@ class IO:
         ''' Wrapper for backward compatibility. '''
 
         if not sets:
-            sets = table_struct.dict_table_index[py_obj.name]
+            sets = table_struct.dict_component_index[py_obj.name]
 
         return ParamIO._to_df(py_obj, sets)
 

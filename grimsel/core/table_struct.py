@@ -79,27 +79,49 @@ par = [
     ]
 dual = [('supply', ('sy', 'nd_id', 'ca_id'))]
 
-list_collect = ['var_sy', 'var_mt', 'var_yr', 'var_tr', 'par', 'dual']
+list_collect = {'var_sy': var_sy,
+                'var_mt': var_mt,
+                'var_yr': var_yr,
+                'var_tr': var_tr,
+                'par': par,
+                'dual': dual}
 
-loop_pk = ['run_id']
+#def _make_dict(lst):
+#    # can't use dict directly because of secondary table definition
+#    # (value length 2)
+#    return {comp[0]: comp[1] for comp in lst}
+#
+#
+#dict_component_index = {**_make_dict(par), **_make_dict(var_mt),
+#                        **_make_dict(var_sy), **_make_dict(var_tr),
+#                        **_make_dict(var_yr)}
+#
+#dict_component_index = {key: dict_component_index[key] for key in sorted(dict_component_index)}
 
-chg_dict = {'var_sy_pwr': False,
-             'var_sy_pwr_st_ch': True,
-             'var_yr_erg_yr': False,
-             'var_yr_erg_ch_yr': True,
-             'var_tr_trm_sd': True,
-             'var_tr_trm_rv': False,
-             'var_tr_erg_trm_rv_yr': False,
-             'var_tr_erg_trm_sd_yr': True,
-             'dmnd': True,
-             'var_sy_dmnd_flex': True}
-
-def _make_dict(lst):
-    return {comp[0]: comp[1] for comp in lst}
+# table groups -> component -> index/secondary tb
+DICT_TABLES = {lst: {tb[0]: tuple(tbb for tbb in tb[1:])
+                     for tb in list_collect[lst]}
+               for lst in list_collect}
 
 
+# component -> table name
+DICT_COMP_TABLE = {comp: (grp + '_' + spec[1]
+                     if len(spec) > 1
+                     else grp + '_' + comp)
+              for grp, tbs in DICT_TABLES.items()
+              for comp, spec in tbs.items()}
 
-dict_table_index = {**_make_dict(par), **_make_dict(var_mt),
-                    **_make_dict(var_sy),
-                    **_make_dict(var_tr), **_make_dict(var_yr)}
+# component -> group
+DICT_COMP_GROUP = {comp: grp
+                  for grp, tbs in DICT_TABLES.items()
+                  for comp, spec in tbs.items()}
+
+# component -> index
+DICT_COMP_IDX = {comp: spec[0]
+            for grp, tbs in DICT_TABLES.items()
+            for comp, spec in tbs.items()}
+
+#DICT_COMP_IDX = {key: DICT_COMP_IDX[key] for key in sorted(DICT_COMP_IDX)}
+
+
 
