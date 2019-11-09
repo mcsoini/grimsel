@@ -139,12 +139,6 @@ class CompIO(_HDFWriter, _ParqWriter):
                        unique=unique, bool_auto_fk=False, db=self.connect.db,
                        con_cur=self.connect.get_pg_con_cur())
 
-    def add_bool_out_col(self, df):
-
-        if 'bool_out' in self.index:
-            df['bool_out'] = chg_dict[self.tb]
-
-        return df
 
     def _to_file(self, df, tb):
         '''
@@ -520,15 +514,17 @@ class ModelWriter():
         self.run_id = None  # set in call to self.write_run
         self.dict_comp_obj = {}
 
+
         # define instance attributes and update with kwargs
         for key, val in self._default_init.items():
             setattr(self, key, val)
         self.__dict__.update(kwargs)
 
-        ls = 'Output collection: {}; resume loop={}'.format(self.cl_out,
-                                                            self.resume_loop)
-        logger.info(ls)
         self._make_table_dicts(keep=self.keep, drop=self.drop)
+
+        ls = 'Output collection: {}; resume loop={}'
+        logger.info(ls.format(self.cl_out, self.resume_loop))
+
         self.reset_tablecollection()
 
 
@@ -823,67 +819,67 @@ Hit enter to proceed.
             logger.error(e)
 
 
-    @classmethod
-    def post_process_index(cls, sc, db, drop=False):
-
-        coldict = aql.get_coldict(sc, db)
-
-        dict_idx, dict_table, _ = ModelWriter.get_table_dicts()
-
-        list_tables = aql.get_sql_tables(sc, db)
-
-        for comp, index in dict_idx.items():
-
-            if not dict_table[comp] in list_tables:
-                logger.warning('Table ' + comp + ' does not exist... skipping '
-                      'index generation.')
-            else:
-
-                tb_name = dict_table[comp]
-
-                logger.info('tb_name:', tb_name)
-
-                pk_list = index + ('run_id',)
-
-                fk_dict = {}
-                for c in pk_list:
-                    if len(coldict[c]) > 1:
-                        fk_dict[c] = coldict[c][1]
-
-
-                pk_kws = {'pk_list': ', '.join(pk_list),
-                          'tb': tb_name, 'cl_out': sc}
-                exec_str = ('''
-                            ALTER TABLE {cl_out}.{tb}
-                            DROP CONSTRAINT IF EXISTS {tb}_pkey;
-                            ''').format(**pk_kws)
-                if not drop:
-                    exec_str += ('''
-                                 ALTER TABLE {cl_out}.{tb}
-                                 ADD CONSTRAINT {tb}_pkey
-                                 PRIMARY KEY ({pk_list})
-                                 ''').format(**pk_kws)
-                logger.debug(exec_str)
-                aql.exec_sql(exec_str, db=db)
-
-                for fk_keys, fk_vals in fk_dict.items():
-                    fk_kws = {'cl_out': sc, 'tb': tb_name,
-                              'fk': fk_keys, 'ref': fk_vals}
-
-                    exec_str = ('''
-                                ALTER TABLE {cl_out}.{tb}
-                                DROP CONSTRAINT IF EXISTS fk_{tb}_{fk};
-                                ''').format(**fk_kws)
-
-                    if not drop:
-                        exec_str += ('''
-                                     ALTER TABLE {cl_out}.{tb}
-                                     ADD CONSTRAINT fk_{tb}_{fk}
-                                     FOREIGN KEY ({fk})
-                                     REFERENCES {ref}
-                                     ''').format(**fk_kws)
-                    logger.debug(exec_str)
-                    aql.exec_sql(exec_str, db=db)
+#    @classmethod
+#    def post_process_index(cls, sc, db, drop=False):
+#
+#        coldict = aql.get_coldict(sc, db)
+#
+#        dict_idx, dict_table, _ = ModelWriter.get_table_dicts()
+#
+#        list_tables = aql.get_sql_tables(sc, db)
+#
+#        for comp, index in dict_idx.items():
+#
+#            if not dict_table[comp] in list_tables:
+#                logger.warning('Table ' + comp + ' does not exist... skipping '
+#                      'index generation.')
+#            else:
+#
+#                tb_name = dict_table[comp]
+#
+#                logger.info('tb_name:', tb_name)
+#
+#                pk_list = index + ('run_id',)
+#
+#                fk_dict = {}
+#                for c in pk_list:
+#                    if len(coldict[c]) > 1:
+#                        fk_dict[c] = coldict[c][1]
+#
+#
+#                pk_kws = {'pk_list': ', '.join(pk_list),
+#                          'tb': tb_name, 'cl_out': sc}
+#                exec_str = ('''
+#                            ALTER TABLE {cl_out}.{tb}
+#                            DROP CONSTRAINT IF EXISTS {tb}_pkey;
+#                            ''').format(**pk_kws)
+#                if not drop:
+#                    exec_str += ('''
+#                                 ALTER TABLE {cl_out}.{tb}
+#                                 ADD CONSTRAINT {tb}_pkey
+#                                 PRIMARY KEY ({pk_list})
+#                                 ''').format(**pk_kws)
+#                logger.debug(exec_str)
+#                aql.exec_sql(exec_str, db=db)
+#
+#                for fk_keys, fk_vals in fk_dict.items():
+#                    fk_kws = {'cl_out': sc, 'tb': tb_name,
+#                              'fk': fk_keys, 'ref': fk_vals}
+#
+#                    exec_str = ('''
+#                                ALTER TABLE {cl_out}.{tb}
+#                                DROP CONSTRAINT IF EXISTS fk_{tb}_{fk};
+#                                ''').format(**fk_kws)
+#
+#                    if not drop:
+#                        exec_str += ('''
+#                                     ALTER TABLE {cl_out}.{tb}
+#                                     ADD CONSTRAINT fk_{tb}_{fk}
+#                                     FOREIGN KEY ({fk})
+#                                     REFERENCES {ref}
+#                                     ''').format(**fk_kws)
+#                    logger.debug(exec_str)
+#                    aql.exec_sql(exec_str, db=db)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1215,6 +1211,7 @@ class DataReader(_HDFWriter, _ParqWriter):
                 ac.AutoCompletePlantCons(self.model)
             ac.AutoCompletePpCaFlex(self.model, self.autocomplete_curtailment)
             logger.info('#' * 60)
+
 
     def filter_by_name_id_cols(self, name_df, filt):
         """
