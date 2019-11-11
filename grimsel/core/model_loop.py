@@ -238,7 +238,7 @@ class ModelLoop():
                 raise ValueError('Unexpected current_process name'
                                  ' %s'%current_process().name)
 
-            if suffix='':
+            if suffix == '':
                 fn = os.path.join(self.io.cl_out, 'def_run%s.parq'%suffix)
                 pq.write(fn, df_add, append=os.path.isfile(fn))
 
