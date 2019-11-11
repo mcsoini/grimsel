@@ -238,9 +238,18 @@ class ModelLoop():
                 raise ValueError('Unexpected current_process name'
                                  ' %s'%current_process().name)
 
-            fn = os.path.join(self.io.cl_out, 'def_run%s.parq'%suffix)
+            if suffix='':
+                fn = os.path.join(self.io.cl_out, 'def_run%s.parq'%suffix)
+                pq.write(fn, df_add, append=os.path.isfile(fn))
 
-            pq.write(fn, df_add, append=os.path.isfile(fn))
+            else:
+                # row-wise appending to parquet is slow for larger amounts of model runs
+                # therefore using csv. Merged to parquet in self._merge_df_run_files
+                fn = os.path.join(self.io.cl_out, 'def_run%s.csv'%suffix)
+                if os.path.isfile(fn):
+                    df_add.to_csv(fn, mode='a', header=False, index=False)
+                else:
+                    df_add.to_csv(fn, header='column_names', index=False)
 
         else:
             raise ValueError('Unknown output_target '
@@ -254,9 +263,9 @@ class ModelLoop():
         '''
 
         list_fn = glob(os.path.join(self.io.cl_out,
-                                    'def_run_ForkPoolWorker-[0-9]*.parq'))
+                                    'def_run_ForkPoolWorker-[0-9]*.csv'))
 
-        df_def_run = pd.concat(pd.read_parquet(fn) for fn in list_fn)
+        df_def_run = pd.concat(pd.read_csv(fn) for fn in list_fn)
         df_def_run = df_def_run.reset_index(drop=True)
 
         fn = os.path.join(self.io.cl_out, 'def_run.parq')
