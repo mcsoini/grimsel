@@ -205,6 +205,25 @@ class ModelLoop():
 
         return df_add.astype(dtypes)
 
+    def get_def_run_name(self):
+
+        # if multiprocessing, locked writing to common parquet file has
+        # too much overhead for small models. Therefore writing to files
+        # by worker + later merge
+        if current_process().name == 'MainProcess':
+            suffix = ''
+            fn = os.path.join(self.io.cl_out, 'def_run%s.parq'%suffix)
+        elif current_process().name.startswith('ForkPoolWorker'):
+            suffix = '_' + current_process().name
+            fn = os.path.join(self.io.cl_out, 'def_run%s.csv'%suffix)
+        else:
+            raise ValueError('Unexpected current_process name'
+                             ' %s'%current_process().name)
+
+        csv_def_run = suffix !=''
+
+        return fn, csv_def_run
+
 
     def append_row(self, **kwargs):
         '''
@@ -227,25 +246,14 @@ class ModelLoop():
                              )
         elif self.io.modwr.output_target == 'fastparquet':
 
-            # if multiprocessing, locked writing to common parquet file has
-            # too much overhead for small models. Therefore writing to files
-            # by worker + later merge
-            if current_process().name == 'MainProcess':
-                suffix = ''
-            elif current_process().name.startswith('ForkPoolWorker'):
-                suffix = '_' + current_process().name
-            else:
-                raise ValueError('Unexpected current_process name'
-                                 ' %s'%current_process().name)
+            fn, csv_def_run = self.get_def_run_name()
 
-            if suffix == '':
-                fn = os.path.join(self.io.cl_out, 'def_run%s.parq'%suffix)
+            if not csv_def_run:
                 pq.write(fn, df_add, append=os.path.isfile(fn))
 
             else:
                 # row-wise appending to parquet is slow for larger amounts of model runs
                 # therefore using csv. Merged to parquet in self._merge_df_run_files
-                fn = os.path.join(self.io.cl_out, 'def_run%s.csv'%suffix)
                 if os.path.isfile(fn):
                     df_add.to_csv(fn, mode='a', header=False, index=False)
                 else:
