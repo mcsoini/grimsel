@@ -99,7 +99,7 @@ class ParameterAdder:
             self.parameter_index = (self.m.mt, *self.parameter_index)
 
             # modify IO class attribute to get the output table indices right
-            io.DICT_IDX[self.parameter_name] = sets_new
+            io.table_struct.DICT_COMP_IDX[self.parameter_name] = sets_new
 
     @property
     def df(self):
@@ -373,7 +373,7 @@ class ParameterAdder:
         logger.info('Applying monthly factors to parameter %s'%param)
 
         try:
-            sets_io = io.DICT_IDX[param]
+            sets_io = io.table_struct.DICT_COMP_IDX[param]
         except:
             raise ValueError(('ModelBase._apply_monthly_factors: '
                               + 'Parameter {} '
