@@ -1,6 +1,6 @@
 
 #__all__ = ['auxiliary', 'core', 'plotting', 'analysis']
 
-import grimsel.grimsel as grimsel
+#import grimsel.grimsel as grimsel
 
 
