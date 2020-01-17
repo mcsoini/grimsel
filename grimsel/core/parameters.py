@@ -106,7 +106,8 @@ class ParameterAdder:
         '''
         ``df`` is the DataFrame holding the parameter data. It is implemented
         as a property so it can't be changed after initialization of the
-        :class:`ParameterAdder` instance.
+        :class:`ParameterAdder` instance. This allows to restore the original
+        values using :func:`ParameterAdder.init_update()`.
 
         '''
         return self._df
@@ -357,8 +358,9 @@ class ParameterAdder:
 
         Raises
         ------
-        ValueError
-            If the ``param`` is not included in the ``io.DICT_IDX``
+        KeyError
+            If the ``param`` is not included in the
+            ``io.table_struct.DICT_COMP_IDX``
             table |rarr| index dictionary and therefore its index set
             definition cannot be inferred.
         ValueError
@@ -375,7 +377,7 @@ class ParameterAdder:
         try:
             sets_io = io.table_struct.DICT_COMP_IDX[param]
         except:
-            raise ValueError(('ModelBase._apply_monthly_factors: '
+            raise KeyError(('ModelBase._apply_monthly_factors: '
                               + 'Parameter {} '
                               + 'not included in the IO '
                               + 'parameter list.').format(param))
@@ -549,7 +551,7 @@ class Parameters:
             'df_plant_encar', None, ['pp_id'], self.ppall, default=0),
         Par('fc_cp_ann', (self.add, self.ca),
             'df_plant_encar', None, ['pp_id'], self.add),
-            
+
         Par('pwr_pot', (self.add, self.ca),
             'df_plant_encar', None, ['pp_id'], self.add, default=1e9),
         Par('cap_avlb', (self.pp, self.ca),
