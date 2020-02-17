@@ -520,7 +520,9 @@ class ModelWriter():
             setattr(self, key, val)
         self.__dict__.update(kwargs)
 
-        self._make_table_dicts(keep=self.keep, drop=self.drop)
+        self.dict_comp_idx = None
+        self.dict_comp_table = None
+        self.dict_comp_group = None
 
         ls = 'Output collection: {}; resume loop={}'
         logger.info(ls.format(self.cl_out, self.resume_loop))
@@ -550,7 +552,6 @@ class ModelWriter():
         self.dict_comp_idx = filter_dict(table_struct.DICT_COMP_IDX)
         self.dict_comp_table = filter_dict(table_struct.DICT_COMP_TABLE)
         self.dict_comp_group = filter_dict(table_struct.DICT_COMP_GROUP)
-
 
     def reset_tablecollection(self):
         '''
@@ -697,6 +698,8 @@ Hit enter to proceed.
         '''
         Initialize all output table IO objects.
         '''
+
+        self._make_table_dicts(keep=self.keep, drop=self.drop)
 
         if __name__ == '__main__':
             comp, idx = 'pwr_st_ch', self.dict_comp_idx['pwr_st_ch']
@@ -1523,7 +1526,7 @@ class IO:
         ''' Wrapper for backward compatibility. '''
 
         if not sets:
-            sets = table_struct.dict_component_index[py_obj.name]
+            sets = table_struct.DICT_COMP_IDX[py_obj.name]
             sets = [st for st in sets if not st == 'bool_out']
 
         return VariabIO._to_df(py_obj, sets)
@@ -1533,7 +1536,7 @@ class IO:
         ''' Wrapper for backward compatibility. '''
 
         if not sets:
-            sets = table_struct.dict_component_index[py_obj.name]
+            sets = table_struct.DICT_COMP_IDX[py_obj.name]
 
         return ParamIO._to_df(py_obj, sets)
 

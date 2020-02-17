@@ -447,6 +447,9 @@ class Sets:
 
     %s
 
+
+.. _power_plant_sets:
+
 .. table:: **Primary power plant sets and subsets**
     :widths: 15 10 100 30
 
