@@ -547,8 +547,8 @@ class Parameters:
             index_cols=['pp_id', 'ca_id']),
         Par('vc_om', (self.ppall, self.ca),
             'df_plant_encar', None, ['pp_id'], self.ppall),
-        Par('fc_om', (self.ppall, self.ca),
-            'df_plant_encar', None, ['pp_id'], self.ppall, default=0),
+        Par('fc_om', (self.add, self.ca),
+            'df_plant_encar', None, ['pp_id'], self.add, default=0),
         Par('fc_cp_ann', (self.add, self.ca),
             'df_plant_encar', None, ['pp_id'], self.add),
 
