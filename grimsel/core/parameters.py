@@ -635,8 +635,8 @@ class Parameters:
                     'vc_ramp': r':math:`\mathrm{vc_{ramp, p,c}} : \forall \mathrm{(p,c) \in ppall\_ca}`: Specific variable ramping cost :math:`\mathrm{(EUR/MW)}`.',
                     'vc_fl': r':math:`\mathrm{vc_{f,n}} : \forall \mathrm{(f,n) \in fl\_nd}`: Specific fuel cost in each node :math:`\mathrm{(EUR/MWh_{fl})}`.',
                     'vc_om': r':math:`\mathrm{vc_{om, p,c}} : \forall \mathrm{(p,c) \in ppall\_ca}`: Specific variable O\&M costs :math:`\mathrm{(EUR/MWh_{el})}`.',
-                    'fc_om': r':math:`\mathrm{fc_{om, p,c}} : \forall \mathrm{(p,c) \in ppall\_ca}`: Specific fixed O\&M costs :math:`\mathrm{(EUR/MW/yr)}`.',
-                    'fc_cp_ann': r':math:`\mathrm{fc_{cp, p,c}} : \forall \mathrm{(p,c) \in ppall\_ca}`: Annualized specific capital investment costs :math:`\mathrm{(EUR/MW/yr)}`.',
+                    'fc_om': r':math:`\mathrm{fc_{om, p,c}} : \forall \mathrm{(p,c) \in ppadd\_ca}`: Specific fixed O\&M costs :math:`\mathrm{(EUR/MW/yr)}`.',
+                    'fc_cp_ann': r':math:`\mathrm{fc_{cp, p,c}} : \forall \mathrm{(p,c) \in ppadd\_ca}`: Annualized specific capital investment costs :math:`\mathrm{(EUR/MW/yr)}`.',
                     },
         'Linear supply curve coefficients': {
                     'factor_lin_0': r':math:`f_\mathrm{0, p,c} : \forall \mathrm{(p,c) \in lin\_ca}`: Zero-order linear supply curve efficiency coefficient :math:`\mathrm{(MWh_{fl}/MWh_{el})}`.',
