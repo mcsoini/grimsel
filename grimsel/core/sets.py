@@ -348,8 +348,8 @@ class Sets:
 
         # fuels are bought fuels only, not generated encars used as input
         df = self.df_def_fuel.copy()
-        df = df.loc[df.is_ca.isin([0]), 'fl_id']
-        self.setlst['fl'] = df.get_values().tolist()
+#        df = df.loc[df.is_ca.isin([0]), 'fl_id']
+        self.setlst['fl'] = df.fl_id.get_values().tolist()
 
 
         for col, df in [('supply_pf_id', self.df_plant_encar),

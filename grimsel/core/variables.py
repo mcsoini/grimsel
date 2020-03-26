@@ -21,7 +21,7 @@ VAR_DOCS = {'pwr': ':math:`p_\\mathrm{t,p,c} \\forall sy\\_ppall\\_ca \\in (0,\\
          'pwr_st_ch': ':math:`p_\\mathrm{chg,t,p,c} \\forall sy\\_st\\_ca \\in (0,\\infty)`: per time slot charging power of storage plants',
          'erg_st': ':math:`e_\\mathrm{t,p,c} \\forall sy\\_st\\_ca\\cup sy\\_hyrs\\_ca \\in (0,\\infty)`: stored energy in storage and reservoirs each time slot',
          'trm': ':math:`p_\\mathrm{trm,t,n,n_2,c} \\forall symin\\_ndcnn \\in (-\\infty,\\infty)`: internodal power transmission for each of the time slots',
-         'erg_mt': ':math:`E_\\mathrm{m,p,c} \\forall mt \\times hyrs\\_ca\\cup pp\\_ca \\in (0,\\infty)`: monthly produced energy from hydro reservoirs and dispatchable plants',
+         'erg_mt': ':math:`E_\\mathrm{m,p,c} \\forall mt \\times hyrs\\_ca\\in (0,\\infty)`: monthly produced energy from hydro reservoirs',
          'erg_fl_yr': ':math:`E_\\mathrm{p,n,c,f} \\forall ppall\\_ndcafl\\in (0,\\infty)`: yearly produced energy by plant and fuel',
          'erg_yr': ':math:`E_\\mathrm{p,c} \\forall ppall\\_ca \\in (0,\\infty)`: yearly produced energy by plant',
          'pwr_ramp_yr': ':math:`\\Delta p_\\mathrm{p,c} \\forall rp\\_ca \\in (0,\\infty)`: yearly aggregated absolute ramping',
@@ -60,7 +60,7 @@ class Variables:
                  Var('erg_st', self.sy_st_ca | self.sy_hyrs_ca, None),
 
                  Var('trm', self.symin_ndcnn, (None, None)),
-                 Var('erg_mt', (self.mt, self.hyrs_ca | self.pp_ca,), None),
+                 Var('erg_mt', (self.mt, self.hyrs_ca), None),
                  Var('erg_fl_yr', self.ppall_ndcafl, None),
                  Var('erg_yr', self.ppall_ca, None),
                  Var('pwr_ramp_yr', self.rp_ca, None),
