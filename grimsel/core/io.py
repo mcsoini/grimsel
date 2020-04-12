@@ -171,7 +171,6 @@ class CompIO(_HDFWriter, _ParqWriter):
                                'output_target applicable')
 
 
-
     def _to_sql(self, df, tb):
 
         df.to_sql(tb, self.connect.get_sqlalchemy_engine(),

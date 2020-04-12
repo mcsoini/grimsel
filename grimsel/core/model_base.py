@@ -172,6 +172,8 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
             self.add_all_constraints()
             self.init_solver()
 
+
+
     @classmethod
     def get_constraint_groups(cls, excl=None):
         '''
@@ -848,7 +850,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         '''
 
 
-        if getattr(self, 'df_tm_soy', None) is not None:
+        if getattr(self, 'df_tm_soy', None) is not None:  # is none by default, so hasattr doesn't work!z
             self._init_time_map_input()
         else:
             self._init_time_map()

@@ -429,7 +429,7 @@ class Constraints:
 
         self.cadd('st_erg_capac', self.sy_st_ca | self.sy_hyrs_ca,
                   rule=st_erg_capac_rule)
-        
+
         def pwr_pot_add_rule(self, pp, ca):
             ''' Capcity added + legacy must be less than potential capacity '''
 
@@ -437,7 +437,7 @@ class Constraints:
                     <= self.pwr_pot[pp, ca])
 
         self.cadd('pwr_pot_add', self.add_ca, rule=pwr_pot_add_rule)
-        
+
     def add_chp_rules(self):
         r'''
         Adds all co-generation related constraints.
