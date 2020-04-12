@@ -142,6 +142,18 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         self.list_vars = ModelBase.list_vars
         self.list_constr_deact = ModelBase.list_constr_deact
 
+
+#    def _update_slct_lists(self):
+#        ''''''
+#        for attr, series in ((self.slct_encar, self.df_def_encar.ca),
+#                             (self.slct_encar_id, self.df_def_encar.ca_id),
+#                             (self.slct_pp_type_id, self.df_def_pp_type.pt),
+#                             (self.slct_pp_type_id, self.df_def_pp_type.pt),
+#                             (self.slct_node, self.df_def_node.nd)):
+#            if not attr:
+#                attr = series.tolist()
+
+
     def build_model(self):
         '''
         Call the relevant model methods to get everything set up.

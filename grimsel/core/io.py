@@ -1176,6 +1176,9 @@ class DataReader(_HDFWriter, _ParqWriter):
                                  + list(dict_tb_0) + list(dict_tb_3)
                                  + list(dict_pf_1))
 
+#        self.model._update_slct_lists()
+
+
     def _split_profprice(self):
         '''
         Make two separate DataFrames for profprice buying and selling.
