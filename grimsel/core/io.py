@@ -68,7 +68,20 @@ class _ParqWriter:
         '''
 
         if self.output_target == 'fastparquet':
-            pq.write(fn, df, append=os.path.isfile(fn), compression='GZIP')
+            df.to_parquet(fn, engine='fastparquet',
+                          compression='gzip',)
+
+#            if 'run_id' in df.columns:
+#                df.to_parquet(fn, #append=os.path.isfile(fn),
+#                              engine='fastparquet',
+#                              compression='gzip',
+#                              partition_cols=['run_id'])
+#            else:
+#                df.to_parquet(fn, #append=os.path.isfile(fn),
+#                              engine='fastparquet',
+#                              compression='gzip'
+#                              )
+
 
         else:
             raise RuntimeError('Writing using parquet engine %s '
