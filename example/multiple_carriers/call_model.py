@@ -4,12 +4,14 @@ from importlib import reload
 import matplotlib.pyplot as plt
 import numpy as np
 
-import grimsel_h.core.model_loop as model_loop
-from grimsel_h.analysis.sql_analysis import SqlAnalysis
-import grimsel_h.plotting.plotpage as pltpg
-import grimsel_h.auxiliary.maps as maps
+import grimsel.core.model_loop as model_loop
+#from grimsel_h.analysis.sql_analysis import SqlAnalysis
+#import grimsel.plotting.plotpage as pltpg
+import grimsel.auxiliary.maps as maps
 
-from grimsel_h.core.model_base import ModelBase as MB
+from grimsel.core.model_base import ModelBase as MB
+
+sys.exit()
 
 # %%
 ## %%%%%%%%%%%%%%%%%%%%%%% INIT MODEL %%%%%%%%%%%%%%%%%%%%%%%
