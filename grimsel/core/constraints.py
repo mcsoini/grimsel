@@ -245,8 +245,7 @@ class Constraints:
                            for (pp, nd, ca_out, ca)
                            in set_to_list(self.pp_ndcaca,
                                           [None, nd, None, ca])))
-            gl = (self.grid_losses[nd, ca] if hasattr(self, 'grid_losses')
-                  else po.ZeroConstant)
+            gl = self.grid_losses[nd, ca]
 
             return prod == (dmnd + ca_cons) * (1 + gl) + exports
 
