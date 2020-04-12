@@ -10,6 +10,7 @@ import string
 import pyutilib
 import contextlib
 from collections import namedtuple
+import numbers
 
 import numpy as np
 import pandas as pd
@@ -141,6 +142,18 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         self.list_vars = ModelBase.list_vars
         self.list_constr_deact = ModelBase.list_constr_deact
 
+
+#    def _update_slct_lists(self):
+#        ''''''
+#        for attr, series in ((self.slct_encar, self.df_def_encar.ca),
+#                             (self.slct_encar_id, self.df_def_encar.ca_id),
+#                             (self.slct_pp_type_id, self.df_def_pp_type.pt),
+#                             (self.slct_pp_type_id, self.df_def_pp_type.pt),
+#                             (self.slct_node, self.df_def_node.nd)):
+#            if not attr:
+#                attr = series.tolist()
+
+
     def build_model(self):
         '''
         Call the relevant model methods to get everything set up.
@@ -170,6 +183,8 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
             self.define_variables()
             self.add_all_constraints()
             self.init_solver()
+
+
 
     @classmethod
     def get_constraint_groups(cls, excl=None):
@@ -481,9 +496,9 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
 
             nhours_dict = {}
 
-            for nd in self.slct_node:
+            for nd_id in self.slct_node_id:
 
-                nd_id = self.mps.dict_nd_id[nd]
+                nd = self.mps.dict_nd[nd_id]
 
                 if nd in nhours:
 
@@ -491,7 +506,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
                         # all there
                         nhours_dict[nd_id] = nhours[nd]
 
-                    elif isinstance(nhours[nd], (float, int)):
+                    elif isinstance(nhours[nd], numbers.Number):
                         # assuming original time resolution 1 hour
                         nhours_dict[nd_id] = (1, nhours[nd])
 
@@ -499,8 +514,19 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
                     # assuming default
                     nhours_dict[nd_id] = (1, 1)
 
-        elif isinstance(nhours, (float, int, np.integer, np.float)):
+        elif isinstance(nhours, numbers.Number):
             nhours_dict = {nd: (1, nhours) for nd in self.slct_node_id}
+        elif isinstance(nhours, tuple):
+            nhours_dict = {nd: nhours for nd in self.slct_node_id}
+        else:
+            raise ValueError(f'Unknown structure of `nhours`: {nhours}.\n'
+                               f'Must be one of\n'
+                               f'* number: constant target time resolution,'
+                               f'  assuming 1 hour input data time resolution\n'
+                               f'* tuple (input_t_res, target_t_res): applied'
+                               f'  to all nodes\n'
+                               '* dict {nd: (input, target)}: explicit '
+                                'specification')
 
         return nhours_dict
 
@@ -836,7 +862,7 @@ class ModelBase(po.ConcreteModel, constraints.Constraints,
         '''
 
 
-        if getattr(self, 'df_tm_soy', None) is not None:
+        if getattr(self, 'df_tm_soy', None) is not None:  # is none by default, so hasattr doesn't work!z
             self._init_time_map_input()
         else:
             self._init_time_map()

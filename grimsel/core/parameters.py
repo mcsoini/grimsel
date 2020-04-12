@@ -402,38 +402,6 @@ class ParameterAdder:
         return df1[list(sets_new + (self.value_col,))], sets_new
 
 
-
-if __name__ == '__main__':
-
-    fields = ('parameter_name', 'parameter_index', 'source_dataframe',
-              'value_col', 'filt_cols', 'filt_vals', 'mutable', 'default',
-              'index_cols')
-    defaults = (None,) * 6 + (True, None, None)
-    Par = namedtuple('Par', fields)
-    Par.__new__.__defaults__ = defaults
-
-    par = Par('vc_fl', (ml.m.fl, ml.m.nd), 'df_fuel_node_encar', default=0)
-#    par = Par('weight', ml.m.tmsy, 'df_tm_soy')
-#    par = Par('cf_max', (ml.m.pp, ml.m.ca), 'df_plant_encar', None, ['pp_id'], ml.m.pp)
-    par = Par('inflowprof', (ml.m.sy_hyrs_ca | ml.m.sy_ror_ca), 'df_profinflow_soy', 'value', index_cols=['sy', 'pp_id', 'ca_id'])
-
-    self = ml.m
-    par = Par('fc_om', (self.add | self.rem, self.ca),
-            'df_plant_encar', None, ['pp_id'], self.ppall, default=0)
-
-
-
-
-    ml.m.dict_monthly_factors = {}
-
-    parameter = ParameterAdder(ml.m, par)
-
-    self = parameter
-
-#    self.source_dataframe
-
-#    self.init_update()
-
 # %%
 class Parameters:
     r'''
@@ -509,7 +477,7 @@ class Parameters:
         Par('min_erg_share', self.hyrs, 'df_hydro'),
 
         Par('weight', self.tmsy, 'df_tm_soy'),
-        Par('grid_losses', (self.nd, self.ca), 'df_node_encar'),
+        Par('grid_losses', (self.nd, self.ca), 'df_node_encar', default=0),
 
         Par('cap_trme_leg', (self.mt, self.ndcnn),
             'df_node_connect'),
@@ -657,6 +625,7 @@ class Parameters:
          'discharge_duration': 'df_plant_encar',
          'dmnd': 'df_profdmnd_soy',
          'erg_chp': 'df_plant_encar',
+         'erg_inp': 'df_fuel_node_encar',
          'factor_lin_0': 'df_plant_encar',
          'factor_lin_1': 'df_plant_encar',
          'fc_cp_ann': 'df_plant_encar',
@@ -673,7 +642,7 @@ class Parameters:
          'st_lss_hr': 'df_plant_encar',
          'st_lss_rt': 'df_plant_encar',
          'supprof': 'df_profsupply_soy',
-         'vc_fl': 'merge(df_plant_encar, df_parameter_month)',
+         'vc_fl': 'merge(df_fuel_node_encar, df_parameter_month)',
          'vc_om': 'df_plant_encar',
          'vc_ramp': 'df_plant_encar',
          'weight': 'df_tm_soy',

@@ -68,7 +68,20 @@ class _ParqWriter:
         '''
 
         if self.output_target == 'fastparquet':
-            pq.write(fn, df, append=os.path.isfile(fn), compression='GZIP')
+            df.to_parquet(fn, engine='fastparquet',
+                          compression='gzip',)
+
+#            if 'run_id' in df.columns:
+#                df.to_parquet(fn, #append=os.path.isfile(fn),
+#                              engine='fastparquet',
+#                              compression='gzip',
+#                              partition_cols=['run_id'])
+#            else:
+#                df.to_parquet(fn, #append=os.path.isfile(fn),
+#                              engine='fastparquet',
+#                              compression='gzip'
+#                              )
+
 
         else:
             raise RuntimeError('Writing using parquet engine %s '
@@ -169,7 +182,6 @@ class CompIO(_HDFWriter, _ParqWriter):
         else:
             raise RuntimeError('_to_file: no '
                                'output_target applicable')
-
 
 
     def _to_sql(self, df, tb):
@@ -1176,6 +1188,9 @@ class DataReader(_HDFWriter, _ParqWriter):
         self.input_table_list = (list(dict_tb_1) + list(dict_tb_2)
                                  + list(dict_tb_0) + list(dict_tb_3)
                                  + list(dict_pf_1))
+
+#        self.model._update_slct_lists()
+
 
     def _split_profprice(self):
         '''
