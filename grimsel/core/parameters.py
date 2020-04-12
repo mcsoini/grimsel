@@ -509,7 +509,7 @@ class Parameters:
         Par('min_erg_share', self.hyrs, 'df_hydro'),
 
         Par('weight', self.tmsy, 'df_tm_soy'),
-        Par('grid_losses', (self.nd, self.ca), 'df_node_encar'),
+        Par('grid_losses', (self.nd, self.ca), 'df_node_encar', default=0),
 
         Par('cap_trme_leg', (self.mt, self.ndcnn),
             'df_node_connect'),
