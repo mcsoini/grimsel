@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import wrapt
 from glob import glob
+import re
 
 import grimsel.auxiliary.sqlutils.aux_sql_func as aql
 from grimsel.auxiliary.aux_general import silence_pd_warning
@@ -319,7 +320,8 @@ class Maps():
 
         if 'run' in self._dict_tb:
             ddfrun = self._dict_tb['run']
-            ddfrun = ddfrun[[c for c in ddfrun.columns if c.endswith('_vl')]]
+            ddfrun = ddfrun[[c for c in ddfrun.columns
+                             if re.match('.*[_vl|_id]$', c)]]
 
             df = df.join(ddfrun, on='run_id')
 
