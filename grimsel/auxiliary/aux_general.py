@@ -18,9 +18,9 @@ def silence_pd_warning(f, self, args, kwargs):
 
 
 def print_full(x):
-    pd.set_option('display.max_rows', len(x))
-    print(x)
-    pd.reset_option('display.max_rows')
+    with pd.set_option('display.max_rows', len(x)) as _:
+        print(x)
+
 
 
 def get_ols(df, add_constant=True, verbose=False):
