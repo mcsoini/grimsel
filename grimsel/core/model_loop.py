@@ -76,7 +76,8 @@ class ModelLoop():
         defaults = {
                     'nsteps': ModelLoop.nsteps_default,
                     'mkwargs': {},
-                    'iokwargs': {}
+                    'iokwargs': {},
+                    'full_setup': True
                     }
 
         for key, val in defaults.items():
@@ -91,26 +92,26 @@ class ModelLoop():
 
         self.io = io.IO(**self.iokwargs)
 
-        return
-
-        self.io.read_model_data()
-
-        self.m.map_to_time_res()
-
-        # Write tables which are generated in dependence on the time
-        # resolution (profiles, boundary conditions).
-        self.m.get_maximum_demand()
-        self.io.write_runtime_tables()
-
-        self.m.mps = maps.Maps(self._out, db=self.db)
-
-        self.m.build_model()
-
         self.init_run_table()
 
-        self.io.init_output_tables()
-
         self.select_run(0)
+
+        if self.full_setup:
+
+            self.io.read_model_data()
+
+            self.m.init_maps()
+            self.m.map_to_time_res()
+            self.io.write_runtime_tables()
+
+            self.m.get_setlst()
+            self.m.define_sets()
+            self.m.add_parameters()
+            self.m.define_variables()
+            self.m.add_all_constraints()
+            self.m.init_solver()
+            self.io.init_output_tables()
+
 
 
     def init_run_table(self):
