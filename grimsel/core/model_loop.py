@@ -275,7 +275,7 @@ class ModelLoop():
                                     'def_run_ForkPoolWorker-[0-9]*.csv'))
 
         df_def_run = pd.concat(pd.read_csv(fn) for fn in list_fn)
-        df_def_run = df_def_run.reset_index(drop=True)
+        df_def_run = df_def_run.sort_values('run_id').reset_index(drop=True)
 
         fn = os.path.join(self.io.cl_out, 'def_run.parq')
         pq.write(fn, df_def_run, append=False)
@@ -295,7 +295,7 @@ class ModelLoop():
             logger.info(strg)
         logger.info(sep)
 
-        logger_parallel.info(run_id_str + ' on ' + current_process().name)
+        logger.info(run_id_str + ' on ' + current_process().name)
 
     @staticmethod
     def restore_run_id(df):
