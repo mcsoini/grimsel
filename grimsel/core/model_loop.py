@@ -85,6 +85,7 @@ class ModelLoop():
         self.__dict__.update(kwargs)
 
         self.run_id = None  # set later
+        self.__runlevel_state = -1
 
         self.m = model_base.ModelBase(**self.mkwargs)
 
@@ -96,22 +97,94 @@ class ModelLoop():
 
         self.select_run(0)
 
-        if self.full_setup:
+#        if self.full_setup:
+#
+#            self.io.read_model_data()
+#
+#            self.m.init_maps()
+#            self.m.map_to_time_res()
+#            self.io.write_runtime_tables()
+#
+#            self.m.get_setlst()
+#            self.m.define_sets()
+#            self.m.add_parameters()
+#            self.m.define_variables()
+#            self.m.add_all_constraints()
+#            self.m.init_solver()
+#            self.io.init_output_tables()
 
-            self.io.read_model_data()
 
-            self.m.init_maps()
-            self.m.map_to_time_res()
-            self.io.write_runtime_tables()
+    @property
+    def _runlevel_state(self):
+        return self.__runlevel_state
 
-            self.m.get_setlst()
-            self.m.define_sets()
-            self.m.add_parameters()
-            self.m.define_variables()
-            self.m.add_all_constraints()
-            self.m.init_solver()
-            self.io.init_output_tables()
+    @_runlevel_state.setter
+    def _runlevel_state(self, _runlevel_state):
 
+        assert _runlevel_state == self.__runlevel_state + 1, (
+                'Must increment runlevel state by one. Caught attempt to jump '
+                f'from {self.__runlevel_state} '
+                f'({self._dict_runlevels[self.__runlevel_state]})'
+                f' to {_runlevel_state} '
+                f'({self._dict_runlevels[_runlevel_state]})')
+
+        self.__runlevel_state = _runlevel_state
+
+
+    _dict_runlevels = {
+            0: 'io.read_model_data',
+            1: 'm.init_maps',
+            2: 'm.map_to_time_res',
+            3: 'io.write_runtime_tables',
+            4: 'm.get_setlst',
+            5: 'm.define_sets',
+            6: 'm.add_parameters',
+            7: 'm.define_variables',
+            8: 'm.add_all_constraints',
+            9: 'm.init_solver',
+            10: 'io.init_output_tables'}
+
+
+    def build_model(self, to_runlevel='full'):
+        '''
+        Run sequence of methods to read the data and initialize the Pyomo
+        components.
+
+        Parameters
+        ----------
+        to_runlevel : str, one of `['full', 'input_data']`
+            `'input_data'`: stop after reading all input data; allows to
+            make modifications to the input dataframes
+            `'full'`: complete construction of the model; allows to
+            make modications to the Pyomo components
+        '''
+
+        dict_to_runlevel = {'input_data': 2, 'full': 10}
+
+        dict_to_runlevel = {'full': 7, 'read_data': 2}
+        assert to_runlevel in ('full', 'read_data'), (
+                f'Unknown to_runlevel level \'{to_runlevel}\'. '
+                f'Expecting one of {list(dict_to_runlevel)}.')
+
+        # filter runlevel dictionary by selected runlevels
+        _dict_runlevel_slct = {lvl: meth for lvl, meth
+                               in self._dict_runlevels.items()
+                               if lvl > self._runlevel_state
+                               and lvl <= dict_to_runlevel[to_runlevel]}
+
+        for runlevel, method in _dict_runlevel_slct.items():
+
+            attr, method = method.split('.')
+
+            func = getattr(getattr(self, attr), method)
+
+            logger.info('%' * 60)
+            logger.info(f'ModelLoop.build_model: Runlevel {runlevel}: '
+                        f'Calling method {method}')
+            logger.info('%' * 60)
+
+            func()
+            self._runlevel_state = runlevel
 
 
     def init_run_table(self):
