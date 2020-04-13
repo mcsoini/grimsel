@@ -8,6 +8,7 @@ Model parameters
 
 import pyomo.environ as po
 import pyomo.core.base.sets as poset
+from pyomo.core.base.set_types import Reals
 import itertools
 import numpy as np
 import pandas as pd
@@ -56,7 +57,8 @@ class ParameterAdder:
         self.filt_vals = par.filt_vals
         self.default = par.default
         self.param_kwargs = {'mutable': par.mutable,
-                             'default': par.default}
+                             'default': par.default,
+                             'domain': par.domain}
 
         log_str = ('Assigning parameter '
                    '{par} ...'.format(par=self.parameter_name))
@@ -446,8 +448,8 @@ class Parameters:
 
         fields = ('parameter_name', 'parameter_index', 'source_dataframe',
                   'value_col', 'filt_cols', 'filt_vals', 'mutable', 'default',
-                  'index_cols')
-        defaults = (None,) * 6 + (True, None, None)
+                  'index_cols', 'domain')
+        defaults = (None,) * 6 + (True, 0, None, Reals)
         Par = namedtuple('Par', fields)
         Par.__new__.__defaults__ = defaults
 
@@ -466,11 +468,11 @@ class Parameters:
             'df_profpricesll_soy', 'value'),
 
         Par('min_erg_mt_out_share', self.hyrs, 'df_hydro'),
-        Par('max_erg_mt_in_share', self.hyrs, 'df_hydro'),
+        Par('max_erg_mt_in_share', self.hyrs, 'df_hydro', default=1),
         Par('min_erg_share', self.hyrs, 'df_hydro'),
 
-        Par('weight', self.tmsy, 'df_tm_soy'),
-        Par('grid_losses', (self.nd, self.ca), 'df_node_encar', default=0),
+        Par('weight', self.tmsy, 'df_tm_soy', default=1),
+        Par('grid_losses', (self.nd, self.ca), 'df_node_encar'),
 
         Par('cap_trme_leg', (self.mt, self.ndcnn),
             'df_node_connect'),
@@ -516,7 +518,7 @@ class Parameters:
         Par('pwr_pot', (self.add, self.ca),
             'df_plant_encar', None, ['pp_id'], self.add, default=1e9),
         Par('cap_avlb', (self.pp, self.ca),
-            'df_plant_encar', None, ['pp_id'], self.pp),
+            'df_plant_encar', None, ['pp_id'], self.pp, default=1),
 
         Par('st_lss_hr', (self.st, self.ca),
             'df_plant_encar', None, ['pp_id'], self.st),
