@@ -27,7 +27,6 @@ except Exception as e:
 
 try:
     import config_local as conf_local
-    FN_XLSX = conf_local.FN_XLSX
     DATABASE = conf_local.DATABASE
     SCHEMA = conf_local.SCHEMA
 
@@ -39,11 +38,12 @@ try:
 except Exception as e:
     print(e)
     logger.error('''
+Could not read PSQL configuration parameters from 
+config_local.
 Please set configuration parameters in
-grimsel/config_local.py, e.g.
+a new project-specific config_local.py file, e.g.
 
 import os
-FN_XLSX = os.path.abspath(\'../DATA/input.xlsx\')
 DATABASE = \'database_name\'
 SCHEMA = 'model_input_schema_name'
 
