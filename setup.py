@@ -1,21 +1,24 @@
-import setuptools
+import fnmatch
+from setuptools import find_packages, setup
+from setuptools.command.build_py import build_py as build_py_orig
 
-with open("README.md", "r") as fh:
+with open("description_pypi.rst", "r") as fh:
     long_description = fh.read()
 
-setuptools.setup(
+setup(
     name="Grimsel",
-    version="0.1",
+    version="0.8.0",
     author="Grimsel contributors listed in AUTHORS",
-    author_email="soini@posteo.de",
-    description="Flexible energy system optimization framework driven by relational input data",
+    author_email="m.c.soini@posteo.de",
+    description=("GeneRal Integrated Modeling environment for the Supply of"
+                 "Electricity and Low-temperature heat"),
     long_description=long_description,
-    long_description_content_type="text/markdown",
+    long_description_content_type="text/x-rst",
     url="https://github.com/mcsoini/grimsel",
-    packages=setuptools.find_packages(),
+    packages=find_packages(),
+    install_requires=[],
     classifiers=[
-        "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: BSD 2-Clause License",
-        "Operating System :: OS Independent",
-    ],
+        "Programming Language :: Python :: 3.8",
+        "Operating System :: OS Independent"],
 )
+
