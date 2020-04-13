@@ -26,7 +26,7 @@ logger = _get_logger(__name__)
 _par_fields = ('parameter_name', 'parameter_index', 'source_dataframe',
                'value_col', 'filt_cols', 'filt_vals', 'mutable', 'default',
                'index_cols', 'domain')
-_par_defaults = (None,) * 6 + (True, None, None, Reals)
+_par_defaults = (None,) * 6 + (True, 0, None, Reals)
 Par = namedtuple('Par', _par_fields)
 Par.__new__.__defaults__ = _par_defaults
 
