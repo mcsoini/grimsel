@@ -460,7 +460,8 @@ class Parameters:
         Par('chpprof', (self.sy_ndca),
             'df_profchp_soy', 'value'),
         Par('inflowprof', (self.sy_hyrs_ca | self.sy_ror_ca),
-            'df_profinflow_soy', 'value', index_cols=['sy', 'pp_id', 'ca_id']),
+            'df_profinflow_soy', 'value',
+            index_cols=['sy', 'pp_id', 'ca_id']),
 
         Par('pricebuyprof', (self.sy, self.pricebuy_pf),
             'df_profpricebuy_soy', 'value'),
@@ -474,16 +475,14 @@ class Parameters:
         Par('weight', self.tmsy, 'df_tm_soy', default=1),
         Par('grid_losses', (self.nd, self.ca), 'df_node_encar'),
 
-        Par('cap_trme_leg', (self.mt, self.ndcnn),
-            'df_node_connect'),
-        Par('cap_trmi_leg', (self.mt, self.ndcnn),
-            'df_node_connect'),
+        Par('cap_trme_leg', (self.mt, self.ndcnn), 'df_node_connect'),
+        Par('cap_trmi_leg', (self.mt, self.ndcnn), 'df_node_connect'),
 
         Par('vc_ramp', (self.ppall, self.ca), 'df_plant_encar', None,
             ['pp_id', 'ca_id'], set_to_list(self.rp_ca, [None, None])),
 
-        Par('pp_eff', (self.pp - self.lin, self.ca), 'df_plant_encar', None, ['pp_id'],
-            self.pp - self.lin, default=1),
+        Par('pp_eff', (self.pp - self.lin, self.ca), 'df_plant_encar', None,
+            ['pp_id'], self.pp - self.lin, default=1),
         Par('cf_max', (self.pp, self.ca), 'df_plant_encar', None, ['pp_id'],
             self.pp),
 

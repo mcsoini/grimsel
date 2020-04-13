@@ -7,7 +7,7 @@ import grimsel
 logger = grimsel._get_logger(__name__)
 
 
-logger.info('grimsel_config file ', __file__)
+logger.info(f'grimsel_config file {__file__}')
 
 try:
     import config_local as conf_local
@@ -23,7 +23,7 @@ try:
     BASE_DIR = conf_local.BASE_DIR
 except Exception as e:
     print(e)
-    logger.warn('Could not import BASE_DIR path.')
+    logger.warning('Could not import BASE_DIR path.')
 
 try:
     import config_local as conf_local
@@ -38,7 +38,7 @@ try:
 except Exception as e:
     print(e)
     logger.error('''
-Could not read PSQL configuration parameters from 
+Could not read PSQL configuration parameters from
 config_local.
 Please set configuration parameters in
 a new project-specific config_local.py file, e.g.
