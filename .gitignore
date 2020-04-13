@@ -4,6 +4,7 @@ introductory_example_files/
 tmp*
 *.hdf
 *.hdf5
+*.sql
 
 OBSOLETE/
 *.pyc
