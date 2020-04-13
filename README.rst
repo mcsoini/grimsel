@@ -2,7 +2,7 @@
 Grimsel
 ==========
 
-**G**ene**R**al **I**ntegrated **M**odeling environment for the **S**upply of **E**lectricity and **L**ow-temperature heat
+**G**\ene\ **R**\al **I**\ntegrated **M**\odeling environment for the **S**\upply of **E**\lectricity and **L**\ow-temperature heat
 
 ============
 Installation
