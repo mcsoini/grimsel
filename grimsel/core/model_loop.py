@@ -76,28 +76,10 @@ class ModelLoop():
         self.m = model_base.ModelBase(**self.mkwargs)
 
         self.iokwargs.update({'model': self.m})
-
         self.io = io.IO(**self.iokwargs)
 
         self.init_run_table()
-
         self.select_run(0)
-
-#        if self.full_setup:
-#
-#            self.io.read_model_data()
-#
-#            self.m.init_maps()
-#            self.m.map_to_time_res()
-#            self.io.write_runtime_tables()
-#
-#            self.m.get_setlst()
-#            self.m.define_sets()
-#            self.m.add_parameters()
-#            self.m.define_variables()
-#            self.m.add_all_constraints()
-#            self.m.init_solver()
-#            self.io.init_output_tables()
 
 
     @property
@@ -402,7 +384,8 @@ class ModelLoop():
         with self.m.temp_files() as (tmp_dir, logf, warmf, solnf):
 
             self._print_run_title(self.m.warmstartfile, self.m.solutionfile)
-            self.m.run(warmstart=warmstart, tmp_dir=tmp_dir, logf=logf, warmf=warmf, solnf=solnf)
+            self.m.run(warmstart=warmstart, tmp_dir=tmp_dir,
+                       logf=logf, warmf=warmf, solnf=solnf)
             tdiff_solve = time.time() - t
             stat = ('Solver: ' + str(self.m.results.Solver[0]['Termination condition']))
 
