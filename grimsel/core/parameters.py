@@ -167,7 +167,7 @@ class ParameterAdder:
             # case no df input -> use internal data
             df = self.df
         else:
-            # case external df cols don't have mt_id but index_cols does
+            # case external df cols don't have mt_id but index_cols do
             if (not 'mt_id' in df.columns) and ('mt_id' in self.index_cols):
                 # apply monthly factors to external df
                 df, _ = (self._apply_monthly_factors(df) if not monthly_fact_col
@@ -220,7 +220,6 @@ class ParameterAdder:
                               'pp_eff in the plant_encar table'
                               ).format(e=e, val=self.filt_vals,
                                        cols=self.filt_cols, df=df))
-
 
 
         # check if column exists in table
@@ -278,10 +277,6 @@ class ParameterAdder:
         return index_cols
 
 
-
-
-
-
     def _expand_to_months(self, df0):
         '''
         Adds an additional month column to the input df.
@@ -326,11 +321,9 @@ class ParameterAdder:
 
 
         if len(dff[name_cols].drop_duplicates()) > 1:
-            raise ValueError('apply_monthly_factors: Detected '
-                             + 'inconsistent '
-                             + 'sets for parameter {}. '.format(param)
-                             + 'Each parameter must have one set '
-                             + 'group only.')
+            raise ValueError('apply_monthly_factors: Detected inconsistent '
+                             + f'sets for parameter {param}. '
+                             + 'Each parameter must have one set group only.')
 
         # rename set_id columns using the set_name values
         set_dict = dff[name_cols].iloc[0].T.to_dict()
