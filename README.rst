@@ -4,6 +4,12 @@ Grimsel
 
 **G**\ene\ **R**\al **I**\ntegrated **M**\odeling environment for the **S**\upply of **E**\lectricity and **L**\ow-temperature heat
 
+* Linear/Quadratic programming framework for the cost-optimization of operation and composition of multi-carrier energy systems
+* Based on Pyomo
+* Input given as normalized tables
+* Focus on modification of model structure and parameter values for the efficient generation of large numbers of model runs.
+* Currently relies on CPLEX. Other solvers (compatible with Pyomo) could be added easily, as long as they support quadratic objectives (or as long as no power plants with linear cost supply curves are used).
+
 ============
 Installation
 ============
