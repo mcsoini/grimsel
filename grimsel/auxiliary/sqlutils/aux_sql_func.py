@@ -20,9 +20,6 @@ except:
     pass
 import os
 
-import string
-import random
-
 import grimsel.grimsel_config as config
 
 # %%
