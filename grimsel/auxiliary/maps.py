@@ -9,7 +9,9 @@ import re
 
 import grimsel.auxiliary.sqlutils.aux_sql_func as aql
 from grimsel.auxiliary.aux_general import silence_pd_warning
-from grimsel import logger
+from grimsel import _get_logger
+
+logger = _get_logger(__name__)
 
 rev_dict = lambda dct: {val: key for key, val in dct.items()}
 
