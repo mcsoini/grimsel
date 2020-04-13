@@ -23,7 +23,7 @@ import os
 import string
 import random
 
-import grimsel_config as config
+import grimsel.grimsel_config as config
 
 # %%
 
