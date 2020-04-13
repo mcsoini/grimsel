@@ -43,20 +43,6 @@ class ModelLoop():
                                 (option for zero row)
     '''
 
-    # define loop steps and indices
-    # linspace: float control parameter scaled between 0 and 1
-    # arange: integer control parameter between 0 and n-1
-    nsteps_default = [
-          ('swtc', 2, np.arange),   # storage technology
-          ('swst', 6, np.linspace), # capacity share of storage
-          ('swvr', 3, np.linspace), # energy share of wind solar
-          ('swyr', 5, np.arange),   # meteorological year
-          ('swco', 3, np.arange),   # cost CO2 emissions
-          ('swcd', 2, np.arange),   # charging only wind/solar yes/no
-          ('swrc', 3, np.arange),   # net ramping cost
-          ('swdr', 3, np.arange),   # discount rate
-          ('swct', 1, np.arange),   # country
-          ]
     @property
     def df_def_run(self):
         return self._df_def_run
@@ -74,7 +60,7 @@ class ModelLoop():
         '''
 
         defaults = {
-                    'nsteps': ModelLoop.nsteps_default,
+                    'nsteps': [],
                     'mkwargs': {},
                     'iokwargs': {},
                     'full_setup': True
@@ -198,14 +184,23 @@ class ModelLoop():
         Also initializes the output ``def_run`` table, if required.
         '''
 
+        for istep in self.nsteps:
+            assert (isinstance(istep[0], str) and isinstance(istep[1], int)
+                    and (len(istep) == 2
+                         or istep[2] in (np.linspace, np.arange))), (
+                         'Items of nlist must be tuples like '
+                         ' (str, int, np.arange or np.linspace)'
+                         f' or (str, int); found {istep}')
+
         _nsteps = [list(ist) + ([0, 1] if ist[-1] == np.linspace else [])
                   for ist in self.nsteps]
 
-        list_steps = [list(istep[2](*istep[3:], istep[1]))
+        def getfunc(istep): return istep[2] if len(istep) > 2 else np.arange
+
+        list_steps = [list(getfunc(istep)(*istep[3:], istep[1]))
                       for istep in _nsteps]
 
-        list_steps = [list(map(lambda x: float(x), lst))
-                      for lst in list_steps]
+        list_steps = [list(map(float, lst)) for lst in list_steps]
         full_steps = np.array([tuple(reversed(lst)) for lst in
                       list(itertools.product(*list(reversed(list_steps))))])
         list_index = [list(range(len(i))) for i in list_steps]
