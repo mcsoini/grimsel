@@ -129,8 +129,7 @@ class ModelLoop():
 
         dict_to_runlevel = {'input_data': 2, 'full': 10}
 
-        dict_to_runlevel = {'full': 7, 'read_data': 2}
-        assert to_runlevel in ('full', 'read_data'), (
+        assert to_runlevel in dict_to_runlevel, (
                 f'Unknown to_runlevel level \'{to_runlevel}\'. '
                 f'Expecting one of {list(dict_to_runlevel)}.')
 
