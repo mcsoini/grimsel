@@ -344,12 +344,11 @@ class Sets:
 
         mask_node = self.df_def_node['nd_id'].isin(self.slct_node_id)
         self.setlst['nd'] = self.df_def_node.loc[mask_node]['nd_id'].tolist()
-        self.setlst['ca'] = self.df_def_encar['ca_id'].get_values().tolist()
+        self.setlst['ca'] = self.df_def_encar.ca_id.tolist()
 
         # fuels are bought fuels only, not generated encars used as input
         df = self.df_def_fuel.copy()
-#        df = df.loc[df.is_ca.isin([0]), 'fl_id']
-        self.setlst['fl'] = df.fl_id.get_values().tolist()
+        self.setlst['fl'] = df.fl_id.tolist()
 
 
         for col, df in [('supply_pf_id', self.df_plant_encar),
