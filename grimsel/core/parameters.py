@@ -21,6 +21,16 @@ from grimsel import _get_logger
 
 logger = _get_logger(__name__)
 
+
+# single parameter specification
+_par_fields = ('parameter_name', 'parameter_index', 'source_dataframe',
+               'value_col', 'filt_cols', 'filt_vals', 'mutable', 'default',
+               'index_cols', 'domain')
+_par_defaults = (None,) * 6 + (True, None, None, Reals)
+Par = namedtuple('Par', _par_fields)
+Par.__new__.__defaults__ = _par_defaults
+
+
 class ParameterAdder:
     '''
     Takes care of initializing, setting, and resetting a single parameter.
@@ -445,14 +455,6 @@ class Parameters:
 
         if __name__ == '__main__':
             self = ml.m
-
-        fields = ('parameter_name', 'parameter_index', 'source_dataframe',
-                  'value_col', 'filt_cols', 'filt_vals', 'mutable', 'default',
-                  'index_cols', 'domain')
-        defaults = (None,) * 6 + (True, 0, None, Reals)
-        Par = namedtuple('Par', fields)
-        Par.__new__.__defaults__ = defaults
-
 
         list_par = (
         Par('dmnd', self.sy_ndca, self._get_df_demand(), 'value'),
