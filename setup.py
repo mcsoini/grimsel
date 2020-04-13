@@ -9,7 +9,7 @@ setup(
     name="Grimsel",
     version="0.8.0",
     author="Grimsel contributors listed in AUTHORS",
-    author_email="m.c.soini@posteo.de",
+    author_email="mcsoini_dev@posteo.org",
     description=("GeneRal Integrated Modeling environment for the Supply of"
                  "Electricity and Low-temperature heat"),
     long_description=long_description,
