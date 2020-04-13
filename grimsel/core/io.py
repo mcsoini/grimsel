@@ -649,7 +649,7 @@ Hit enter to proceed.
 
             except Exception as e:
                 logger.error(e)
-                logger.warn('reset_hdf_file: Could not determine max_run_id '
+                logger.warn('reset_parquet_file: Could not determine max_run_id '
                             '... setting to None.')
                 max_run_id = None
 
