@@ -1117,7 +1117,7 @@ class DataReader(_HDFWriter, _ParqWriter):
 
         # secondary filtering by plant
         _flt_pp = [('pp_id', self.model.df_def_plant['pp_id'].tolist())]
-        _flt_fl = [('fl_id', self.model.df_def_plant.fl_id.unique().tolist())]
+        _flt_fl = [('fl_id', list(set(self.model.df_def_plant.fl_id.unique().tolist() + self.model.df_def_encar.fl_id.unique().tolist())))]
         dict_tb_1 = {'profinflow': _flt_pp,
                      'plant_encar': _flt_pp + _flt_ca,
                      'hydro': _flt_pp,
